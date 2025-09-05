@@ -1,5 +1,4 @@
 <?php
-require __DIR__ . '/../app/config/app.php';
 require __DIR__ . '/../app/core/Helpers.php';
 require __DIR__ . '/../app/core/Router.php';
 require __DIR__ . '/../app/core/Controller.php';
