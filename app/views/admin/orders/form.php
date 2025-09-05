@@ -1,6 +1,6 @@
 <?php
-$this->extend('admin/layout.php');
-$this->start('content');
+$title = "Novo pedido";
+ob_start();
 $slug = $activeSlug ?? ($company['slug'] ?? null);
 ?>
 <div class="max-w-3xl mx-auto p-4">
@@ -136,5 +136,8 @@ $slug = $activeSlug ?? ($company['slug'] ?? null);
   addRow();
 })();
 </script>
-<?php $this->end('content'); ?>
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../layout.php';
+?>
 
