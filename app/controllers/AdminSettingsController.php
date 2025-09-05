@@ -50,7 +50,8 @@ class AdminSettingsController extends Controller {
 
   private function normalizeWhatsapp(string $raw): string {
     $digits = preg_replace('/\D+/', '', $raw);
-    if ((strlen($digits)===10 || strlen($digits)===11) && strpos($digits, '55') !== 0) {
+    $digits = substr($digits, 0, 15);
+    if (strlen($digits) <= 11 && strpos($digits, '55') !== 0 && $digits !== '') {
       $digits = '55' . $digits;
     }
     return $digits;
@@ -61,6 +62,7 @@ class AdminSettingsController extends Controller {
     if ($t==='') return null;
     $t = str_replace('.', ':', $t);
     if (preg_match('/^\d{1,2}:\d{2}$/', $t)) return $t . ':00';
+    if (preg_match('/^\d{3,4}$/', $t)) return sprintf('%02d:%02d:00', substr($t,0,-2), substr($t,-2));
     if (preg_match('/^\d{1,2}$/', $t)) return sprintf('%02d:00:00', (int)$t);
     if (preg_match('/^\d{1,2}:\d{2}:\d{2}$/', $t)) return $t;
     return null;
