@@ -10,3 +10,4 @@ Aplicação PHP simples para gerenciar múltiplos cardápios.
 
 O sistema agora detecta automaticamente o caminho base, permitindo a execução em
 qualquer subdiretório sem ajustes adicionais.
+

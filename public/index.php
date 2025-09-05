@@ -53,3 +53,4 @@ if ($uri === '' || $uri === false) $uri = '/';
 
 /* Despacha */
 $router->dispatch($_SERVER['REQUEST_METHOD'], $uri);
+

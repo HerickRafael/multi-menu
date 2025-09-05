@@ -35,3 +35,4 @@ function is_new_product(array $p): bool {
   if (empty($p['created_at'])) return false;    // sem data não dá pra marcar
   return strtotime($p['created_at']) >= strtotime("-{$dias} days");
 }
+

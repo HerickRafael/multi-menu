@@ -11,3 +11,4 @@ return [
   // Coloque 0 para DESLIGAR completamente (seção e badge).
   'novidades_days' => 10,
 ];
+
