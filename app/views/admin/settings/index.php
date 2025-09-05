@@ -133,7 +133,7 @@ ob_start(); ?>
     const rest = d.slice(2);
     if (rest.length >= 9) return `(${ddd}) ${rest.slice(0,5)}-${rest.slice(5)}`;
     if (rest.length >= 8) return `(${ddd}) ${rest.slice(0,4)}-${rest.slice(4)}`;
-    if (rest.length > 2)  return `(${ddd}) ${rest.slice(0,rest.length)}`;
+    if (rest.length > 0)  return `(${ddd}) ${rest}`;
     if (d.length >= 2)    return `(${ddd}) `;
     return d;
   }
