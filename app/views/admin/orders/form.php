@@ -1,8 +1,12 @@
-<?php $this->extend('admin/layout.php'); $this->start('content'); ?>
+<?php
+$this->extend('admin/layout.php');
+$this->start('content');
+$slug = $activeSlug ?? ($company['slug'] ?? null);
+?>
 <div class="max-w-3xl mx-auto p-4">
   <h1 class="text-2xl font-semibold mb-4">Novo pedido</h1>
 
-  <form method="post" action="<?= base_url('admin/orders') ?>" id="order-form" class="space-y-6">
+  <form method="post" action="<?= e(base_url('admin/' . rawurlencode($slug) . '/orders')) ?>" id="order-form" class="space-y-6">
     <!-- Dados do cliente -->
     <div class="rounded-2xl border bg-white p-4">
       <h2 class="font-semibold mb-3">Cliente</h2>
@@ -73,7 +77,7 @@
 
     <div class="flex gap-2">
       <button class="px-4 py-2 rounded-xl border bg-white hover:bg-slate-50">Salvar pedido</button>
-      <a href="<?= base_url('admin/orders') ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
+      <a href="<?= e(base_url('admin/' . rawurlencode($slug) . '/orders')) ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
     </div>
   </form>
 </div>

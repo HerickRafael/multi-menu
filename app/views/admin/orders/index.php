@@ -4,20 +4,20 @@ ob_start();
 
 /** Resolve URL de voltar (dashboard) */
 $slug = $activeSlug ?? ($company['slug'] ?? null);
-$backUrl = $slug ? base_url("admin/{$slug}/dashboard") : base_url('admin');
+$backUrl = $slug ? base_url('admin/' . rawurlencode($slug) . '/dashboard') : base_url('admin');
 ?>
 <div class="max-w-5xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
     <h1 class="text-2xl font-semibold">Pedidos</h1>
     <div class="flex items-center gap-2">
-      <a href="<?= base_url('admin/' . e($slug) . '/orders/create') ?>"
+        <a href="<?= e(base_url('admin/' . rawurlencode($slug) . '/orders/create')) ?>"
          class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">+ Novo pedido</a>
-      <a href="<?= $backUrl ?>"
+        <a href="<?= e($backUrl) ?>"
          class="px-3 py-2 rounded-xl border">← Voltar</a>
     </div>
   </div>
 
-  <form class="mb-4 flex gap-2" method="get" action="<?= base_url('admin/' . e($slug) . '/orders') ?>">
+    <form class="mb-4 flex gap-2" method="get" action="<?= e(base_url('admin/' . rawurlencode($slug) . '/orders')) ?>">
     <select name="status" class="border px-3 py-2 rounded">
       <option value="">Todos</option>
       <?php foreach (['pending'=>'Pendente','paid'=>'Pago','completed'=>'Concluído','canceled'=>'Cancelado'] as $k=>$label): ?>
@@ -48,7 +48,7 @@ $backUrl = $slug ? base_url("admin/{$slug}/dashboard") : base_url('admin');
             <td class="p-2">R$ <?= number_format((float)$o['total'], 2, ',', '.') ?></td>
             <td class="p-2"><?= e($o['created_at']) ?></td>
             <td class="p-2">
-              <a class="underline" href="<?= base_url('admin/' . e($slug) . '/orders/show?id='.(int)$o['id']) ?>">ver</a>
+              <a class="underline" href="<?= e(base_url('admin/' . rawurlencode($slug) . '/orders/show?id=' . (int)$o['id'])) ?>">ver</a>
             </td>
           </tr>
         <?php endforeach; ?>

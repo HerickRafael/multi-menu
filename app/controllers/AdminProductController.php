@@ -10,7 +10,7 @@ class AdminProductController extends Controller {
   private function guard($slug) {
     Auth::start();
     $u = Auth::user();
-    if (!$u) { header('Location: ' . base_url("admin/$slug/login")); exit; }
+      if (!$u) { header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login')); exit; }
     $company = Company::findBySlug($slug);
     if (!$company) { echo "Empresa inválida"; exit; }
     if ($u['role'] !== 'root' && (int)$u['company_id'] !== (int)$company['id']) { echo "Acesso negado"; exit; }
@@ -59,7 +59,7 @@ class AdminProductController extends Controller {
       'sort_order'=>(int)$_POST['sort_order'],
     ];
     Product::create($data);
-    header('Location: ' . base_url("admin/{$company['slug']}/products"));
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
   }
 
   public function edit($params){
@@ -85,12 +85,12 @@ class AdminProductController extends Controller {
       'sort_order'=>(int)$_POST['sort_order'],
     ];
     Product::update((int)$params['id'], $data);
-    header('Location: ' . base_url("admin/{$company['slug']}/products"));
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
   }
 
   public function destroy($params){
     [$u,$company] = $this->guard($params['slug']);
     Product::delete((int)$params['id']);
-    header('Location: ' . base_url("admin/{$company['slug']}/products"));
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
   }
 }

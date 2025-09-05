@@ -1,10 +1,11 @@
 <?php
 $title = "Categoria - " . ($company['name'] ?? '');
 $editing = !empty($cat['id']);
-$action = $editing ? "admin/{$company['slug']}/categories/{$cat['id']}" : "admin/{$company['slug']}/categories";
+$slug = rawurlencode($company['slug']);
+$action = $editing ? 'admin/' . $slug . '/categories/' . (int)$cat['id'] : 'admin/' . $slug . '/categories';
 ob_start(); ?>
 <h1 class="text-2xl font-bold mb-4"><?= $editing ? 'Editar' : 'Nova' ?> Categoria</h1>
-<form method="post" action="<?= base_url($action) ?>" class="grid gap-3 max-w-lg bg-white p-4 rounded-2xl border">
+  <form method="post" action="<?= e(base_url($action)) ?>" class="grid gap-3 max-w-lg bg-white p-4 rounded-2xl border">
   <label class="grid gap-1">
     <span class="text-sm">Nome</span>
     <input name="name" value="<?= e($cat['name'] ?? '') ?>" class="border rounded-xl p-2">
@@ -19,7 +20,7 @@ ob_start(); ?>
   </label>
   <div class="flex gap-2">
     <button class="px-4 py-2 rounded-xl border">Salvar</button>
-    <a href="<?= base_url("admin/{$company['slug']}/categories") ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
+      <a href="<?= e(base_url('admin/' . $slug . '/categories')) ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
   </div>
 </form>
 <?php

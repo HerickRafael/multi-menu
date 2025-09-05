@@ -1,5 +1,7 @@
 <?php
 $title = "Dashboard - " . ($company['name'] ?? 'Empresa');
+$slug = rawurlencode($activeSlug);
+$publicSlug = rawurlencode($company['slug']);
 ob_start(); ?>
 
 <header class="flex items-center gap-3 mb-6">
@@ -12,20 +14,20 @@ ob_start(); ?>
       <?php if (!empty($company['min_order'])): ?> • Mín.: R$ <?= number_format($company['min_order'],2,',','.') ?><?php endif; ?>
     </p>
   </div>
-  <a class="ml-auto px-3 py-2 rounded-xl border" href="<?= base_url("admin/{$activeSlug}/logout") ?>">Sair</a>
+    <a class="ml-auto px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/logout')) ?>">Sair</a>
 </header>
 
 <!-- Abas -->
 <nav class="flex flex-wrap gap-2 mb-5">
-  <a href="<?= base_url("admin/{$activeSlug}/settings") ?>"
+    <a href="<?= e(base_url('admin/' . $slug . '/settings')) ?>"
      class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">⚙️ Geral</a>
-  <a href="<?= base_url("admin/{$activeSlug}/categories") ?>"
+    <a href="<?= e(base_url('admin/' . $slug . '/categories')) ?>"
      class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🗂️ Categorias</a>
-  <a href="<?= base_url("admin/{$activeSlug}/products") ?>"
+    <a href="<?= e(base_url('admin/' . $slug . '/products')) ?>"
      class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🧾 Produtos</a>
-  <a href="<?= base_url("admin/{$activeSlug}/orders") ?>"
+    <a href="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
      class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">📦 Pedidos</a>
-  <a href="<?= base_url($company['slug']) ?>" target="_blank"
+    <a href="<?= e(base_url($publicSlug)) ?>" target="_blank"
      class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🔗 Ver cardápio</a>
 </nav>
 
@@ -34,22 +36,22 @@ ob_start(); ?>
   <div class="rounded-2xl bg-white border p-4">
     <div class="text-sm text-gray-500 mb-1">Categorias</div>
     <div class="text-3xl font-bold mb-3"><?= count($categories) ?></div>
-    <a class="px-3 py-2 rounded-xl border inline-block" href="<?= base_url("admin/{$activeSlug}/categories") ?>">Gerenciar</a>
+      <a class="px-3 py-2 rounded-xl border inline-block" href="<?= e(base_url('admin/' . $slug . '/categories')) ?>">Gerenciar</a>
   </div>
 
   <div class="rounded-2xl bg-white border p-4">
     <div class="text-sm text-gray-500 mb-1">Produtos</div>
     <div class="text-3xl font-bold mb-3"><?= count($products) ?></div>
     <div class="flex gap-2">
-      <a class="px-3 py-2 rounded-xl border" href="<?= base_url("admin/{$activeSlug}/products") ?>">Gerenciar</a>
-      <a class="px-3 py-2 rounded-xl border" href="<?= base_url("admin/{$activeSlug}/products/create") ?>">+ Novo</a>
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products')) ?>">Gerenciar</a>
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>">+ Novo</a>
     </div>
   </div>
 
   <div class="rounded-2xl bg-white border p-4">
     <div class="text-sm text-gray-500 mb-1">Pedidos</div>
     <div class="text-3xl font-bold mb-3">📦</div>
-    <a class="px-3 py-2 rounded-xl border inline-block" href="<?= base_url("admin/{$activeSlug}/orders") ?>">Ver pedidos</a>
+      <a class="px-3 py-2 rounded-xl border inline-block" href="<?= e(base_url('admin/' . $slug . '/orders')) ?>">Ver pedidos</a>
   </div>
 </div>
 
@@ -66,7 +68,7 @@ ob_start(); ?>
       <?php endif; ?>
     </ul>
     <div class="mt-3">
-      <a class="px-3 py-2 rounded-xl border inline-block" href="<?= base_url("admin/{$activeSlug}/categories/create") ?>">+ Nova categoria</a>
+        <a class="px-3 py-2 rounded-xl border inline-block" href="<?= e(base_url('admin/' . $slug . '/categories/create')) ?>">+ Nova categoria</a>
     </div>
   </div>
 
@@ -93,7 +95,7 @@ ob_start(); ?>
               <?php endif; ?>
             </div>
           </div>
-          <a class="px-2 py-1 rounded-lg border text-sm" href="<?= base_url("admin/{$activeSlug}/products/{$p['id']}/edit") ?>">Editar</a>
+            <a class="px-2 py-1 rounded-lg border text-sm" href="<?= e(base_url('admin/' . $slug . '/products/' . (int)$p['id'] . '/edit')) ?>">Editar</a>
         </li>
       <?php endforeach; ?>
       <?php if (!count($show)): ?>
@@ -101,8 +103,8 @@ ob_start(); ?>
       <?php endif; ?>
     </ul>
     <div class="mt-3 flex gap-2">
-      <a class="px-3 py-2 rounded-xl border" href="<?= base_url("admin/{$activeSlug}/products/create") ?>">+ Novo produto</a>
-      <a class="px-3 py-2 rounded-xl border" href="<?= base_url("admin/{$activeSlug}/products") ?>">Ver todos</a>
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>">+ Novo produto</a>
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products')) ?>">Ver todos</a>
     </div>
   </div>
 </div>

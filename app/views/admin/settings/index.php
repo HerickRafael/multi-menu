@@ -1,11 +1,12 @@
 <?php
 $title = "Configurações - " . ($company['name'] ?? '');
 $days = [1=>'Segunda',2=>'Terça',3=>'Quarta',4=>'Quinta',5=>'Sexta',6=>'Sábado',7=>'Domingo'];
+$slug = rawurlencode($company['slug']);
 ob_start(); ?>
 <h1 class="text-2xl font-bold mb-4">Configurações gerais</h1>
 
 <form id="settingsForm" method="post" enctype="multipart/form-data"
-      action="<?= base_url("admin/{$company['slug']}/settings") ?>"
+       action="<?= e(base_url('admin/' . $slug . '/settings')) ?>"
       class="grid gap-4 max-w-4xl bg-white p-4 rounded-2xl border">
 
   <div class="grid md:grid-cols-2 gap-3">
@@ -111,13 +112,13 @@ ob_start(); ?>
 
   <div class="flex gap-2 mt-3">
     <button class="px-4 py-2 rounded-xl border">Salvar</button>
-    <a href="<?= base_url("admin/{$company['slug']}/dashboard") ?>" class="px-4 py-2 rounded-xl border">Voltar</a>
+      <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="px-4 py-2 rounded-xl border">Voltar</a>
   </div>
 </form>
 
 <div class="mt-6 flex gap-2">
-  <a class="px-3 py-2 rounded-xl border" href="<?= base_url("admin/{$company['slug']}/categories") ?>">Categorias</a>
-  <a class="px-3 py-2 rounded-xl border" href="<?= base_url("admin/{$company['slug']}/products") ?>">Produtos</a>
+  <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/categories')) ?>">Categorias</a>
+  <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products')) ?>">Produtos</a>
 </div>
 
 <script>

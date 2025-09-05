@@ -1,11 +1,12 @@
 <?php
 $title = "Produtos - " . ($company['name'] ?? '');
+$slug = rawurlencode($company['slug']);
 ob_start(); ?>
 <header class="flex items-center gap-3 mb-4">
   <h1 class="text-2xl font-bold">Produtos</h1>
-  <a href="<?= base_url("admin/{$company['slug']}/products/create") ?>" class="ml-auto px-3 py-2 rounded-xl border">+ Novo</a>
-  <a href="<?= base_url("admin/{$company['slug']}/categories") ?>" class="px-3 py-2 rounded-xl border">Categorias</a>
-  <a href="<?= base_url("admin/{$company['slug']}/dashboard") ?>" class="px-3 py-2 rounded-xl border">Dashboard</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>" class="ml-auto px-3 py-2 rounded-xl border">+ Novo</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/categories')) ?>" class="px-3 py-2 rounded-xl border">Categorias</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="px-3 py-2 rounded-xl border">Dashboard</a>
 </header>
 
 <form method="get" class="mb-3">
@@ -40,8 +41,8 @@ ob_start(); ?>
       <td class="p-3"><?= $p['promo_price'] ? 'R$ '.number_format($p['promo_price'],2,',','.') : '-' ?></td>
       <td class="p-3"><?= $p['active'] ? 'Sim' : 'Não' ?></td>
       <td class="p-3 text-right">
-        <a class="px-3 py-1 border rounded-xl" href="<?= base_url("admin/{$company['slug']}/products/{$p['id']}/edit") ?>">Editar</a>
-        <form method="post" action="<?= base_url("admin/{$company['slug']}/products/{$p['id']}/del") ?>" class="inline" onsubmit="return confirm('Excluir produto?');">
+          <a class="px-3 py-1 border rounded-xl" href="<?= e(base_url('admin/' . $slug . '/products/' . (int)$p['id'] . '/edit')) ?>">Editar</a>
+          <form method="post" action="<?= e(base_url('admin/' . $slug . '/products/' . (int)$p['id'] . '/del')) ?>" class="inline" onsubmit="return confirm('Excluir produto?');">
           <button class="px-3 py-1 border rounded-xl">Excluir</button>
         </form>
       </td>

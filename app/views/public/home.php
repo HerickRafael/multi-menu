@@ -146,7 +146,7 @@ $bannerUrl = !empty($company['banner']) ? base_url($company['banner']) : null;
 </div>
 
 <!-- Busca -->
-<form method="get" action="<?= base_url($company['slug'] . '/buscar') ?>" class="mb-4">
+  <form method="get" action="<?= e(base_url(rawurlencode($company['slug']) . '/buscar')) ?>" class="mb-4">
   <input type="text" name="q" value="<?= e($q) ?>" placeholder="Digite para buscar um item"
          class="w-full border rounded-xl px-3 py-2" />
 </form>
