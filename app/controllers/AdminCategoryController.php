@@ -9,7 +9,7 @@ class AdminCategoryController extends Controller {
   private function guard($slug) {
     Auth::start();
     $u = Auth::user();
-    if (!$u) { header('Location: ' . base_url("admin/$slug/login")); exit; }
+      if (!$u) { header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login')); exit; }
     $company = Company::findBySlug($slug);
     if (!$company) { echo "Empresa inválida"; exit; }
     if ($u['role'] !== 'root' && (int)$u['company_id'] !== (int)$company['id']) { echo "Acesso negado"; exit; }
@@ -36,7 +36,7 @@ class AdminCategoryController extends Controller {
       'sort_order'=>(int)$_POST['sort_order'],
       'active'=>isset($_POST['active'])?1:0
     ]);
-    header('Location: ' . base_url("admin/{$company['slug']}/categories"));
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/categories'));
   }
 
   public function edit($params){
@@ -52,12 +52,12 @@ class AdminCategoryController extends Controller {
       'sort_order'=>(int)$_POST['sort_order'],
       'active'=>isset($_POST['active'])?1:0
     ]);
-    header('Location: ' . base_url("admin/{$company['slug']}/categories"));
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/categories'));
   }
 
   public function destroy($params){
     [$u,$company] = $this->guard($params['slug']);
     Category::delete((int)$params['id']);
-    header('Location: ' . base_url("admin/{$company['slug']}/categories"));
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/categories'));
   }
 }

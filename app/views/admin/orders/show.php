@@ -7,10 +7,10 @@ $o = $order;
 <div class="max-w-4xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
     <h1 class="text-2xl font-semibold">Pedido #<?= (int)$o['id'] ?></h1>
-    <a class="px-3 py-2 rounded-xl border" href="<?= base_url('admin/' . e($activeSlug) . '/orders') ?>">← Voltar</a>
+      <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . rawurlencode($activeSlug) . '/orders')) ?>">← Voltar</a>
   </div>
 
-  <form method="post" action="<?= base_url('admin/' . e($activeSlug) . '/orders/setStatus') ?>" class="flex items-center gap-2 mb-4">
+    <form method="post" action="<?= e(base_url('admin/' . rawurlencode($activeSlug) . '/orders/setStatus')) ?>" class="flex items-center gap-2 mb-4">
     <input type="hidden" name="id" value="<?= (int)$o['id'] ?>">
     <select name="status" class="border px-3 py-2 rounded">
       <?php foreach (['pending'=>'Pendente','paid'=>'Pago','completed'=>'Concluído','canceled'=>'Cancelado'] as $k=>$label): ?>

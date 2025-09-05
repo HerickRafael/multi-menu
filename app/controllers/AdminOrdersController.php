@@ -12,7 +12,7 @@ class AdminOrdersController extends Controller
     private function guard(string $slug): array {
         Auth::start();
         $u = Auth::user();
-        if (!$u) { header('Location: ' . base_url("admin/$slug/login")); exit; }
+          if (!$u) { header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login')); exit; }
 
         $company = Company::findBySlug($slug);
         if (!$company) { echo "Empresa inválida"; exit; }
@@ -64,7 +64,7 @@ class AdminOrdersController extends Controller
         $status  = $_POST['status'] ?? '';
 
         if (Order::updateStatus($db, $orderId, (int)$company['id'], $status)) {
-            header('Location: ' . base_url("admin/{$company['slug']}/orders/show?id={$orderId}"));
+            header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/orders/show?id=' . $orderId));
             exit;
         }
         http_response_code(400);
@@ -151,7 +151,7 @@ class AdminOrdersController extends Controller
             Order::addItem($db, $orderId, $it);
         }
 
-        header('Location: ' . base_url("admin/{$company['slug']}/orders/show?id={$orderId}"));
+        header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/orders/show?id=' . $orderId));
         exit;
     }
 }

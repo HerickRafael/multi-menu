@@ -18,7 +18,7 @@ class AdminDashboardController extends Controller
 
     // precisa estar logado (admin)
     if (!Auth::checkAdmin()) {
-      header('Location: ' . base_url("admin/{$slug}/login"));
+        header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
       exit;
     }
 

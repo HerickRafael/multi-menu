@@ -24,10 +24,10 @@ class AdminAuthController extends Controller
 
     // Se já estiver logado e o contexto for desta empresa, redireciona
     $u = Auth::user();
-    if ($u && self::sessionCompanyIdMatches($company['id'])) {
-      header('Location: ' . base_url("admin/{$slug}/dashboard"));
-      exit;
-    }
+      if ($u && self::sessionCompanyIdMatches($company['id'])) {
+        header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/dashboard'));
+        exit;
+      }
 
     // Recupera flash message (erro de tentativa anterior)
     $error = $_SESSION['flash_error'] ?? null;
@@ -56,9 +56,9 @@ class AdminAuthController extends Controller
     $pass  = (string)($_POST['password'] ?? '');
 
     if ($email === '' || $pass === '') {
-      $_SESSION['flash_error'] = "Informe e-mail e senha.";
-      header('Location: ' . base_url("admin/{$slug}/login"));
-      exit;
+        $_SESSION['flash_error'] = "Informe e-mail e senha.";
+        header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
+        exit;
     }
 
     $user = User::findByEmail($email);
@@ -85,15 +85,15 @@ class AdminAuthController extends Controller
         $_SESSION['active_company_slug'] = $slug;
 
         // PRG: redireciona para evitar reenvio de POST
-        header('Location: ' . base_url("admin/{$slug}/dashboard"));
-        exit;
+          header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/dashboard'));
+          exit;
       }
     }
 
     // Falha: define flash e volta pro form
-    $_SESSION['flash_error'] = "Credenciais inválidas";
-    header('Location: ' . base_url("admin/{$slug}/login"));
-    exit;
+      $_SESSION['flash_error'] = "Credenciais inválidas";
+      header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
+      exit;
   }
 
   /** GET /admin/{slug}/logout */
@@ -109,7 +109,7 @@ class AdminAuthController extends Controller
     // limpa também o contexto de empresa ativa
     unset($_SESSION['active_company_id'], $_SESSION['active_company_slug']);
 
-    header('Location: ' . base_url("admin/{$slug}/login"));
+    header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
     exit;
   }
 

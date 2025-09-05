@@ -9,7 +9,7 @@ class AdminSettingsController extends Controller {
   private function guard($slug) {
     Auth::start();
     $u = Auth::user();
-    if (!$u) { header('Location: ' . base_url("admin/$slug/login")); exit; }
+      if (!$u) { header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login')); exit; }
     $company = Company::findBySlug($slug);
     if (!$company) { echo "Empresa inválida"; exit; }
     if ($u['role'] !== 'root' && (int)$u['company_id'] !== (int)$company['id']) { echo "Acesso negado"; exit; }
@@ -112,6 +112,6 @@ class AdminSettingsController extends Controller {
          ->execute([$isOpen, $o1, $c1, $o2, $c2, $company['id'], $d]);
     }
 
-    header('Location: ' . base_url("admin/{$company['slug']}/settings"));
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/settings'));
   }
 }
