@@ -99,11 +99,11 @@ ob_start(); ?>
 
           <label class="grid gap-1 slot2" data-day="<?= $d ?>" style="<?= ($row['open2']||$row['close2'])?'':'display:none' ?>">
             <span class="text-xs text-gray-600">Abre 2</span>
-            <input name="open2[<?= $d ?>]" value="<?= e(substr((string)$row['open2'],0,5)) ?>" placeholder="11:30" class="border rounded-xl p-2">
+            <input name="open2[<?= $d ?>]" value="<?= e(substr((string)$row['open2'],0,5)) ?>" placeholder="11:30" class="border rounded-xl p-2 time-input">
           </label>
           <label class="grid gap-1 slot2" data-day="<?= $d ?>" style="<?= ($row['open2']||$row['close2'])?'':'display:none' ?>">
             <span class="text-xs text-gray-600">Fecha 2</span>
-            <input name="close2[<?= $d ?>]" value="<?= e(substr((string)$row['close2'],0,5)) ?>" placeholder="14:00" class="border rounded-xl p-2">
+            <input name="close2[<?= $d ?>]" value="<?= e(substr((string)$row['close2'],0,5)) ?>" placeholder="14:00" class="border rounded-xl p-2 time-input">
           </label>
         </div>
       </div>
@@ -128,7 +128,7 @@ ob_start(); ?>
   function digits(s){ return (s||'').replace(/\D+/g, ''); }
   function toPretty(d){ // mostra (51) 92001-7687
     if (d.startsWith('55')) d = d.slice(2);
-    d = d.slice(0, 11); // DDD + 9 (ou 8)
+    d = d.slice(0, 13); // DDD + até 11 dígitos
     const ddd = d.slice(0,2);
     const rest = d.slice(2);
     if (rest.length >= 9) return `(${ddd}) ${rest.slice(0,5)}-${rest.slice(5)}`;
@@ -142,8 +142,8 @@ ob_start(); ?>
     input.value = toPretty(d);
   }
   function beforeSubmit(){
-    let d = digits(input.value);
-    if ((d.length===10 || d.length===11) && !d.startsWith('55')) d = '55'+d;
+    let d = digits(input.value).slice(0,15);
+    if (d.length <= 11 && !d.startsWith('55')) d = '55'+d;
     input.value = d; // envia normalizado para o backend
   }
   input.addEventListener('input', onInput);
@@ -170,6 +170,18 @@ ob_start(); ?>
       document.querySelectorAll('.slot2[data-day="'+day+'"]').forEach(el=>{
         el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
       });
+    });
+  });
+
+  // ===== Formatação dos horários (HH:MM) =====
+  document.querySelectorAll('.time-input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      let v = inp.value.replace(/\D+/g, '').slice(0,4);
+      if (v.length >= 3) {
+        inp.value = v.slice(0,2) + ':' + v.slice(2);
+      } else {
+        inp.value = v;
+      }
     });
   });
 })();
