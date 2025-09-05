@@ -6,7 +6,14 @@ function config($key = null) {
 }
 
 function base_url(string $path = ''): string {
-  $b = rtrim(config('base_url'), '/');
+  $b = config('base_url');
+  if (!$b) {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $dir    = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    $b      = $scheme . '://' . $host . ($dir ? $dir : '');
+  }
+  $b = rtrim($b, '/');
   $p = ltrim($path, '/');
   return $p ? "$b/$p" : $b;
 }
