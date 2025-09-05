@@ -43,10 +43,10 @@ $router->get('/admin/{slug}/products/{id}/edit',    'AdminProductController@edit
 $router->post('/admin/{slug}/products/{id}',        'AdminProductController@update');
 $router->post('/admin/{slug}/products/{id}/del',    'AdminProductController@destroy');
 
-/* Normaliza a URI removendo o base path (/multi-menu/public) */
+/* Normaliza a URI removendo o base path */
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$basePath = rtrim(parse_url(config('base_url'), PHP_URL_PATH), '/'); // deve ser /multi-menu/public
-if (strpos($uri, $basePath) === 0) {
+$basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+if ($basePath !== '' && strpos($uri, $basePath) === 0) {
   $uri = substr($uri, strlen($basePath));
 }
 if ($uri === '' || $uri === false) $uri = '/';
