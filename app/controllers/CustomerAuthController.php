@@ -28,11 +28,6 @@ class CustomerAuthController extends Controller
             $this->json(['ok' => false, 'message' => 'Empresa inválida.'], 400);
         }
 
-        // helper do seu projeto (adicione normalize_whatsapp_e164 em app/core/Helpers.php)
-        if (!function_exists('normalize_whatsapp_e164')) {
-            require_once __DIR__ . '/../core/Helpers.php';
-        }
-
         $company = $this->findCompanyBySlug($slug);
         if (!$company) {
             $this->json(['ok' => false, 'message' => 'Empresa não encontrada.'], 404);
