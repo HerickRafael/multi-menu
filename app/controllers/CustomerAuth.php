@@ -1,7 +1,10 @@
-<?php namespace App\Controllers;
+<?php
 
-use App\Models\CustomerModel;
+namespace App\Controllers;
+
 use CodeIgniter\HTTP\ResponseInterface;
+
+require_once __DIR__ . '/../models/Customer.php';
 
 class CustomerAuth extends BaseController
 {
@@ -33,28 +36,28 @@ class CustomerAuth extends BaseController
                 ->setJSON(['ok'=>false, 'message'=>'WhatsApp inválido.']);
         }
 
-        $model    = new CustomerModel();
         $now      = date('Y-m-d H:i:s');
-        $customer = $model->findByCompanyAndWhatsappE164((int)$company['id'], $e164);
+        $customer = \Customer::findByCompanyAndE164((int)$company['id'], $e164);
 
         if (!$customer) {
-            $id = $model->insert([
-                'company_id'     => (int)$company['id'],
-                'name'           => $name,
-                'whatsapp'       => $whatsRaw,
-                'whatsapp_e164'  => $e164,
-                'created_at'     => $now,
-                'updated_at'     => $now,
-                'last_login_at'  => $now,
+            $id = \Customer::insert([
+                'company_id'    => (int)$company['id'],
+                'name'          => $name,
+                'whatsapp'      => $whatsRaw,
+                'whatsapp_e164' => $e164,
+                'created_at'    => $now,
+                'updated_at'    => $now,
+                'last_login_at' => $now,
             ]);
-            $customer = $model->find($id);
+            $customer = \Customer::findById($id);
         } else {
-            $model->update($customer['id'], [
+            \Customer::updateById((int)$customer['id'], [
                 'name'          => $name,
                 'whatsapp'      => $whatsRaw,
                 'updated_at'    => $now,
                 'last_login_at' => $now,
             ]);
+            $customer = \Customer::findById((int)$customer['id']);
         }
 
         session()->set('customer', [
