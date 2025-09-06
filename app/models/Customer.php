@@ -33,6 +33,7 @@ class Customer
         $pdo = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
 
         return $pdo;
@@ -71,7 +72,8 @@ class Customer
     {
         $sql = "INSERT INTO customers (company_id, name, whatsapp, whatsapp_e164, created_at, updated_at, last_login_at)
                 VALUES (:company_id, :name, :whatsapp, :e164, :created_at, :updated_at, :last_login_at)";
-        $st  = self::pdo()->prepare($sql);
+        $pdo = self::pdo();
+        $st  = $pdo->prepare($sql);
         $st->execute([
             ':company_id'   => (int)$data['company_id'],
             ':name'         => $data['name'],
@@ -81,7 +83,7 @@ class Customer
             ':updated_at'   => $data['updated_at'],
             ':last_login_at'=> $data['last_login_at'],
         ]);
-        return (int) self::pdo()->lastInsertId();
+        return (int) $pdo->lastInsertId();
     }
 
     public static function updateById(int $id, array $data): void

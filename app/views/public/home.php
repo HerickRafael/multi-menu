@@ -85,7 +85,7 @@ $customer = $_SESSION['customer'] ?? null;
               <span class="px-2 py-0.5 rounded-lg bg-white text-purple-900">
                 Olá, <strong><?= e($customer['name']) ?></strong>
               </span>
-              <form method="post" action="<?= base_url(e($company['slug']).'/customer-logout') ?>" onsubmit="return confirm('Sair?')">
+              <form method="post" action="<?= base_url(rawurlencode($company['slug']).'/customer-logout') ?>" onsubmit="return confirm('Sair?')">
                 <button class="px-2 py-1 rounded-lg border bg-white hover:bg-slate-50">Sair</button>
               </form>
             </div>
@@ -156,7 +156,7 @@ $customer = $_SESSION['customer'] ?? null;
         <h3 class="font-semibold text-lg">Login do Cliente</h3>
         <button id="login-close" class="ml-auto px-3 py-1.5 rounded-xl border">Fechar</button>
       </div>
-      <form id="login-form" class="p-4" method="post" action="<?= base_url(e($company['slug']).'/customer-login') ?>">
+      <form id="login-form" class="p-4" method="post" action="<?= base_url(rawurlencode($company['slug']).'/customer-login') ?>">
         <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
         <div class="mb-3">
           <label class="block text-sm font-medium mb-1">Nome</label>

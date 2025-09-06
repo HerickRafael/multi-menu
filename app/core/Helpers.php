@@ -36,3 +36,19 @@ function is_new_product(array $p): bool {
   return strtotime($p['created_at']) >= strtotime("-{$dias} days");
 }
 
+if (!function_exists('normalize_whatsapp_e164')) {
+  /**
+   * Normaliza WhatsApp para E.164 (padrão BR 55).
+   * Ex.: "(11) 90000-0000" → "5511900000000"
+   */
+  function normalize_whatsapp_e164(string $raw, string $defaultCountry='55'): string {
+    $digits = preg_replace('/\D+/', '', $raw ?? '');
+    if ($digits === '') return '';
+    if (preg_match('/^55\d{10,11}$/', $digits)) return $digits;
+    $digits = ltrim($digits, '0');
+    if (strlen($digits) >= 10 && strlen($digits) <= 11) return $defaultCountry.$digits;
+    if (strlen($digits) < 12) return $defaultCountry.$digits;
+    return $digits;
+  }
+}
+

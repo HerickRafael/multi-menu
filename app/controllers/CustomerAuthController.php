@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../models/Customer.php';
+require_once __DIR__ . '/../core/Helpers.php';
+
 class CustomerAuthController extends Controller
 {
     /**
@@ -8,7 +11,6 @@ class CustomerAuthController extends Controller
      */
     protected function findCompanyBySlug(string $slug): ?array
     {
-        require_once __DIR__ . '/../models/Customer.php';
         return Customer::findCompanyBySlug($slug);
     }
 
@@ -26,11 +28,6 @@ class CustomerAuthController extends Controller
         $slug = $params['slug'] ?? null;
         if (!$slug) {
             $this->json(['ok' => false, 'message' => 'Empresa inválida.'], 400);
-        }
-
-        // helper do seu projeto (adicione normalize_whatsapp_e164 em app/core/Helpers.php)
-        if (!function_exists('normalize_whatsapp_e164')) {
-            require_once __DIR__ . '/../core/Helpers.php';
         }
 
         $company = $this->findCompanyBySlug($slug);
@@ -78,6 +75,8 @@ class CustomerAuthController extends Controller
             $customer = Customer::findById((int)$customer['id']);
         }
 
+        // evita fixation e salva sessão com escopo da empresa
+        session_regenerate_id(true);
         // salva sessão com escopo da empresa
         $_SESSION['customer'] = [
             'id'           => (int)$customer['id'],
@@ -90,7 +89,13 @@ class CustomerAuthController extends Controller
         ];
 
         // cookie 1 ano (opcional)
-        setcookie('mm_customer_e164', $customer['whatsapp_e164'], time() + 60*60*24*365, '/');
+        setcookie('mm_customer_e164', $customer['whatsapp_e164'], [
+            'expires'  => time() + 60*60*24*365,
+            'path'     => '/',
+            'secure'   => !empty($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
 
         $this->json(['ok' => true]);
     }
@@ -104,6 +109,14 @@ class CustomerAuthController extends Controller
             session_start();
         }
         unset($_SESSION['customer']);
+        setcookie('mm_customer_e164', '', [
+            'expires'  => time() - 3600,
+            'path'     => '/',
+            'secure'   => !empty($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        session_regenerate_id(true);
         $this->json(['ok' => true]);
     }
 
