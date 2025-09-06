@@ -27,7 +27,6 @@ class CustomerAuth extends BaseController
                 ->setJSON(['ok'=>false, 'message'=>'Informe nome e WhatsApp.']);
         }
 
-        helper('phone');
         $e164 = normalize_whatsapp_e164($whatsRaw);
         if ($e164 === '' || strlen($e164) < 12) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
