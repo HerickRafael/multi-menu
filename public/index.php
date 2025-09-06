@@ -9,6 +9,11 @@ $router = new Router();
 $router->get('/{slug}', 'PublicHomeController@index');
 $router->get('/{slug}/buscar', 'PublicHomeController@buscar');
 
+/* Rotas cliente (login por nome + WhatsApp) */
+$router->post('/{slug}/customer-login',  'CustomerAuthController@login');
+$router->post('/{slug}/customer-logout', 'CustomerAuthController@logout');
+$router->get('/{slug}/customer-me',      'CustomerAuthController@me');
+
 /* Rotas admin por empresa */
 $router->get('/admin/{slug}/login', 'AdminAuthController@loginForm');
 $router->post('/admin/{slug}/login', 'AdminAuthController@login');
@@ -52,4 +57,3 @@ if ($uri === '' || $uri === false) $uri = '/';
 
 /* Despacha */
 $router->dispatch($_SERVER['REQUEST_METHOD'], $uri);
-
