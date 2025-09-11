@@ -10,9 +10,9 @@ $product = [
 ];
 
 $addons = [ // "Deseja adicionar algum ingrediente?"
-  ['id'=>'add_tomate', 'name'=>'Adicionar: Tomate',      'price'=>2.00, 'img'=>'assets/tomate.png', 'min'=>0, 'max'=>5, 'qty'=>0],
-  ['id'=>'add_tasty',  'name'=>'Adicionar: Molho Tasty', 'price'=>3.00, 'img'=>'assets/molho-tasty.png', 'min'=>0, 'max'=>5, 'qty'=>0],
-  ['id'=>'add_maio',   'name'=>'Adicionar: Maionese',    'price'=>3.00, 'img'=>'assets/maionese.png', 'min'=>0, 'max'=>5, 'qty'=>0],
+  ['id'=>'add_tomate', 'name'=>'Adicionar: Tomate',      'price'=>2.00, 'img'=>'assets/tomate.png',       'min'=>0, 'max'=>5, 'qty'=>0],
+  ['id'=>'add_tasty',  'name'=>'Adicionar: Molho Tasty', 'price'=>3.00, 'img'=>'assets/molho-tasty.png',  'min'=>0, 'max'=>5, 'qty'=>0],
+  ['id'=>'add_maio',   'name'=>'Adicionar: Maionese',    'price'=>3.00, 'img'=>'assets/maionese.png',     'min'=>0, 'max'=>5, 'qty'=>0],
 ];
 
 $custom = [ // "Personalizar ..."
@@ -28,13 +28,13 @@ $custom = [ // "Personalizar ..."
   ],
   // itens com stepper
   'items' => [
-    ['id'=>'molho_cbo',     'name'=>'Molho do CBO',         'price'=>3.00, 'img'=>'assets/molho-cbo.png',   'min'=>0, 'max'=>5, 'qty'=>1],
-    ['id'=>'alface',        'name'=>'Alface',               'price'=>2.00, 'img'=>'assets/alface.png',      'min'=>0, 'max'=>5, 'qty'=>1],
-    ['id'=>'bacon',         'name'=>'Bacon',                'price'=>3.00, 'img'=>'assets/bacon.png',       'min'=>0, 'max'=>5, 'qty'=>1],
-    ['id'=>'carne',         'name'=>'Carne 100% Bovina',    'price'=>9.90, 'img'=>'assets/carne.png',       'min'=>0, 'max'=>5, 'qty'=>2],
-    ['id'=>'cheddar',       'name'=>'Fatia Queijo Cheddar', 'price'=>2.00, 'img'=>'assets/cheddar.png',     'min'=>0, 'max'=>5, 'qty'=>2],
+    ['id'=>'molho_cbo',     'name'=>'Molho do CBO',         'price'=>3.00, 'img'=>'assets/molho-cbo.png',    'min'=>0, 'max'=>5, 'qty'=>1],
+    ['id'=>'alface',        'name'=>'Alface',               'price'=>2.00, 'img'=>'assets/alface.png',       'min'=>0, 'max'=>5, 'qty'=>1],
+    ['id'=>'bacon',         'name'=>'Bacon',                'price'=>3.00, 'img'=>'assets/bacon.png',        'min'=>0, 'max'=>5, 'qty'=>1],
+    ['id'=>'carne',         'name'=>'Carne 100% Bovina',    'price'=>9.90, 'img'=>'assets/carne.png',        'min'=>0, 'max'=>5, 'qty'=>2],
+    ['id'=>'cheddar',       'name'=>'Fatia Queijo Cheddar', 'price'=>2.00, 'img'=>'assets/cheddar.png',      'min'=>0, 'max'=>5, 'qty'=>2],
     ['id'=>'cebola_crispy', 'name'=>'Cebola Crispy',        'price'=>2.00, 'img'=>'assets/cebola-crispy.png','min'=>0, 'max'=>5, 'qty'=>1],
-    ['id'=>'mequinese',     'name'=>'Mequinese',            'price'=>3.00, 'img'=>'assets/mequinese.png',   'min'=>0, 'max'=>5, 'qty'=>1],
+    ['id'=>'mequinese',     'name'=>'Mequinese',            'price'=>3.00, 'img'=>'assets/mequinese.png',    'min'=>0, 'max'=>5, 'qty'=>1],
   ],
 ];
 // ================================================
@@ -61,13 +61,13 @@ $custom = [ // "Personalizar ..."
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
-  /* MOBILE: ocupa 100% (sem max-width); em tablet/desktop limita 375 */
+  /* MOBILE: 100%; tablet/desktop: limita 375px */
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
   @media (min-width:768px){ .app{max-width:375px} }
 
   header{position:sticky;top:0;background:#fff;z-index:5}
   .top{display:flex;align-items:center;gap:10px;padding:12px 12px 6px;border-bottom:1px solid var(--border)}
-  .back{width:36px;height:36px;border:1px solid var(--border);border-radius:999px;background:#fff;display:grid;place-items:center;cursor:pointer}
+  .back{width:36px;height:36px;border:1px solid var(--border);border-radius:999px;background:#fff;display:grid;place-items:center;cursor:pointer;text-decoration:none}
   .title{font-weight:600}
 
   .container{padding:12px 16px 140px} /* espaço pro rodapé */
@@ -91,7 +91,7 @@ $custom = [ // "Personalizar ..."
   .st-btn svg{width:18px;height:18px}
   .st-val{min-width:16px;text-align:center;font-weight:600}
 
-  /* Linha de "radio" (seleção única) com check amarelo */
+  /* Rádio */
   .radio-wrap{margin-left:auto}
   .radio-btn{
     width:28px;height:28px;border-radius:999px;border:2px solid var(--ring);display:grid;place-items:center;background:#fff;
@@ -100,7 +100,7 @@ $custom = [ // "Personalizar ..."
   .radio-btn svg{width:16px;height:16px;color:#111;display:none}
   .radio-btn.sel svg{display:block}
 
-  /* Rodapé com Cancelar/Confirmar (split) */
+  /* Rodapé */
   .footer{
     position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;height:64px;border-top:1px solid var(--border);
     background:#fff;
@@ -111,7 +111,6 @@ $custom = [ // "Personalizar ..."
   .btn-confirm:active{background:var(--cta-press)}
   .homebar{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:44%;height:4px;background:#111;border-radius:999px;opacity:.9}
 
-  /* Hint de seção */
   .hint{color:#6b7280;font-size:12px;margin:6px 2px 12px}
 </style>
 </head>
