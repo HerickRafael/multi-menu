@@ -1,5 +1,5 @@
 <?php
-// ===== produto.php (bolinhas pretas + hero full-bleed) =====
+// ===== product.php (bolinhas pretas + hero full-bleed) =====
 // Variáveis vindas do controller
 $product     = $product     ?? [];
 $company     = $company     ?? [];
