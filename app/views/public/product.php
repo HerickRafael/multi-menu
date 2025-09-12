@@ -1,15 +1,46 @@
 <?php
-// ===== produto.php (bolinhas pretas + hero full-bleed) =====
-// Variáveis vindas do controller
-$product     = $product     ?? [];
-$company     = $company     ?? [];
-$ingredients = $ingredients ?? [];
+// ===== produto.php =====
+$product = [
+  'id'          => 1001,
+  'restaurant'  => "FSW Donald’s",
+  'name'        => 'McOferta Média Big Mac Duplo',
+  'price'       => 39.90,
+  'image'       => 'assets/bigmac-meal.png', // troque para sua imagem
+  'description' => 'Quatro hambúrgueres (100% carne bovina), alface americana, queijo fatiado sabor cheddar, molho especial, cebola, picles e pão com gergelim, acompanhamento e bebida.',
+  'ingredients' => [
+    'Quatro hambúrgueres de carne bovina 100%',
+    'Alface americana',
+    'Queijo processado sabor cheddar',
+    'Molho especial',
+    'Cebola',
+    'Picles',
+    'Pão com gergelim',
+  ],
+];
+function price_br(float $v){ return 'R$ '.number_format($v,2,',','.'); }
 
-$imagePath = $product['image'] ?? null;
-$imageUrl  = ($imagePath && is_file($imagePath))
-            ? base_url($imagePath)
-            : 'https://dummyimage.com/1200x800/f2f4f7/9aa1a9.png&text=Sua+imagem+aqui';
-$initial = strtoupper(mb_substr($company['name'] ?? '', 0, 1));
+/* ====== BLOCO DE COMBO — LAYOUT DEMO ======
+   Em produção, use algo como:
+   $showComboLayoutDemo = ($product['type'] ?? '') === 'combo';
+   Aqui deixei true só para você ver o layout.
+*/
+$showComboLayoutDemo = true; // << troque para condição real (ex.: is_combo)
+$comboData = [
+  'mains' => [
+    ['id'=>'tasty1','name'=>'Tasty Turbo Bacon 1 Carne','price'=>25.25,'img'=>'assets/combo-main-1.png'],
+    ['id'=>'tasty2','name'=>'Tasty Turbo Bacon 2 Carnes','price'=>29.90,'img'=>'assets/combo-main-2.png'],
+  ],
+  'sides' => [
+    ['id'=>'fries_m','name'=>'McFritas Média','price'=>4.45,'img'=>'assets/side-fries-m.png'],
+    ['id'=>'fries_g','name'=>'McFritas Grande','price'=>7.45,'img'=>'assets/side-fries-g.png'],
+    ['id'=>'fries_ch','name'=>'McFritas Cheddar e Bacon','price'=>8.45,'img'=>'assets/side-fries-ch.png'],
+  ],
+  'drinks' => [
+    ['id'=>'coke','name'=>'Coca-Cola 500ml','price'=>16.90,'img'=>'assets/drink-coke.png'],
+    ['id'=>'coke0','name'=>'Coca-Cola Sem Açúcar 500ml','price'=>16.90,'img'=>'assets/drink-coke-zero.png'],
+    ['id'=>'fanta_gua','name'=>'Fanta Guaraná 500ml','price'=>16.90,'img'=>'assets/drink-fanta-guarana.png'],
+  ],
+];
 ?>
 <!doctype html>
 <html lang="pt-br">
