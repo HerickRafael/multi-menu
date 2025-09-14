@@ -1,7 +1,49 @@
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+# multi-menu/public/.htaccess
 
-# Prevent directory listing
 Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # IMPORTANTE: como está em subpasta, use:
+  RewriteBase /multi-menu/
+
+  # HTTPS atrás de proxy (Cloudflare / Tunnel)
+  RewriteCond %{HTTP:X-Forwarded-Proto} =https [OR]
+  RewriteCond %{HTTPS} =on
+  RewriteRule ^ - [E=IS_HTTPS:1]
+
+  # (Opcional) Forçar HTTPS – descomente se quiser:
+  # RewriteCond %{ENV:IS_HTTPS} !=1
+  # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Arquivo/pasta existe → serve direto
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Roteia para index.php
+  RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Access-Control-Allow-Origin "*"
+</IfModule>
+
+AddType image/svg+xml .svg .svgz
+AddType application/javascript .js
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType image/gif "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType font/woff2 "access plus 30 days"
+  ExpiresDefault "access plus 1 day"
+</IfModule>

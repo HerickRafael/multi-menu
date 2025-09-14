@@ -1,0 +1,13 @@
+# multi-menu/.htaccess
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Se já estiver em /public, não redireciona
+  RewriteRule ^public/ - [L]
+
+  # Redireciona tudo para /public mantendo o path
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
