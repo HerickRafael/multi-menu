@@ -109,4 +109,26 @@ class PublicProductController extends Controller
         http_response_code(501);
         echo "Not Implemented";
     }
+
+    public function customize($params)
+    {
+        $slug = $params['slug'] ?? null;
+        $id   = isset($params['id']) ? (int)$params['id'] : 0;
+
+        $company = Company::findBySlug($slug);
+        if (!$company || !$company['active']) {
+            http_response_code(404);
+            echo "Empresa não encontrada";
+            return;
+        }
+
+        $product = Product::find($id);
+        if (!$product || (int)$product['company_id'] !== (int)$company['id'] || (int)($product['active'] ?? 0) !== 1) {
+            http_response_code(404);
+            echo "Produto não encontrado";
+            return;
+        }
+
+        return $this->view('public/customize', compact('company', 'product'));
+    }
 }

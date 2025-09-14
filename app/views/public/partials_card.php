@@ -1,4 +1,4 @@
-<a href="<?= base_url(rawurlencode((string)($company['slug'] ?? '')) . '/produto/' . (int)$p['id']) ?>" class="block">
+<a href="<?= base_url(rawurlencode((string)($company['slug'] ?? '')) . '/product/' . (int)$p['id']) ?>" class="block">
   <div class="rounded-2xl shadow p-4 bg-white border flex gap-3 hover:bg-gray-50">
     <img src="<?= base_url($p['image'] ?: 'assets/logo-placeholder.png') ?>"
          alt="<?= e($p['name']) ?>"

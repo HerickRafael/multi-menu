@@ -8,36 +8,37 @@ require_once __DIR__ . '/../app/config/db.php';
 
 $router = new Router();
 
-// (Opcional) Handlers
+// (Opcional) Handlers de erro/404 se o Router suportar
 if (method_exists($router, 'setNotFoundHandler')) {
   $router->setNotFoundHandler(function($uri){
     http_response_code(404);
-    echo "Página não encontrada: " . htmlspecialchars($uri);
+    echo "Página não encontrada: " . htmlspecialchars((string)$uri, ENT_QUOTES, 'UTF-8');
   });
 }
 if (method_exists($router, 'setErrorHandler')) {
   $router->setErrorHandler(function($e){
     http_response_code(500);
-    echo "Erro interno: " . htmlspecialchars($e->getMessage());
+    $msg = $e instanceof Throwable ? $e->getMessage() : 'Erro desconhecido';
+    echo "Erro interno: " . htmlspecialchars((string)$msg, ENT_QUOTES, 'UTF-8');
   });
 }
 
-// Carrega rotas
+// Carrega as rotas (arquivo dedicado)
 require_once __DIR__ . '/../routes/web.php';
 
 // --- Normalização robusta da URI/base path ---
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-$phpSelf    = $_SERVER['PHP_SELF']    ?? $scriptName;
-
-// basePath vira a pasta onde está o index.php (ex.: /multi-menu/public)
 $basePath = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
 
 if ($basePath && strpos($uri, $basePath) === 0) {
-  $uri = substr($uri, strlen($basePath)); // remove /multi-menu/public
+  // Remove /multi-menu/public (ou pasta equivalente) da URI
+  $uri = substr($uri, strlen($basePath));
 }
-$uri = '/' . ltrim($uri, '/');
+
+$uri = '/' . ltrim((string)$uri, '/');
 if ($uri === '' || $uri === false) $uri = '/';
 
 // Despacha
-$router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', $uri);
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$router->dispatch($method, $uri);

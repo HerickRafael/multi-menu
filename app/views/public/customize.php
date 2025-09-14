@@ -2,25 +2,14 @@
 /** ============================================================================
  * app/views/public/customize.php
  * ----------------------------------------------------------------------------
- * TELA DE PERSONALIZAÇÃO DO PRODUTO (sem dados de demo)
+ * TELA DE PERSONALIZAÇÃO DO PRODUTO (dados vindos do Admin)
  *
- * Esta view renderiza:
- *  - "Adicionais" (itens pagos / delta > 0) com stepper iniciando em 0
- *  - "Personalizar ..." (ingredientes/remover/extra) por GRUPOS:
- *      * type = 'single' -> radios (ex.: escolher 1 tipo de pão)
- *      * outros tipos -> itens com stepper (min/max por item; qty default)
- *
- * DE ONDE VEM CADA COISA?
- *  - Tudo vem do que você cadastrou no Admin > Produto > "Personalização (Ingredientes)"
- *    (aquele bloco que você pediu unificado — sem "Remove/Add/Swap" como campos visíveis
- *    pro operador; aqui a view só respeita o que estiver salvo).
- *
- * O CONTROLLER deve preparar e enviar para esta view:
+ * Controller deve fornecer:
  *   $company  (array) -> ['slug'=>..., 'name'=>...]
  *   $product  (array) -> ['id'=>..., 'name'=>..., ...]
- *   $mods     (array) -> lista de grupos (cada grupo com suas 'items')
+ *   $mods     (array) -> lista de grupos c/ seus itens (ver exemplo abaixo)
  *
- * Ex. estrutura mínima de $mods:
+ * Exemplo mínimo de $mods:
  * $mods = [
  *   [
  *     'name' => 'Pão', 'type' => 'single', 'min' => 1, 'max' => 1,
@@ -51,7 +40,7 @@ $slug    = $company['slug'] ?? '';
 $pName   = $product['name'] ?? 'Produto';
 $pId     = (int)($product['id'] ?? 0);
 
-// Se quiser separar "Adicionais" pagos (delta > 0) como uma PRIMEIRA SEÇÃO:
+// Separação opcional: itens pagos (delta > 0) viram "Adicionais"
 $addons = [];
 $groups = [];
 
@@ -62,20 +51,17 @@ foreach (($mods ?? []) as $gIndex => $g) {
   $gType = $g['type'] ?? 'extra';
   $items = $g['items'] ?? [];
 
-  // Copiamos o grupo para $groups (será exibido na seção de personalização)
   $groups[] = $g;
 
-  // itens pagos viram "addons" (iniciam em 0) — isso é opcional:
   if ($gType !== 'single') {
     foreach ($items as $it) {
       $delta = (float)($it['delta'] ?? 0);
       if ($delta > 0) {
         $addons[] = [
-          'id'   => md5($g['name'].'|'.$it['name']),         // id estável gerado (ou use id do BD se houver)
+          'id'   => md5(($g['name'] ?? 'grp').('|').($it['name'] ?? 'item')), // id estável (ou use id do BD)
           'name' => 'Adicionar: ' . (string)($it['name'] ?? ''),
           'price'=> $delta,
           'img'  => $it['img'] ?? null,
-          // quantidade default para add-on é 0
           'min'  => isset($it['min']) ? (int)$it['min'] : 0,
           'max'  => isset($it['max']) ? (int)$it['max'] : 5,
           'qty'  => 0,
@@ -84,6 +70,10 @@ foreach (($mods ?? []) as $gIndex => $g) {
     }
   }
 }
+
+// URLs (ajuste conforme suas rotas reais)
+$backUrl = base_url($slug . '/produto/' . $pId);
+$saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -108,7 +98,7 @@ foreach (($mods ?? []) as $gIndex => $g) {
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
-  @media (min-width:768px){ .app{max-width:375px} }
+  @media (min-width:768px){ .app{max-width:375px} } /* limita 375px só em tablet/desktop */
 
   header{position:sticky;top:0;background:#fff;z-index:5}
   .top{display:flex;align-items:center;gap:10px;padding:12px 12px 6px;border-bottom:1px solid var(--border)}
@@ -160,13 +150,6 @@ foreach (($mods ?? []) as $gIndex => $g) {
 </head>
 <body>
 
-<?php
-// URL de retorno para a página do produto público
-$backUrl = base_url($slug . '/produto/' . $pId);
-// Endpoint que receberá o POST desta tela (ajuste conforme sua rota real)
-$saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
-?>
-
 <form class="app" method="post" action="<?= e($saveUrl) ?>">
   <header>
     <div class="top">
@@ -183,12 +166,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
     <div class="sub"><?= e($pName) ?></div>
 
     <!-- ======================================================================
-         SEÇÃO 1 — ADICIONAIS (itens pagos) 
-         ----------------------------------------------------------------------
-         * Compostos automaticamente a partir de itens com delta > 0 nos grupos 
-           não-single (o que você marcou no Admin).
-         * Começam com qty = 0 e têm stepper (min/max).
-         * Envio no POST: addons[<hash_id>] = quantidade
+         SEÇÃO 1 — ADICIONAIS (itens pagos)
          =================================================================== -->
     <?php if (!empty($addons)): ?>
       <div class="list addons" id="list-addons" aria-label="Adicionais">
@@ -221,13 +199,6 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
 
     <!-- ======================================================================
          SEÇÃO 2 — PERSONALIZAR (todos os grupos do Admin)
-         ----------------------------------------------------------------------
-         * Para cada grupo de $mods:
-           - type = 'single' => render como RÁDIO (escolha única; usa 'default')
-           - outros tipos    => render itens com STEPPER (min/max/qty/default)
-         * POST:
-           - Grupos 'single':   custom_single[<group_index>] = <item_index>
-           - Grupos com stepper custom_qty[<group_index>][<item_index>] = quantidade
          =================================================================== -->
     <?php if (!empty($groups)): ?>
       <h2 class="group-title">Personalizar <?= e($pName) ?></h2>
@@ -236,7 +207,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
         $gName = (string)($g['name'] ?? ('Grupo '.($gi+1)));
         $gType = (string)($g['type'] ?? 'extra');
         $gMin  = (int)($g['min'] ?? 0);
-        $gMax  = (int)($g['max'] ?? 0); // pode ser 0 = "sem limite"
+        $gMax  = (int)($g['max'] ?? 0); // 0 = sem limite
         $items = $g['items'] ?? [];
       ?>
 
@@ -256,11 +227,6 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
         </div>
 
         <?php if ($gType === 'single'): ?>
-          <!-- ===========================
-               GRUPO 'single' (rádio)
-               - Um dos itens deve vir com 'default' = true (opcional)
-               - POST: custom_single[gi] = ii
-               =========================== -->
           <?php
             // Define o item selecionado (o primeiro default=true ou 0)
             $selectedIndex = 0;
@@ -296,13 +262,6 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
           <input type="hidden" name="custom_single[<?= (int)$gi ?>]" id="f_single_<?= (int)$gi ?>" value="<?= (int)$selectedIndex ?>">
 
         <?php else: ?>
-          <!-- ===========================
-               GRUPOS com STEPPER (remove/add/extra/swap…)
-               Cada item:
-               - min/max (fallback 0..5)
-               - qty default = it['qty'] || (it['default']?1:0)
-               - POST: custom_qty[gi][ii] = quantidade
-               =========================== -->
           <div class="list" aria-label="<?= e($gName) ?>">
             <?php foreach ($items as $ii => $it): 
               $img   = $it['img'] ?? null;

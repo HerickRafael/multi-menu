@@ -1,13 +1,16 @@
 # multi-menu
 
-This repository now includes demo product pages.
+Este repositório agora inclui páginas de produto de demonstração.
 
-## Running locally
+## Requisitos
 
-Use PHP's built-in server to test:
+- PHP 8.1+  
+- Extensões padrão habilitadas  
+- (Opcional) MySQL/MariaDB se for usar seed real de banco
+
+## Rodando localmente
+
+Use o servidor embutido do PHP:
 
 ```bash
 php -S localhost:8000 -t public
-```
-
-Open [`http://localhost:8000/product.php`](http://localhost:8000/product.php) in your browser to view the product page. The "Customize ingredients" link leads to `customize.php`, and both forms post to simple endpoints that print the submitted data.
