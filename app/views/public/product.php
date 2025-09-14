@@ -1,5 +1,5 @@
 <?php
-// ===== produto.php (bolinhas pretas + hero full-bleed) =====
+// ===== product.php (bolinhas pretas + hero full-bleed) =====
 // Variáveis vindas do controller
 $product     = $product     ?? [];
 $company     = $company     ?? [];
@@ -81,6 +81,17 @@ $initial = strtoupper(mb_substr($company['name'] ?? '', 0, 1));
     margin-top:7px;flex:0 0 7px;
   }
 
+  .customize-wrap{background:var(--card)}
+  .customize{padding:24px 16px}
+  .btn-outline{
+    width:100%;background:#fff;color:#111;border:1px solid #d8d8d8;
+    border-radius:12px;padding:18px;font-size:18px;font-weight:500;
+    display:flex;align-items:center;justify-content:space-between;text-decoration:none;
+  }
+  .btn-outline:active{background:#f9f9f9}
+  .btn-outline .chev{display:grid;place-items:center}
+  .btn-outline .chev svg{width:22px;height:22px}
+
   .footer{position:sticky;bottom:0;margin-top:auto;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
   .cta{width:100%;border:none;border-radius:16px;padding:14px 16px;background:var(--cta);color:#1f2937;font-weight:800;font-size:16px;cursor:pointer}
   .cta:active{background:var(--cta-press)}
@@ -129,7 +140,7 @@ $initial = strtoupper(mb_substr($company['name'] ?? '', 0, 1));
       <p class="body"><?= e($product['description'] ?? '') ?></p>
     </section>
 
-    <section class="section">
+  <section class="section">
       <h3>Ingredientes</h3>
       <ul class="checklist">
         <?php foreach($ingredients as $ing): ?>
@@ -142,7 +153,18 @@ $initial = strtoupper(mb_substr($company['name'] ?? '', 0, 1));
     </section>
   </main>
 
-  <form class="footer" method="post" action="add_to_cart.php" onsubmit="return attach(event)">
+  <div class="customize-wrap">
+    <div class="customize">
+      <a class="btn-outline" href="<?= base_url(rawurlencode((string)($company['slug'] ?? '')) . '/product/' . (int)($product['id'] ?? 0) . '/customize') ?>">
+        <span>Personalizar ingredientes</span>
+        <span class="chev" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+    </div>
+  </div>
+
+  <form class="footer" method="post" action="<?= base_url('add_to_cart.php') ?>" onsubmit="return attach(event)">
     <input type="hidden" name="product_id" value="<?= (int)($product['id'] ?? 0) ?>">
     <input type="hidden" name="qty" id="qtyField" value="1">
     <button class="cta" type="submit">Adicionar à Sacola</button>

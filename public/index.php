@@ -9,7 +9,8 @@ $router = new Router();
 /* Rotas públicas (cardápio) */
 $router->get('/{slug}', 'PublicHomeController@index');
 $router->get('/{slug}/buscar', 'PublicHomeController@buscar');
-$router->get('/{slug}/produto/{id}', 'PublicProductController@show');
+$router->get('/{slug}/product/{id}', 'PublicProductController@show');
+$router->get('/{slug}/product/{id}/customize', 'PublicProductController@customize');
 
 /* Rotas cliente (login por nome + WhatsApp) */
 $router->post('/{slug}/customer-login',  'CustomerAuthController@login');
