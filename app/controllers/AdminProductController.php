@@ -5,7 +5,6 @@ require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Product.php';
-require_once __DIR__ . '/../models/Ingredient.php';
 
 class AdminProductController extends Controller {
   private function guard($slug) {
@@ -116,7 +115,7 @@ class AdminProductController extends Controller {
     ];
     $pid = Product::create($data);
     $ings = array_filter(array_map('trim', $_POST['ingredients'] ?? []));
-    if ($ings) Ingredient::replaceForProduct($pid, $ings);
+    Product::saveIngredients($pid, $ings);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
   }
 
@@ -124,7 +123,7 @@ class AdminProductController extends Controller {
     [$u,$company] = $this->guard($params['slug']);
     $cats = Category::allByCompany((int)$company['id']);
     $p = Product::find((int)$params['id']);
-    $ingredients = Ingredient::listByProduct((int)$params['id']);
+    $ingredients = Product::getIngredients((int)$params['id']);
     return $this->view('admin/products/form', compact('company','cats','p','ingredients'));
   }
 
@@ -149,7 +148,7 @@ class AdminProductController extends Controller {
     ];
     Product::update((int)$params['id'], $data);
     $ings = array_filter(array_map('trim', $_POST['ingredients'] ?? []));
-    Ingredient::replaceForProduct((int)$params['id'], $ings);
+    Product::saveIngredients((int)$params['id'], $ings);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
   }
 
