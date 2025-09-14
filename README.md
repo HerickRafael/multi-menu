@@ -1,6 +1,5 @@
 # multi-menu
 
-Este repositório agora inclui páginas de produto de demonstração.
 
 ## Requisitos
 
