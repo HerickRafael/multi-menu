@@ -123,7 +123,9 @@ class AdminProductController extends Controller {
     [$u,$company] = $this->guard($params['slug']);
     $cats = Category::allByCompany((int)$company['id']);
     $p = Product::find((int)$params['id']);
-    $ingredients = Product::getIngredients((int)$params['id']);
+    // getIngredients agora retorna [['name'=>...], ...]; extrai apenas os nomes
+    $ingredientsRows = Product::getIngredients((int)$params['id']);
+    $ingredients = array_map(fn($r) => $r['name'], $ingredientsRows);
     return $this->view('admin/products/form', compact('company','cats','p','ingredients'));
   }
 
