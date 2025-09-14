@@ -159,7 +159,10 @@ class Product
    * INGREDIENTES
    * ======================== */
 
-  /** Lê a lista simples de ingredientes do produto (tabela: product_ingredients) */
+  /**
+   * Lê a lista simples de ingredientes do produto (tabela: product_ingredients)
+   * e retorna cada item como ['name' => <string>].
+   */
   public static function getIngredients(int $productId): array {
     $sql = "SELECT name
               FROM product_ingredients
@@ -167,7 +170,7 @@ class Product
           ORDER BY sort ASC, id ASC";
     $st = db()->prepare($sql);
     $st->execute([$productId]);
-    return array_map(fn($r)=>$r['name'], $st->fetchAll(PDO::FETCH_ASSOC));
+    return $st->fetchAll(PDO::FETCH_ASSOC);
   }
 
   /**
