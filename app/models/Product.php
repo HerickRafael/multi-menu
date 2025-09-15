@@ -170,7 +170,9 @@ class Product
           ORDER BY sort ASC, id ASC";
     $st = db()->prepare($sql);
     $st->execute([$productId]);
-    return $st->fetchAll(PDO::FETCH_ASSOC);
+    // Retorna cada item no formato ['name' => <string>]
+    $names = $st->fetchAll(PDO::FETCH_COLUMN);
+    return array_map(fn($n) => ['name' => $n], $names);
   }
 
   /**
