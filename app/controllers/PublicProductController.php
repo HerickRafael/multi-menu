@@ -40,7 +40,7 @@ class PublicProductController extends Controller
             return;
         }
 
-        // Ingredientes (lista simples)
+        // Ingredientes (lista simples) no formato [['name'=>...], ...]
         $ingredients = Product::getIngredients($id);
 
         // Grupos de opções (combo) — somente se tipo != 'simple'
