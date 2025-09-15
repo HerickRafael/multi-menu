@@ -1,14 +1,13 @@
 <?php
-// admin/products/form.php — versão completa (com patches de UX/validação)
+// admin/products/form.php — Ingredientes integrados à Personalização
 
 /* ===== Guard rails / Vars padrão ===== */
 $p              = $p              ?? [];
 $company        = $company        ?? [];
 $cats           = $cats           ?? [];
-$ingredients    = $ingredients    ?? [];
-$groups         = $groups         ?? [];           // grupos de COMPOSIÇÃO (combo)
-$simpleProducts = $simpleProducts ?? [];           // produtos simples (id, name, price) para combos
-$mods           = $mods           ?? [];           // grupos de PERSONALIZAÇÃO (mods) aplicáveis a qualquer tipo
+$groups         = $groups         ?? [];           // COMPOSIÇÃO (combo)
+$simpleProducts = $simpleProducts ?? [];           // para combos
+$mods           = $mods           ?? [];           // PERSONALIZAÇÃO (com os “ingredientes padrão” marcáveis)
 $errors         = $errors         ?? [];
 
 $title   = "Produto - " . ($company['name'] ?? '');
@@ -16,11 +15,8 @@ $editing = !empty($p['id']);
 $slug    = rawurlencode((string)($company['slug'] ?? ''));
 $action  = $editing ? "admin/{$slug}/products/" . (int)$p['id'] : "admin/{$slug}/products";
 
-if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-}
+if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 ?>
-
 <?php ob_start(); ?>
 <h1 class="text-2xl font-semibold mb-4"><?= $editing ? 'Editar' : 'Novo' ?> produto</h1>
 
@@ -111,7 +107,7 @@ if (!function_exists('e')) {
           <option value="simple" <?= $ptype === 'simple' ? 'selected' : '' ?>>Simples</option>
           <option value="combo"  <?= $ptype === 'combo'  ? 'selected' : '' ?>>Combo</option>
         </select>
-        <small class="text-xs text-gray-500">Combos usam “Grupos de opções”. Produtos simples podem ter Personalização (abaixo).</small>
+        <small class="text-xs text-gray-500">Combos usam “Grupos de opções”. Produtos simples podem ter Personalização.</small>
       </label>
 
       <label for="price_mode" class="grid gap-1">
@@ -121,7 +117,7 @@ if (!function_exists('e')) {
           <option value="fixed" <?= $pmode === 'fixed' ? 'selected' : '' ?>>Fixo (preço base)</option>
           <option value="sum"   <?= $pmode === 'sum'   ? 'selected' : '' ?>>Somar itens do grupo</option>
         </select>
-        <small class="text-xs text-gray-500">Em “Somar itens”, o total = base + deltas selecionados.</small>
+        <small class="text-xs text-gray-500">Em “Somar itens”, total = <code>preço base + deltas</code>.</small>
       </label>
     </div>
 
@@ -144,14 +140,12 @@ if (!function_exists('e')) {
   <!-- Imagem -->
   <fieldset class="grid gap-3">
     <legend class="text-base font-medium">Imagem</legend>
-
     <div class="grid md:grid-cols-[1fr_auto] gap-3 items-start">
       <label for="image" class="grid gap-1">
         <span class="text-sm">Upload (jpg/png/webp)</span>
         <input type="file" name="image" id="image" accept=".jpg,.jpeg,.png,.webp" class="border rounded-xl p-2">
-        <small class="text-xs text-gray-500">Recomendado: 1000×750px ou maior (proporção 4:3). Máx. 5 MB.</small>
+        <small class="text-xs text-gray-500">Recomendado: 1000×750px ou maior (4:3). Máx. 5 MB.</small>
       </label>
-
       <div class="flex flex-col items-center gap-2">
         <span class="text-xs text-gray-500">Pré-visualização</span>
         <img id="image-preview"
@@ -162,131 +156,78 @@ if (!function_exists('e')) {
     </div>
   </fieldset>
 
-  <!-- Ingredientes (display/apoio) -->
-  <fieldset class="grid gap-3">
-    <legend class="text-base font-medium">Ingredientes (opcional)</legend>
-
-    <!-- Flag enviada ao servidor -->
-    <input type="hidden" name="use_ingredients" value="<?= !empty($ingredients) ? '1' : '0' ?>">
-
-    <label class="inline-flex items-center gap-2">
-      <input type="checkbox" id="ingredients-toggle" name="use_ingredients" value="1" <?= !empty($ingredients) ? 'checked' : '' ?>>
-      <span>Listar ingredientes</span>
-    </label>
-
-    <div id="ingredients-block" class="grid gap-2 <?= empty($ingredients) ? 'hidden' : '' ?>" aria-hidden="<?= empty($ingredients) ? 'true' : 'false' ?>">
-      <div id="ingredients-container" class="grid gap-2" aria-live="polite">
-        <?php if (!empty($ingredients)): ?>
-          <?php foreach ($ingredients as $ing): ?>
-            <div class="flex gap-2">
-              <input name="ingredients[]" value="<?= e($ing['name'] ?? '') ?>" class="border rounded-xl p-2 flex-1" placeholder="Ingrediente">
-              <button type="button" class="rm-ingredient px-2 border rounded" aria-label="Remover ingrediente">✕</button>
-            </div>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <div class="flex gap-2">
-            <input name="ingredients[]" class="border rounded-xl p-2 flex-1" placeholder="Ingrediente">
-            <button type="button" class="rm-ingredient px-2 border rounded" aria-label="Remover ingrediente">✕</button>
-          </div>
-        <?php endif; ?>
-      </div>
-      <div class="flex gap-2">
-        <button type="button" id="add-ingredient" class="px-2 py-1 border rounded-lg text-sm">+ Ingrediente</button>
-      </div>
-    </div>
-  </fieldset>
-
-  <!-- Grupos de opções (COMPOSIÇÃO - para combos) -->
+  <!-- Grupos de opções (COMBO) -->
   <?php $hasGroups = !empty($groups) || (($p['type'] ?? '') !== 'simple'); ?>
   <fieldset class="grid gap-3">
     <legend class="text-base font-medium">Grupos de opções (Combo)</legend>
 
-    <!-- Flag enviada ao servidor -->
     <input type="hidden" name="use_groups" value="<?= $hasGroups ? '1' : '0' ?>">
 
     <label class="inline-flex items-center gap-2">
       <input type="checkbox" id="groups-toggle" name="use_groups" value="1" <?= $hasGroups ? 'checked' : '' ?>>
-      <span>Usar grupos de opções (para combos/personalização por componentes)</span>
+      <span>Usar grupos de opções (para combos/componentes)</span>
     </label>
 
     <?php if (empty($simpleProducts)): ?>
       <div class="rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
-        Nenhum <strong>produto simples</strong> encontrado para esta empresa.  
-        Cadastre ao menos um (ex.: “Woll Smash”, “Refrigerante 350ml”) e marque como ativo.
+        Nenhum <strong>produto simples</strong> encontrado para esta empresa. Cadastre ao menos um e marque como ativo.
       </div>
     <?php endif; ?>
 
     <div id="groups-block" class="grid gap-3 <?= $hasGroups ? '' : 'hidden' ?>" aria-hidden="<?= $hasGroups ? 'false' : 'true' ?>">
       <div class="rounded-lg border p-2 text-xs text-gray-600">
-        Cada <em>grupo</em> é uma etapa (ex.: “Lanche”, “Acompanhamento”, “Bebida”). Os itens são <strong>produtos simples</strong> já cadastrados.
-        O campo <strong>Δ</strong> é o acréscimo ao total. Em “Somar itens”, total = <code>preço base + deltas</code>.
+        Cada <em>grupo</em> é uma etapa (ex.: “Lanche”, “Acompanhamento”, “Bebida”). Itens são <strong>produtos simples</strong>. Campo <strong>Δ</strong> é o acréscimo.
       </div>
 
-      <div id="groups-container" class="grid gap-3" aria-live="polite">
-        <?php if (!empty($groups)): foreach ($groups as $gi => $g): ?>
-          <?php
-            $gi    = (int)$gi;
-            $gItems= $g['items'] ?? [];
-            $curT  = $g['type'] ?? 'single';
-            $min   = (int)($g['min_qty'] ?? $g['min'] ?? 0);
-            $max   = (int)($g['max_qty'] ?? $g['max'] ?? 1);
-          ?>
-          <div class="border p-2 rounded-lg group" data-index="<?= $gi ?>">
-            <div class="flex flex-wrap gap-2 mb-2">
-              <input name="groups[<?= $gi ?>][name]" value="<?= e($g['name'] ?? '') ?>" placeholder="Nome do grupo" class="border rounded p-1 flex-1" required>
-              <select name="groups[<?= $gi ?>][type]" class="border rounded p-1">
-                <?php foreach (['single','remove','add','swap','component','extra','addon'] as $t): ?>
-                  <option value="<?= e($t) ?>" <?= $curT === $t ? 'selected' : '' ?>><?= ucfirst($t) ?></option>
-                <?php endforeach; ?>
-              </select>
-              <input type="number" name="groups[<?= $gi ?>][min]" value="<?= $min ?>" placeholder="min" class="border rounded p-1 w-20" min="0">
-              <input type="number" name="groups[<?= $gi ?>][max]" value="<?= $max ?>" placeholder="max" class="border rounded p-1 w-20" min="0">
-              <button type="button" class="remove-group px-2 border rounded" aria-label="Remover grupo">✕</button>
-            </div>
-
-            <div class="items grid gap-2">
-              <?php foreach ($gItems as $ii => $it): $ii=(int)$ii; ?>
-                <?php
-                  $selId = (int)($it['product_id'] ?? 0);
-                  $delta = (string)($it['delta'] ?? $it['delta_price'] ?? '0');
-                  $isDef = !empty($it['is_default'] ?? $it['default']);
-                ?>
-                <div class="flex flex-wrap gap-2 item">
-                  <div class="min-w-[240px] flex-1">
-                    <select name="groups[<?= $gi ?>][items][<?= $ii ?>][product_id]"
-                            class="border rounded p-1 w-full product-select"
-                            required>
-                      <option value="">— Selecione um produto simples —</option>
-                      <?php foreach ($simpleProducts as $sp): ?>
-                        <option value="<?= (int)$sp['id'] ?>"
-                                data-price="<?= e((string)($sp['price'] ?? 0)) ?>"
-                                <?= $selId === (int)$sp['id'] ? 'selected' : '' ?>>
-                          <?= e($sp['name']) ?><?= isset($sp['price']) ? ' — R$ ' . number_format((float)$sp['price'], 2, ',', '.') : '' ?>
-                        </option>
-                      <?php endforeach; ?>
-                    </select>
-                    <small class="text-xs text-gray-500">
-                      Preço base: <span class="sp-price">R$ 0,00</span>
-                    </small>
-                  </div>
-
-                  <input type="text" inputmode="decimal"
-                         name="groups[<?= $gi ?>][items][<?= $ii ?>][delta]"
-                         value="<?= e($delta) ?>"
-                         placeholder="Δ"
-                         class="border rounded p-1 w-28 delta-input">
-
-                  <label class="flex items-center gap-1 text-xs px-2">
-                    <input type="checkbox" name="groups[<?= $gi ?>][items][<?= $ii ?>][default]" <?= $isDef ? 'checked' : '' ?>>Default
-                  </label>
-
-                  <button type="button" class="remove-item px-2 border rounded" aria-label="Remover item">✕</button>
-                </div>
+      <div id="groups-container" class="grid gap-2" aria-live="polite">
+        <?php if (!empty($groups)): foreach ($groups as $gi => $g): $gi=(int)$gi;
+          $gItems= $g['items'] ?? [];
+          $curT  = $g['type'] ?? 'single';
+          $min   = (int)($g['min_qty'] ?? $g['min'] ?? 0);
+          $max   = (int)($g['max_qty'] ?? $g['max'] ?? 1);
+        ?>
+        <div class="border p-2 rounded-lg group" data-index="<?= $gi ?>">
+          <div class="flex flex-wrap gap-2 mb-2">
+            <input name="groups[<?= $gi ?>][name]" value="<?= e($g['name'] ?? '') ?>" placeholder="Nome do grupo" class="border rounded p-1 flex-1" required>
+            <select name="groups[<?= $gi ?>][type]" class="border rounded p-1">
+              <?php foreach (['single','remove','add','swap','component','extra','addon'] as $t): ?>
+                <option value="<?= e($t) ?>" <?= $curT === $t ? 'selected' : '' ?>><?= ucfirst($t) ?></option>
               <?php endforeach; ?>
-            </div>
-
-            <button type="button" class="add-item text-sm mt-2 px-2 py-1 border rounded">+ Item</button>
+            </select>
+            <input type="number" name="groups[<?= $gi ?>][min]" value="<?= $min ?>" placeholder="min" class="border rounded p-1 w-20" min="0">
+            <input type="number" name="groups[<?= $gi ?>][max]" value="<?= $max ?>" placeholder="max" class="border rounded p-1 w-20" min="0">
+            <button type="button" class="remove-group px-2 border rounded" aria-label="Remover grupo">✕</button>
           </div>
+
+          <div class="items grid gap-2">
+            <?php foreach ($gItems as $ii => $it): $ii=(int)$ii;
+              $selId = (int)($it['product_id'] ?? 0);
+              $delta = (string)($it['delta'] ?? $it['delta_price'] ?? '0');
+              $isDef = !empty($it['is_default'] ?? $it['default']);
+            ?>
+            <div class="flex flex-wrap gap-2 item">
+              <div class="min-w-[240px] flex-1">
+                <select name="groups[<?= $gi ?>][items][<?= $ii ?>][product_id]" class="border rounded p-1 w-full product-select" required>
+                  <option value="">— Selecione um produto simples —</option>
+                  <?php foreach ($simpleProducts as $sp): ?>
+                    <option value="<?= (int)$sp['id'] ?>" data-price="<?= e((string)($sp['price'] ?? 0)) ?>" <?= $selId === (int)$sp['id'] ? 'selected' : '' ?>>
+                      <?= e($sp['name']) ?><?= isset($sp['price']) ? ' — R$ ' . number_format((float)$sp['price'], 2, ',', '.') : '' ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+                <small class="text-xs text-gray-500">Preço base: <span class="sp-price">R$ 0,00</span></small>
+              </div>
+              <input type="text" inputmode="decimal" name="groups[<?= $gi ?>][items][<?= $ii ?>][delta]" value="<?= e($delta) ?>" placeholder="Δ" class="border rounded p-1 w-28 delta-input">
+              <label class="flex items-center gap-1 text-xs px-2">
+                <input type="checkbox" name="groups[<?= $gi ?>][items][<?= $ii ?>][default]" <?= $isDef ? 'checked' : '' ?>>Default
+              </label>
+              <button type="button" class="remove-item px-2 border rounded" aria-label="Remover item">✕</button>
+            </div>
+            <?php endforeach; ?>
+          </div>
+
+          <button type="button" class="add-item text-sm mt-2 px-2 py-1 border rounded">+ Item</button>
+        </div>
         <?php endforeach; endif; ?>
       </div>
 
@@ -294,66 +235,70 @@ if (!function_exists('e')) {
     </div>
   </fieldset>
 
-  <!-- PERSONALIZAÇÃO (MODS) - disponível para simples e combos -->
+  <!-- PERSONALIZAÇÃO (MODS) + Ingrediente padrão -->
   <?php $hasMods = !empty($mods); ?>
   <fieldset class="grid gap-3">
-    <legend class="text-base font-medium">Personalização (tirar/colocar/extra)</legend>
+    <legend class="text-base font-medium">Personalização (tirar/colocar/extra) + Ingredientes</legend>
 
-    <!-- Flag enviada ao servidor -->
+    <!-- Flag -->
     <input type="hidden" name="use_mods" value="<?= $hasMods ? '1' : '0' ?>">
 
     <label class="inline-flex items-center gap-2">
       <input type="checkbox" id="mods-toggle" name="use_mods" value="1" <?= $hasMods ? 'checked' : '' ?>>
-      <span>Permitir personalização neste produto</span>
+      <span>Permitir personalização e definir ingredientes padrão</span>
     </label>
 
     <div id="mods-block" class="grid gap-3 <?= $hasMods ? '' : 'hidden' ?>" aria-hidden="<?= $hasMods ? 'false' : 'true' ?>">
       <div class="rounded-lg border p-2 text-xs text-gray-600">
-        Use grupos como <strong>Ingredientes</strong>, <strong>Adicionais</strong>, <strong>Molhos</strong>.  
-        Tipos: <code>remove</code> (removíveis, Δ=0), <code>extra</code>/<code>add</code> (adicionam custo), <code>single</code> (escolha única), <code>swap</code>.
+        Crie grupos como <strong>Ingredientes</strong>, <strong>Adicionais</strong>, <strong>Molhos</strong>.<br>
+        Tipos: <code>remove</code> (removíveis, Δ=0), <code>add/extra</code> (acrescentam custo), <code>single</code> (escolha única), <code>swap</code> (troca).<br>
+        Marque <em>Ingrediente padrão</em> nos itens que devem aparecer na aba “Ingredientes” do produto.
       </div>
 
       <div id="mods-container" class="grid gap-3" aria-live="polite">
-        <?php if (!empty($mods)): foreach ($mods as $mi => $mg): $mi=(int)$mi; ?>
-          <?php
-            $mItems = $mg['items'] ?? [];
-            $mType  = $mg['type'] ?? 'remove';
-            $mMin   = (int)($mg['min_qty'] ?? $mg['min'] ?? 0);
-            $mMax   = (int)($mg['max_qty'] ?? $mg['max'] ?? 99);
-          ?>
-          <div class="border p-2 rounded-lg mod-group" data-index="<?= $mi ?>">
-            <div class="flex flex-wrap gap-2 mb-2">
-              <input name="mods[<?= $mi ?>][name]" value="<?= e($mg['name'] ?? '') ?>" placeholder="Nome do grupo (ex.: Ingredientes)" class="border rounded p-1 flex-1" required>
-              <select name="mods[<?= $mi ?>][type]" class="border rounded p-1">
-                <?php foreach (['remove','add','extra','swap','single'] as $t): ?>
-                  <option value="<?= e($t) ?>" <?= $mType === $t ? 'selected' : '' ?>><?= ucfirst($t) ?></option>
-                <?php endforeach; ?>
-              </select>
-              <input type="number" name="mods[<?= $mi ?>][min]" value="<?= $mMin ?>" placeholder="min" class="border rounded p-1 w-20" min="0">
-              <input type="number" name="mods[<?= $mi ?>][max]" value="<?= $mMax ?>" placeholder="max" class="border rounded p-1 w-20" min="0">
-              <button type="button" class="remove-mod-group px-2 border rounded" aria-label="Remover grupo">✕</button>
-            </div>
-
-            <div class="mod-items grid gap-2">
-              <?php foreach ($mItems as $ii => $it): $ii=(int)$ii; ?>
-                <?php
-                  $name  = (string)($it['name'] ?? '');
-                  $delta = (string)($it['delta'] ?? '0');
-                  $isDef = !empty($it['is_default'] ?? $it['default']);
-                ?>
-                <div class="flex flex-wrap gap-2 mod-item">
-                  <input name="mods[<?= $mi ?>][items][<?= $ii ?>][name]" value="<?= e($name) ?>" placeholder="Item (ex.: Cebola, Bacon)" class="border rounded p-1 flex-1" required>
-                  <input type="text" inputmode="decimal" name="mods[<?= $mi ?>][items][<?= $ii ?>][delta]" value="<?= e($delta) ?>" placeholder="Δ (ex.: 0,00)" class="border rounded p-1 w-28">
-                  <label class="flex items-center gap-1 text-xs px-2">
-                    <input type="checkbox" name="mods[<?= $mi ?>][items][<?= $ii ?>][default]" <?= $isDef ? 'checked' : '' ?>>Default
-                  </label>
-                  <button type="button" class="remove-mod-item px-2 border rounded" aria-label="Remover item">✕</button>
-                </div>
+        <?php if (!empty($mods)): foreach ($mods as $mi => $mg): $mi=(int)$mi;
+          $mItems = $mg['items'] ?? [];
+          $mType  = $mg['type'] ?? 'remove';
+          $mMin   = (int)($mg['min_qty'] ?? $mg['min'] ?? 0);
+          $mMax   = (int)($mg['max_qty'] ?? $mg['max'] ?? 99);
+        ?>
+        <div class="border p-2 rounded-lg mod-group" data-index="<?= $mi ?>">
+          <div class="flex flex-wrap gap-2 mb-2">
+            <input name="mods[<?= $mi ?>][name]" value="<?= e($mg['name'] ?? '') ?>" placeholder="Nome do grupo (ex.: Ingredientes)" class="border rounded p-1 flex-1" required>
+            <select name="mods[<?= $mi ?>][type]" class="border rounded p-1">
+              <?php foreach (['remove','add','extra','swap','single'] as $t): ?>
+                <option value="<?= e($t) ?>" <?= $mType === $t ? 'selected' : '' ?>><?= ucfirst($t) ?></option>
               <?php endforeach; ?>
-            </div>
-
-            <button type="button" class="add-mod-item text-sm mt-2 px-2 py-1 border rounded">+ Item</button>
+            </select>
+            <input type="number" name="mods[<?= $mi ?>][min]" value="<?= $mMin ?>" placeholder="min" class="border rounded p-1 w-20" min="0">
+            <input type="number" name="mods[<?= $mi ?>][max]" value="<?= $mMax ?>" placeholder="max" class="border rounded p-1 w-20" min="0">
+            <button type="button" class="remove-mod-group px-2 border rounded" aria-label="Remover grupo">✕</button>
           </div>
+
+          <div class="mod-items grid gap-2">
+            <?php foreach ($mItems as $ii => $it): $ii=(int)$ii;
+              $name   = (string)($it['name'] ?? '');
+              $delta  = (string)($it['delta'] ?? '0');
+              $isDef  = !empty($it['is_default'] ?? $it['default']);
+              // suporta varios nomes possíveis vindos do banco
+              $isBase = !empty($it['is_base'] ?? $it['show_on_product'] ?? $it['is_ingredient'] ?? false);
+            ?>
+            <div class="flex flex-wrap gap-2 mod-item">
+              <input name="mods[<?= $mi ?>][items][<?= $ii ?>][name]" value="<?= e($name) ?>" placeholder="Item (ex.: Cebola, Bacon)" class="border rounded p-1 flex-1" required>
+              <input type="text" inputmode="decimal" name="mods[<?= $mi ?>][items][<?= $ii ?>][delta]" value="<?= e($delta) ?>" placeholder="Δ (ex.: 0,00)" class="border rounded p-1 w-28">
+              <label class="flex items-center gap-1 text-xs px-2">
+                <input type="checkbox" name="mods[<?= $mi ?>][items][<?= $ii ?>][default]" <?= $isDef ? 'checked' : '' ?>>Default
+              </label>
+              <label class="flex items-center gap-1 text-xs px-2">
+                <input type="checkbox" class="ck-ingredient" name="mods[<?= $mi ?>][items][<?= $ii ?>][is_base]" <?= $isBase ? 'checked' : '' ?>>Ingrediente padrão
+              </label>
+              <button type="button" class="remove-mod-item px-2 border rounded" aria-label="Remover item">✕</button>
+            </div>
+            <?php endforeach; ?>
+          </div>
+
+          <button type="button" class="add-mod-item text-sm mt-2 px-2 py-1 border rounded">+ Item</button>
+        </div>
         <?php endforeach; endif; ?>
       </div>
 
@@ -376,14 +321,7 @@ if (!function_exists('e')) {
     <a href="<?= e(base_url("admin/{$slug}/products")) ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
   </div>
 
-  <!-- Templates -->
-  <template id="tpl-ingredient">
-    <div class="flex gap-2">
-      <input name="ingredients[]" class="border rounded-xl p-2 flex-1" placeholder="Ingrediente">
-      <button type="button" class="rm-ingredient px-2 border rounded" aria-label="Remover ingrediente">✕</button>
-    </div>
-  </template>
-
+  <!-- ===== Templates ===== -->
   <template id="tpl-group">
     <div class="border p-2 rounded-lg group" data-index="__IDX__">
       <div class="flex flex-wrap gap-2 mb-2">
@@ -409,31 +347,20 @@ if (!function_exists('e')) {
   <template id="tpl-item">
     <div class="flex flex-wrap gap-2 item">
       <div class="min-w-[240px] flex-1">
-        <select name="groups[__G__][items][__I__][product_id]"
-                class="border rounded p-1 w-full product-select"
-                required>
+        <select name="groups[__G__][items][__I__][product_id]" class="border rounded p-1 w-full product-select" required>
           <option value="">— Selecione um produto simples —</option>
           <?php foreach ($simpleProducts as $sp): ?>
-            <option value="<?= (int)$sp['id'] ?>"
-                    data-price="<?= e((string)($sp['price'] ?? 0)) ?>">
+            <option value="<?= (int)$sp['id'] ?>" data-price="<?= e((string)($sp['price'] ?? 0)) ?>">
               <?= e($sp['name']) ?><?= isset($sp['price']) ? ' — R$ ' . number_format((float)$sp['price'], 2, ',', '.') : '' ?>
             </option>
           <?php endforeach; ?>
         </select>
-        <small class="text-xs text-gray-500">
-          Preço base: <span class="sp-price">R$ 0,00</span>
-        </small>
+        <small class="text-xs text-gray-500">Preço base: <span class="sp-price">R$ 0,00</span></small>
       </div>
-
-      <input type="text" inputmode="decimal"
-             name="groups[__G__][items][__I__][delta]"
-             placeholder="Δ"
-             class="border rounded p-1 w-28 delta-input" value="0">
-
+      <input type="text" inputmode="decimal" name="groups[__G__][items][__I__][delta]" placeholder="Δ" class="border rounded p-1 w-28 delta-input" value="0">
       <label class="flex items-center gap-1 text-xs px-2">
         <input type="checkbox" name="groups[__G__][items][__I__][default]">Default
       </label>
-
       <button type="button" class="remove-item px-2 border rounded" aria-label="Remover item">✕</button>
     </div>
   </template>
@@ -465,349 +392,190 @@ if (!function_exists('e')) {
       <label class="flex items-center gap-1 text-xs px-2">
         <input type="checkbox" name="mods[__G__][items][__I__][default]">Default
       </label>
+      <label class="flex items-center gap-1 text-xs px-2">
+        <input type="checkbox" class="ck-ingredient" name="mods[__G__][items][__I__][is_base]">Ingrediente padrão
+      </label>
       <button type="button" class="remove-mod-item px-2 border rounded" aria-label="Remover item">✕</button>
     </div>
   </template>
 
+  <!-- ========== Sincronização oculta de ingredientes[] para compat ▲ ========== -->
+  <div id="derived-ingredients" class="hidden" aria-hidden="true"></div>
+
   <!-- Script -->
   <script>
     // ===== Utils =====
-    function formatMoney(v){
-      const n = isNaN(v) ? 0 : Number(v);
-      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-    function brToFloat(v){
-      if (v == null) return 0;
-      return parseFloat(String(v).replace(/\./g,'').replace(',', '.')) || 0;
-    }
+    function formatMoney(v){ const n = isNaN(v) ? 0 : Number(v); return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+    function brToFloat(v){ if(v==null) return 0; return parseFloat(String(v).replace(/\./g,'').replace(',','.')) || 0; }
     function toggleBlock(block, on){
       block.classList.toggle('hidden', !on);
       block.setAttribute('aria-hidden', String(!on));
       block.classList.toggle('opacity-50', !on);
-      block.querySelectorAll('input,select,textarea,button').forEach(n=>{
-        if (n.type === 'hidden') return;
-        n.classList.toggle('pointer-events-none', !on);
-      });
+      block.querySelectorAll('input,select,textarea,button').forEach(n=>{ if(n.type==='hidden') return; n.classList.toggle('pointer-events-none', !on); });
     }
     function ensureMinMax(scope){
       scope.querySelectorAll('input[name$="[min]"]').forEach(minEl=>{
         const maxEl = minEl.parentElement.querySelector('input[name$="[max]"]');
-        if (!maxEl) return;
+        if(!maxEl) return;
         const min = Number(minEl.value||0), max = Number(maxEl.value||0);
-        if (max && max < min) maxEl.value = min;
+        if(max && max < min) maxEl.value = min;
       });
     }
 
-    // ===== Descrição: contador =====
-    const desc = document.getElementById('description');
-    const count = document.getElementById('desc-count');
-    if (desc && count) {
-      const updateCount = () => { count.textContent = (desc.value || '').length; };
-      desc.addEventListener('input', updateCount);
-      updateCount();
-    }
+    // Descrição: contador
+    const desc=document.getElementById('description'), count=document.getElementById('desc-count');
+    if(desc && count){ const upd=()=>{count.textContent=(desc.value||'').length}; desc.addEventListener('input',upd); upd(); }
 
-    // ===== Imagem: preview (revoga URL e limita 5MB) =====
-    const inputImg = document.getElementById('image');
-    const preview = document.getElementById('image-preview');
-    let lastUrl;
-    if (inputImg && preview) {
-      inputImg.addEventListener('change', () => {
-        const f = inputImg.files && inputImg.files[0];
-        if (!f) return;
-        const ok = /image\/(jpeg|png|webp)/.test(f.type);
-        if (!ok || f.size > 5*1024*1024) {
-          alert('Formato inválido ou arquivo muito grande. Use JPG/PNG/WEBP até 5MB.');
-          inputImg.value=''; return;
-        }
-        if (lastUrl) URL.revokeObjectURL(lastUrl);
-        lastUrl = URL.createObjectURL(f);
-        preview.src = lastUrl;
+    // Imagem: preview
+    const inputImg=document.getElementById('image'), preview=document.getElementById('image-preview'); let lastUrl;
+    if(inputImg && preview){
+      inputImg.addEventListener('change', ()=>{
+        const f=inputImg.files && inputImg.files[0]; if(!f) return;
+        const ok=/image\/(jpeg|png|webp)/.test(f.type);
+        if(!ok || f.size>5*1024*1024){ alert('Formato inválido ou arquivo muito grande. Use JPG/PNG/WEBP até 5MB.'); inputImg.value=''; return; }
+        if(lastUrl) URL.revokeObjectURL(lastUrl); lastUrl=URL.createObjectURL(f); preview.src=lastUrl;
       });
     }
-
-    // ===== Ingredientes =====
-    const ingToggle = document.getElementById('ingredients-toggle');
-    const ingBlock  = document.getElementById('ingredients-block');
-    const ingCont   = document.getElementById('ingredients-container');
-    const tplIng    = document.getElementById('tpl-ingredient');
-
-    function addIngredient(){
-      const frag = tplIng.content.cloneNode(true);
-      ingCont.appendChild(frag);
-    }
-    document.getElementById('add-ingredient')?.addEventListener('click', addIngredient);
-
-    ingCont?.addEventListener('click', (e) => {
-      if (e.target.classList.contains('rm-ingredient')) {
-        const row = e.target.closest('div.flex');
-        if (row && ingCont.children.length > 1) row.remove();
-      }
-    });
-
-    function syncIng(){
-      if (!ingToggle) return;
-      const on = ingToggle.checked;
-      toggleBlock(ingBlock, on);
-    }
-    ingToggle?.addEventListener('change', syncIng);
-    syncIng();
 
     // ===== Grupos (COMPOSIÇÃO) visibilidade por tipo =====
-    const typeSel = document.getElementById('type');
-    const groupsToggle = document.getElementById('groups-toggle');
-    const groupsBlock  = document.getElementById('groups-block');
+    const typeSel=document.getElementById('type'), groupsToggle=document.getElementById('groups-toggle'), groupsBlock=document.getElementById('groups-block');
     function syncGroupsVisibility(){
       const isComplex = typeSel && typeSel.value !== 'simple';
-      if (isComplex) { 
-        groupsToggle.checked = true; 
-        document.querySelector('input[name="use_groups"][type="hidden"]').value = '1'; 
-      }
-      toggleBlock(groupsBlock, !!groupsToggle.checked);
+      if(isComplex){ groupsToggle.checked=true; document.querySelector('input[name="use_groups"][type="hidden"]').value='1'; }
+      toggleBlock(groupsBlock, !!groupsToggle?.checked);
     }
     typeSel?.addEventListener('change', syncGroupsVisibility);
-    groupsToggle?.addEventListener('change', (e)=>{
-      document.querySelector('input[name="use_groups"][type="hidden"]').value = e.target.checked ? '1' : '0';
-      syncGroupsVisibility();
-    });
+    groupsToggle?.addEventListener('change', (e)=>{ document.querySelector('input[name="use_groups"][type="hidden"]').value = e.target.checked?'1':'0'; syncGroupsVisibility(); });
     syncGroupsVisibility();
 
-    // ===== Grupos & Itens (COMPOSIÇÃO - combos) =====
-    const gContainer = document.getElementById('groups-container');
-    const addGroupBtn = document.getElementById('add-group');
-    const tplGroup  = document.getElementById('tpl-group');
-    const tplItem   = document.getElementById('tpl-item');
-
+    // ===== COMBO wiring =====
+    const gContainer=document.getElementById('groups-container'), addGroupBtn=document.getElementById('add-group');
+    const tplGroup=document.getElementById('tpl-group'), tplItem=document.getElementById('tpl-item');
     function wireProductSelect(selectEl){
-      const wrap   = selectEl.closest('.item');
-      const priceL = wrap.querySelector('.sp-price');
-      const delta  = wrap.querySelector('.delta-input');
-      const update = () => {
-        const opt   = selectEl.options[selectEl.selectedIndex];
-        const baseP = Number(opt?.dataset?.price || 0);
-        if (priceL) priceL.textContent = formatMoney(baseP);
-        if (delta && !delta.value) delta.placeholder = 'Δ (ex.: 0,00)';
-      };
-      selectEl.addEventListener('change', update);
-      update();
+      const wrap=selectEl.closest('.item'); const priceL=wrap.querySelector('.sp-price'); const delta=wrap.querySelector('.delta-input');
+      const update=()=>{ const opt=selectEl.options[selectEl.selectedIndex]; const baseP=Number(opt?.dataset?.price||0); if(priceL) priceL.textContent=formatMoney(baseP); if(delta && !delta.value) delta.placeholder='Δ (ex.: 0,00)'; };
+      selectEl.addEventListener('change', update); update();
     }
-    function wireAllProductSelects(ctx){
-      (ctx || document).querySelectorAll('.product-select').forEach(wireProductSelect);
-    }
-
-    let gIndex = gContainer ? Array.from(gContainer.children).length : 0;
-
-    function addGroup(){
-      const idx  = gIndex++;
-      const html = tplGroup.innerHTML.replace(/__IDX__/g, String(idx));
-      const div  = document.createElement('div');
-      div.innerHTML = html.trim();
-      const node = div.firstElementChild;
-      gContainer.appendChild(node);
-      wireAllProductSelects(node);
-      return node;
-    }
-    function addItem(groupEl){
-      const idx  = groupEl.dataset.index;
-      const items= groupEl.querySelector('.items');
-      const iIdx = items.children.length;
-      const html = tplItem.innerHTML.replace(/__G__/g, String(idx)).replace(/__I__/g, String(iIdx));
-      const wrap = document.createElement('div');
-      wrap.innerHTML = html.trim();
-      items.appendChild(wrap.firstElementChild);
-      wireAllProductSelects(groupEl);
-    }
-
+    function wireAllProductSelects(ctx){ (ctx||document).querySelectorAll('.product-select').forEach(wireProductSelect); }
+    let gIndex=gContainer ? Array.from(gContainer.children).length : 0;
+    function addGroup(){ const idx=gIndex++; const html=tplGroup.innerHTML.replace(/__IDX__/g,String(idx)); const div=document.createElement('div'); div.innerHTML=html.trim(); const node=div.firstElementChild; gContainer.appendChild(node); wireAllProductSelects(node); return node; }
+    function addItem(groupEl){ const idx=groupEl.dataset.index; const items=groupEl.querySelector('.items'); const iIdx=items.children.length; const html=tplItem.innerHTML.replace(/__G__/g,String(idx)).replace(/__I__/g,String(iIdx)); const wrap=document.createElement('div'); wrap.innerHTML=html.trim(); items.appendChild(wrap.firstElementChild); wireAllProductSelects(groupEl); }
     addGroupBtn?.addEventListener('click', addGroup);
-
-    gContainer?.addEventListener('click', (e) => {
-      const t = e.target;
-      if (t.classList.contains('add-item')) {
-        addItem(t.closest('.group'));
-      } else if (t.classList.contains('remove-group')) {
-        t.closest('.group')?.remove();
-      } else if (t.classList.contains('remove-item')) {
-        t.closest('.item')?.remove();
-      }
+    gContainer?.addEventListener('click', (e)=>{ const t=e.target;
+      if(t.classList.contains('add-item')) addItem(t.closest('.group'));
+      else if(t.classList.contains('remove-group')) t.closest('.group')?.remove();
+      else if(t.classList.contains('remove-item')) t.closest('.item')?.remove();
     });
-
-    // aplica wiring para selects existentes (edição)
     wireAllProductSelects(document);
 
     // ===== PERSONALIZAÇÃO (mods) =====
-    const modsToggle    = document.getElementById('mods-toggle');
-    const modsBlock     = document.getElementById('mods-block');
-    const modsContainer = document.getElementById('mods-container');
-    const addModGroup   = document.getElementById('add-mod-group');
-    const tplModGroup   = document.getElementById('tpl-mod-group');
-    const tplModItem    = document.getElementById('tpl-mod-item');
+    const modsToggle=document.getElementById('mods-toggle'), modsBlock=document.getElementById('mods-block'), modsContainer=document.getElementById('mods-container');
+    const addModGroup=document.getElementById('add-mod-group'), tplModGroup=document.getElementById('tpl-mod-group'), tplModItem=document.getElementById('tpl-mod-item');
+    function syncMods(){ const on=!!modsToggle?.checked; document.querySelector('input[name="use_mods"][type="hidden"]').value=on?'1':'0'; toggleBlock(modsBlock, on); }
+    modsToggle?.addEventListener('change', syncMods); syncMods();
 
-    function syncMods(){
-      const on = !!modsToggle?.checked;
-      document.querySelector('input[name="use_mods"][type="hidden"]').value = on ? '1' : '0';
-      toggleBlock(modsBlock, on);
-    }
-    modsToggle?.addEventListener('change', syncMods);
-    syncMods();
-
-    let mIndex = modsContainer ? Array.from(modsContainer.children).length : 0;
-
-    function addModGroupFn(){
-      const idx  = mIndex++;
-      const html = tplModGroup.innerHTML.replace(/__IDX__/g, String(idx));
-      const div  = document.createElement('div');
-      div.innerHTML = html.trim();
-      const node = div.firstElementChild;
-      modsContainer.appendChild(node);
-      return node;
-    }
-    function addModItemFn(groupEl){
-      const idx   = groupEl.dataset.index;
-      const items = groupEl.querySelector('.mod-items');
-      const iIdx  = items.children.length;
-      const html  = tplModItem.innerHTML.replace(/__G__/g, String(idx)).replace(/__I__/g, String(iIdx));
-      const wrap  = document.createElement('div');
-      wrap.innerHTML = html.trim();
-      items.appendChild(wrap.firstElementChild);
-    }
+    let mIndex=modsContainer ? Array.from(modsContainer.children).length : 0;
+    function addModGroupFn(){ const idx=mIndex++; const html=tplModGroup.innerHTML.replace(/__IDX__/g,String(idx)); const div=document.createElement('div'); div.innerHTML=html.trim(); const node=div.firstElementChild; modsContainer.appendChild(node); return node; }
+    function addModItemFn(groupEl){ const idx=groupEl.dataset.index; const items=groupEl.querySelector('.mod-items'); const iIdx=items.children.length; const html=tplModItem.innerHTML.replace(/__G__/g,String(idx)).replace(/__I__/g,String(iIdx)); const wrap=document.createElement('div'); wrap.innerHTML=html.trim(); items.appendChild(wrap.firstElementChild); bindIngredientSync(); }
 
     addModGroup?.addEventListener('click', addModGroupFn);
-
-    modsContainer?.addEventListener('click', (e) => {
-      const t = e.target;
-      if (t.classList.contains('add-mod-item')) {
-        addModItemFn(t.closest('.mod-group'));
-      } else if (t.classList.contains('remove-mod-group')) {
-        t.closest('.mod-group')?.remove();
-      } else if (t.classList.contains('remove-mod-item')) {
-        t.closest('.mod-item')?.remove();
-      }
+    modsContainer?.addEventListener('click', (e)=>{ const t=e.target;
+      if(t.classList.contains('add-mod-item')) addModItemFn(t.closest('.mod-group'));
+      else if(t.classList.contains('remove-mod-group')) { t.closest('.mod-group')?.remove(); syncDerivedIngredients(); }
+      else if(t.classList.contains('remove-mod-item')) { t.closest('.mod-item')?.remove(); syncDerivedIngredients(); }
     });
 
-    // ===== Validação (client) + normalização pt-BR =====
-    document.getElementById('product-form')?.addEventListener('submit', (e) => {
-      const name = document.getElementById('name');
-      if (!name.value.trim()) {
-        e.preventDefault();
-        alert('Informe o nome do produto.');
-        name.focus();
-        return;
-      }
+    // ===== Ingredientes derivados (compat com backend atual) =====
+    const derivedBox = document.getElementById('derived-ingredients');
 
-      // Normaliza BR -> float (ponto) nos preços
-      ['price','promo_price'].forEach(id=>{
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.value = String(brToFloat(el.value||'0'));
-      });
-      document.querySelectorAll('input[name$="[delta]"]').forEach(el=>{
-        el.value = String(brToFloat(el.value||'0'));
-      });
-
-      // promo < preço base (se ambos)
-      const price = parseFloat(document.getElementById('price').value || '0');
-      const promo = parseFloat(document.getElementById('promo_price').value || '0');
-      if (promo && price && promo >= price) {
-        e.preventDefault();
-        alert('O preço promocional deve ser menor que o preço base.');
-        document.getElementById('promo_price').focus();
-        return;
-      }
-
-      // Se usar grupos de COMPOSIÇÃO
-      const groupsToggle = document.getElementById('groups-toggle');
-      if (groupsToggle && groupsToggle.checked) {
-        const gs = gContainer.querySelectorAll('.group');
-        if (!gs.length) {
-          e.preventDefault();
-          alert('Adicione pelo menos um grupo de opções do combo.');
-          addGroup();
-          return;
+    function syncDerivedIngredients(){
+      // zera
+      derivedBox.innerHTML = '';
+      // coleta todos os itens marcados como “Ingrediente padrão”
+      modsContainer.querySelectorAll('.mod-item').forEach(row=>{
+        const ck = row.querySelector('.ck-ingredient');
+        const nm = row.querySelector('input[name$="[name]"]');
+        if(ck && ck.checked && nm && nm.value.trim()){
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'ingredients[]';
+          input.value = nm.value.trim();
+          derivedBox.appendChild(input);
         }
-        for (const g of gs) {
-          const gname = g.querySelector('input[name^="groups"][name$="[name]"]');
-          const items = g.querySelectorAll('.item');
-          // coerência min/max
+      });
+    }
+
+    function bindIngredientSync(){
+      modsContainer.querySelectorAll('.ck-ingredient').forEach(ck=>{
+        if(ck._binded) return;
+        ck._binded = true;
+        ck.addEventListener('change', syncDerivedIngredients);
+      });
+      modsContainer.querySelectorAll('.mod-item input[name$="[name]"]').forEach(nm=>{
+        if(nm._binded) return;
+        nm._binded = true;
+        nm.addEventListener('input', syncDerivedIngredients);
+      });
+      // inicial
+      syncDerivedIngredients();
+    }
+
+    bindIngredientSync();
+
+    // ===== Validação + normalização =====
+    document.getElementById('product-form')?.addEventListener('submit', (e)=>{
+      const name=document.getElementById('name');
+      if(!name.value.trim()){ e.preventDefault(); alert('Informe o nome do produto.'); name.focus(); return; }
+
+      // Normaliza BR -> float
+      ['price','promo_price'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; el.value=String(brToFloat(el.value||'0')); });
+      document.querySelectorAll('input[name$="[delta]"]').forEach(el=>{ el.value=String(brToFloat(el.value||'0')); });
+
+      const price=parseFloat(document.getElementById('price').value||'0');
+      const promo=parseFloat(document.getElementById('promo_price').value||'0');
+      if(promo && price && promo>=price){ e.preventDefault(); alert('O preço promocional deve ser menor que o preço base.'); document.getElementById('promo_price').focus(); return; }
+
+      // COMBO
+      if(groupsToggle && groupsToggle.checked){
+        const gs=gContainer.querySelectorAll('.group');
+        if(!gs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de opções do combo.'); addGroup(); return; }
+        for(const g of gs){
+          const gname=g.querySelector('input[name^="groups"][name$="[name]"]');
+          const items=g.querySelectorAll('.item');
           ensureMinMax(g);
-          const minEl = g.querySelector('input[name$="[min]"]');
-          const maxEl = g.querySelector('input[name$="[max]"]');
-          const min = Number(minEl?.value||0), max = Number(maxEl?.value||0);
-          if (max && max < min) {
-            e.preventDefault();
-            alert('No grupo "' + (gname.value||'') + '", o máximo não pode ser menor que o mínimo.');
-            maxEl.focus();
-            return;
-          }
-
-          if (!gname.value.trim() || !items.length) {
-            e.preventDefault();
-            alert('Cada grupo do combo precisa de nome e pelo menos um item.');
-            gname.focus();
-            return;
-          }
-          for (const it of items) {
-            const sel = it.querySelector('select.product-select');
-            if (!sel.value) {
-              e.preventDefault();
-              alert('Selecione um produto simples para cada item do combo.');
-              sel.focus();
-              return;
-            }
-          }
+          const minEl=g.querySelector('input[name$="[min]"]'), maxEl=g.querySelector('input[name$="[max]"]');
+          const min=Number(minEl?.value||0), max=Number(maxEl?.value||0);
+          if(max && max<min){ e.preventDefault(); alert('No grupo "'+(gname.value||'')+'", o máximo não pode ser menor que o mínimo.'); maxEl.focus(); return; }
+          if(!gname.value.trim() || !items.length){ e.preventDefault(); alert('Cada grupo do combo precisa de nome e ao menos um item.'); gname.focus(); return; }
+          for(const it of items){ const sel=it.querySelector('select.product-select'); if(!sel.value){ e.preventDefault(); alert('Selecione um produto simples para cada item do combo.'); sel.focus(); return; } }
         }
       }
 
-      // Se usar PERSONALIZAÇÃO
-      const modsToggle = document.getElementById('mods-toggle');
-      if (modsToggle && modsToggle.checked) {
-        const mgs = modsContainer.querySelectorAll('.mod-group');
-        for (const mg of mgs) {
-          const gname = mg.querySelector('input[name^="mods"][name$="[name]"]');
-          const items = mg.querySelectorAll('.mod-item');
-          // coerência min/max
+      // MODS
+      if(modsToggle && modsToggle.checked){
+        const mgs=modsContainer.querySelectorAll('.mod-group');
+        for(const mg of mgs){
+          const gname=mg.querySelector('input[name^="mods"][name$="[name]"]');
+          const items=mg.querySelectorAll('.mod-item');
           ensureMinMax(mg);
-          const minEl = mg.querySelector('input[name$="[min]"]');
-          const maxEl = mg.querySelector('input[name$="[max]"]');
-          const min = Number(minEl?.value||0), max = Number(maxEl?.value||0);
-          if (max && max < min) {
-            e.preventDefault();
-            alert('No grupo "' + (gname.value||'') + '", o máximo não pode ser menor que o mínimo.');
-            maxEl.focus();
-            return;
-          }
-
-          if (!gname.value.trim()) {
-            e.preventDefault();
-            alert('Cada grupo de personalização precisa de um nome.');
-            gname.focus();
-            return;
-          }
-          if (!items.length) {
-            e.preventDefault();
-            alert('Adicione pelo menos um item no grupo de personalização "' + gname.value + '".');
-            return;
-          }
-          for (const it of items) {
-            const nm = it.querySelector('input[name$="[name]"]');
-            if (!nm.value.trim()) {
-              e.preventDefault();
-              alert('Cada item de personalização precisa de um nome.');
-              nm.focus();
-              return;
-            }
-          }
+          const minEl=mg.querySelector('input[name$="[min]"]'), maxEl=mg.querySelector('input[name$="[max]"]');
+          const min=Number(minEl?.value||0), max=Number(maxEl?.value||0);
+          if(max && max<min){ e.preventDefault(); alert('No grupo "'+(gname.value||'')+'", o máximo não pode ser menor que o mínimo.'); maxEl.focus(); return; }
+          if(!gname.value.trim()){ e.preventDefault(); alert('Cada grupo de personalização precisa de um nome.'); gname.focus(); return; }
+          if(!items.length){ e.preventDefault(); alert('Adicione pelo menos um item no grupo "'+(gname.value||'')+'".'); return; }
+          for(const it of items){ const nm=it.querySelector('input[name$="[name]"]'); if(!nm.value.trim()){ e.preventDefault(); alert('Cada item de personalização precisa de um nome.'); nm.focus(); return; } }
         }
       }
+
+      // Gera ingredients[] antes de enviar
+      syncDerivedIngredients();
     });
 
-    // valida coerência min/max ao digitar
+    // coerência min/max ao digitar
     ;['groups-container','mods-container'].forEach(id=>{
-      const el = document.getElementById(id);
-      if (!el) return;
+      const el=document.getElementById(id); if(!el) return;
       el.addEventListener('input', e=>{
-        if (e.target.name?.endsWith('[min]') || e.target.name?.endsWith('[max]')) {
-          ensureMinMax(el);
-        }
+        if(e.target.name?.endsWith('[min]') || e.target.name?.endsWith('[max]')) ensureMinMax(el);
       });
     });
   </script>
