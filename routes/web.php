@@ -5,6 +5,7 @@
 $router->get('/{slug}',                       'PublicHomeController@index');
 $router->get('/{slug}/buscar',                'PublicHomeController@buscar');
 $router->get('/{slug}/produto/{id}',          'PublicProductController@show');
+$router->get('/{slug}/product/{id}',          'PublicProductController@show');
 
 /* Personalização de produto */
 $router->get('/{slug}/produto/{id}/customizar', 'PublicProductController@customize');
