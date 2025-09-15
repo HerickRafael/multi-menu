@@ -1,18 +1,42 @@
 <?php
-/** @var array $company */
-/** @var array $product */
-/** @var array|null $comboGroups */
-/** @var array|null $simpleMods */
+/** ============================================================================
+ * app/views/public/product.php
+ * ----------------------------------------------------------------------------
+ * Página pública do produto
+ *
+ * Controller deve fornecer:
+ *   $company (array) -> ['slug'=>..., 'name'=>...]
+ *   $product (array) -> ['id'=>..., 'name'=>..., 'price'=>..., 'promo_price'=>?, 'image'=>?, 'type'=>('simple'|'combo')]
+ *   $simpleMods (array|null) -> ['items'=>[ ['name','delta','default', 'img', 'min','max','qty'] ]]
+ *   $comboGroups (array|null) -> [
+ *       ['name'=>'Bebida','items'=>[
+ *           ['id'=>123,'name'=>'Coca 350','image'=>'/img/coca.png','delta'=>0,'default'=>true],
+ *           ...
+ *       ]],
+ *       ...
+ *   ]
+ *   $ingredients (array|null) -> fallback legado: [['name'=>'...'], ...]
+ * ============================================================================ */
 
-// Helpers
+/** Helpers */
 if (!function_exists('e')) {
   function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
-function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); }
+if (!function_exists('price_br')) {
+  function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); }
+}
 
-// ===== Ingredientes exibidos na página =====
-// [ADMIN → “Personalização / Ingredientes (simplificado)”]
-// Mostra na página pública somente os itens marcados como "default" (ingrediente padrão).
+/** Variáveis básicas */
+$company = $company ?? [];
+$product = $product ?? [];
+$simpleMods = $simpleMods ?? null;
+$comboGroups = $comboGroups ?? null;
+$ingredients = $ingredients ?? [];
+
+$slug  = (string)($company['slug'] ?? '');
+$pId   = (int)($product['id'] ?? 0);
+
+/** Ingredientes a exibir (preferir os marcados como default em $simpleMods) */
 $displayIngredients = [];
 if (!empty($simpleMods['items']) && is_array($simpleMods['items'])) {
   foreach ($simpleMods['items'] as $it) {
@@ -21,15 +45,18 @@ if (!empty($simpleMods['items']) && is_array($simpleMods['items'])) {
     }
   }
 }
-// Fallback: se não houver nada marcado, e se o controller ainda estiver passando $ingredients antigos:
-if (empty($displayIngredients) && !empty($ingredients)) {
+if (empty($displayIngredients) && !empty($ingredients)) { // fallback legado
   foreach ($ingredients as $ing) {
     $displayIngredients[] = (string)($ing['name'] ?? '');
   }
 }
 
-// Produto é combo quando $product['type'] === 'combo' e há grupos:
+/** É combo? */
 $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
+
+/** URLs (ajuste às suas rotas reais) */
+$customizeUrl = base_url($slug . '/produto/' . $pId . '/customizar');          // GET (tela de customização)
+$addToCartUrl = base_url($slug . '/orders/add');                                // POST (adiciona ao carrinho)
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -48,7 +75,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
-  @media (min-width:768px){ .app{max-width:375px} }
+  @media (min-width:768px){ .app{max-width:375px} } /* tablet/desktop limitam a 375px */
 
   /* Hero */
   .hero-wrap{position:relative}
@@ -77,7 +104,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   .section h3{margin:8px 0 6px;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
   .body{font-size:14px;color:#374151;line-height:1.5}
 
-  /* Ingredientes (bullets) */
+  /* Ingredientes (bolinhas pretas) */
   .checklist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
   .checklist li{display:flex;align-items:flex-start;gap:10px;font-size:14px}
   .bullet{width:7px;height:7px;border-radius:999px;background:#111;margin-top:7px;flex:0 0 7px}
@@ -125,9 +152,10 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
     </button>
     <div class="hero">
       <?php
-      $img = $product['image'] ?? '';
-      if ($img && @is_file($_SERVER['DOCUMENT_ROOT'] . '/' . ltrim($img,'/'))): ?>
-        <img src="<?= e($img) ?>" alt="<?= e($product['name']) ?>">
+      $img = (string)($product['image'] ?? '');
+      $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+      if ($img && @is_file($docRoot . '/' . ltrim($img,'/'))): ?>
+        <img src="<?= e($img) ?>" alt="<?= e($product['name'] ?? 'Produto') ?>">
       <?php else: ?>
         <img src="<?= e(base_url('assets/logo-placeholder.png')) ?>" alt="Imagem do produto">
       <?php endif; ?>
@@ -137,7 +165,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   <!-- Card de informações -->
   <main class="card" role="main">
     <div class="brand">
-      <span class="dot">M</span>
+      <span class="dot"><?= e(strtoupper(mb_substr($company['name'] ?? 'M', 0, 1))) ?></span>
       <span><?= e($company['name'] ?? '') ?></span>
     </div>
 
@@ -146,10 +174,9 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
     <div class="price-row">
       <div class="price">
         <?php
-        // Preço exibido (padrão: promo se existir e for menor)
-        $price = (float)($product['price'] ?? 0);
-        $promo = (float)($product['promo_price'] ?? 0);
-        echo $promo && $promo < $price ? price_br($promo) : price_br($price);
+          $price = (float)($product['price'] ?? 0);
+          $promo = (float)($product['promo_price'] ?? 0);
+          echo ($promo && $promo < $price) ? price_br($promo) : price_br($price);
         ?>
       </div>
 
@@ -173,7 +200,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
     </section>
     <?php endif; ?>
 
-    <!-- Ingredientes (padrões) -->
+    <!-- Ingredientes (padrões, com bolinhas pretas) -->
     <?php if (!empty($displayIngredients)): ?>
     <section class="section">
       <h3>Ingredientes</h3>
@@ -182,29 +209,27 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
           <li><span class="bullet" aria-hidden="true"></span><span><?= e($ing) ?></span></li>
         <?php endforeach; ?>
       </ul>
-      <!-- [ADMIN → “Personalização / Ingredientes (simplificado)” → marcar “Padrão” em cada item que deve vir no lanche e aparecer aqui] -->
+      <!-- [ADMIN → “Personalização / Ingredientes (simplificado)” → marcar “Padrão” para aparecer aqui] -->
     </section>
     <?php endif; ?>
   </main>
 
-  <!-- Botão PERSONALIZAR -->
+  <!-- Botão PERSONALIZAR: só mostra se houver itens em simpleMods -->
   <?php if (!empty($simpleMods['items'])): ?>
   <div class="customize-wrap">
     <div class="customize">
-      <!-- Você pode apontar para sua rota real de customização -->
-      <a class="btn-outline" href="<?= e(base_url($company['slug'].'/produto/'.$product['id'].'?customize=1')) ?>">
+      <a class="btn-outline" href="<?= e($customizeUrl) ?>">
         <span>Personalizar ingredientes</span>
         <span class="chev" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
       </a>
-      <!-- [ADMIN → “Personalização / Ingredientes (simplificado)” → basta ativar o toggle e cadastrar itens.
-           Se houver itens aqui, mostramos este botão.] -->
+      <!-- [ADMIN → “Personalização / Ingredientes (simplificado)” → ativar e cadastrar itens] -->
     </div>
   </div>
   <?php endif; ?>
 
-  <!-- ===== BLOCO DE COMBO (real, sem demo) ===== -->
+  <!-- ===== BLOCO DE COMBO (real, condicional) ===== -->
   <?php if ($isCombo): ?>
   <section class="combo" aria-label="Montar combo">
     <?php foreach ($comboGroups as $gi => $group): ?>
@@ -220,10 +245,9 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
               $isDefault = !empty($opt['default']);
               $img = (string)($opt['image'] ?? '');
               $optPrice = (isset($opt['delta']) ? (float)$opt['delta'] : 0.0);
-              // Se quiser exibir preço do item do grupo, aqui usamos Δ (delta) como rótulo:
               $priceLabel = $optPrice != 0.0 ? price_br($optPrice) : 'Incluído';
             ?>
-            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)$opt['id'] ?>">
+            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
                 <?php if ($img): ?>
                   <img src="<?= e($img) ?>" alt="<?= e($opt['name'] ?? '') ?>">
@@ -236,8 +260,6 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
               </button>
               <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
               <div class="choice-price"><?= e($priceLabel) ?></div>
-              <!-- [ADMIN → “Grupos de opções (Combo)” → groups[<?= (int)$gi ?>][items][*][product_id] (id do produto simples)
-                   Aqui geramos um input hidden por grupo com o id selecionado. -->
             </div>
           <?php endforeach; ?>
         </div>
@@ -248,20 +270,18 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   <!-- ===== FIM BLOCO COMBO ===== -->
 
   <!-- CTA / Form de Add-to-cart -->
-  <form class="footer" method="post" action="<?= e(base_url($company['slug'].'/orders/add')) ?>" onsubmit="return attach(event)">
-    <input type="hidden" name="product_id" value="<?= (int)$product['id'] ?>">
+  <form class="footer" method="post" action="<?= e($addToCartUrl) ?>" onsubmit="return attach(event)">
+    <input type="hidden" name="product_id" value="<?= $pId ?>">
     <input type="hidden" name="qty" id="qtyField" value="1">
 
     <?php if ($isCombo): ?>
       <?php foreach ($comboGroups as $gi => $group): ?>
         <?php
-          // Valor inicial do hidden = primeiro default do grupo (se houver), senão primeiro item.
           $selId = null;
           foreach (($group['items'] ?? []) as $opt) { if (!empty($opt['default'])) { $selId = (int)$opt['id']; break; } }
           if ($selId === null && !empty($group['items'][0]['id'])) $selId = (int)$group['items'][0]['id'];
         ?>
         <input type="hidden" name="combo[<?= (int)$gi ?>]" id="combo_field_<?= (int)$gi ?>" value="<?= $selId !== null ? (int)$selId : '' ?>">
-        <!-- [ADMIN → “Grupos de opções (Combo)” → cada grupo gera 1 hidden no POST: combo[gi] = product_id escolhido -->
       <?php endforeach; ?>
     <?php endif; ?>
 
@@ -271,20 +291,17 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
 
 <script>
   // ===== Qty stepper =====
-  const qval = document.getElementById('qval');
+  const qval   = document.getElementById('qval');
   const qfield = document.getElementById('qtyField');
-  const minus = document.getElementById('qminus');
-  const plus  = document.getElementById('qplus');
-  const clamp = n => Math.max(1, Math.min(99, n|0));
+  const minus  = document.getElementById('qminus');
+  const plus   = document.getElementById('qplus');
+  const clamp  = n => Math.max(1, Math.min(99, n|0));
   function setQty(n){ const v = clamp(n); qval.textContent = String(v); qfield.value = String(v); }
   minus?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)-1));
   plus ?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)+1));
   function attach(e){ setQty(parseInt(qval.textContent,10)||1); return true; }
 
   // ===== Seleção por grupo (Combo) =====
-  // [ADMIN → “Grupos de opções (Combo)”]
-  // Para cada grupo, quando o usuário clica numa opção, ativamos .sel e
-  // atualizamos o hidden correspondente (combo[gi]) com o id do produto simples escolhido.
   document.querySelectorAll('.choice-row').forEach(row=>{
     const gi = row.dataset.groupIndex;
     const hidden = document.getElementById('combo_field_' + gi);
