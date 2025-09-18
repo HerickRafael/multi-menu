@@ -121,7 +121,6 @@ class AdminProductController extends Controller {
     $cats = Category::allByCompany((int)$company['id']);
     $p = Product::find((int)$params['id']);
 
-
   public function update($params){
     [$u,$company] = $this->guard($params['slug']);
     $p = Product::find((int)$params['id']);
