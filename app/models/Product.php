@@ -160,14 +160,65 @@ class Product
    * ======================== */
 
   /**
-   * Lê a lista simples de ingredientes do produto (tabela: product_ingredients)
+   * Determina a tabela real usada para persistir ingredientes.
+   * Aceita os nomes legacy `ingredients` e o novo `product_ingredients`.
+   */
+  private static function ingredientTable(): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+
+    $pdo = db();
+    $candidates = ['product_ingredients', 'ingredients'];
+
+    foreach ($candidates as $name) {
+      try {
+        $pdo->query("SELECT 1 FROM {$name} LIMIT 0");
+
+        $hasSort = false;
+        try {
+          $col = $pdo->query("SHOW COLUMNS FROM {$name} LIKE 'sort'");
+          $hasSort = (bool)$col->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $colErr) {
+          // Alguns bancos (SQLite, PostgreSQL) não suportam SHOW COLUMNS.
+          // Faz uma checagem alternativa usando PRAGMA/DESCRIBE simples.
+          try {
+            $pragma = $pdo->query("PRAGMA table_info({$name})");
+            if ($pragma) {
+              while ($row = $pragma->fetch(PDO::FETCH_ASSOC)) {
+                if (isset($row['name']) && $row['name'] === 'sort') { $hasSort = true; break; }
+                if (isset($row['Field']) && $row['Field'] === 'sort') { $hasSort = true; break; }
+              }
+            }
+          } catch (PDOException $pragmaErr) {
+            // Ignora – se não conseguir verificar, assume que não tem.
+          }
+        }
+
+        $cache = ['table' => $name, 'has_sort' => $hasSort];
+        return $cache;
+      } catch (PDOException $e) {
+        if (($e->errorInfo[0] ?? '') === '42S02') {
+          continue; // tabela não existe, tenta a próxima
+        }
+        throw $e; // outro erro (permissão, etc.) deve emergir
+      }
+    }
+
+    throw new RuntimeException('Tabela de ingredientes não encontrada.');
+  }
+
+  /**
+   * Lê a lista simples de ingredientes do produto (tabela dinâmica)
    * e retorna cada item como ['name' => <string>].
    */
   public static function getIngredients(int $productId): array {
+    $info = self::ingredientTable();
+    $table = $info['table'];
+    $order = $info['has_sort'] ? 'sort ASC, id ASC' : 'id ASC';
     $sql = "SELECT name
-              FROM product_ingredients
+              FROM {$table}
              WHERE product_id = ?
-          ORDER BY sort ASC, id ASC";
+          ORDER BY {$order}";
     $st = db()->prepare($sql);
     $st->execute([$productId]);
     return $st->fetchAll(PDO::FETCH_ASSOC);
@@ -179,17 +230,28 @@ class Product
    */
   public static function saveIngredients(int $productId, array $ingredients): void {
     $pdo = db();
+    $info = self::ingredientTable();
+    $table = $info['table'];
+    $hasSort = $info['has_sort'];
     $pdo->beginTransaction();
     try {
-      $pdo->prepare("DELETE FROM product_ingredients WHERE product_id=?")->execute([$productId]);
+      $pdo->prepare("DELETE FROM {$table} WHERE product_id=?")->execute([$productId]);
 
       if (!empty($ingredients)) {
-        $ins = $pdo->prepare("INSERT INTO product_ingredients (product_id, name, sort) VALUES (?,?,?)");
+        if ($hasSort) {
+          $ins = $pdo->prepare("INSERT INTO {$table} (product_id, name, sort) VALUES (?,?,?)");
+        } else {
+          $ins = $pdo->prepare("INSERT INTO {$table} (product_id, name) VALUES (?,?)");
+        }
         $sort = 0;
         foreach ($ingredients as $name) {
           $name = trim((string)$name);
           if ($name === '') continue;
-          $ins->execute([$productId, $name, $sort++]);
+          if ($hasSort) {
+            $ins->execute([$productId, $name, $sort++]);
+          } else {
+            $ins->execute([$productId, $name]);
+          }
         }
       }
 
