@@ -19,7 +19,7 @@
  *     ]
  *   ],
  *   [
- *     'name'=>'Ingredientes','type'=>'extra','min'=>0,'max'=>99,
+ *     'name'=>'Personalização','type'=>'extra','min'=>0,'max'=>99,
  *     'items'=>[
  *       ['name'=>'Bacon','delta'=>3.00,'default'=>0,'min'=>0,'max'=>5,'qty'=>0,'img'=>null],
  *       ['name'=>'Cebola','delta'=>0.00,'default'=>1,'min'=>0,'max'=>5,'qty'=>1,'img'=>null],
@@ -162,7 +162,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   </header>
 
   <div class="container">
-    <h1 class="h1">Deseja adicionar<br>algum ingrediente?</h1>
+    <h1 class="h1">Como deseja<br>personalizar?</h1>
     <div class="sub"><?= e($pName) ?></div>
 
     <!-- ======================================================================

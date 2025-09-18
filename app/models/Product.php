@@ -156,51 +156,6 @@ class Product
   }
 
   /* ========================
-   * INGREDIENTES
-   * ======================== */
-
-  /**
-   * Lê a lista simples de ingredientes do produto (tabela: product_ingredients)
-   * e retorna cada item como ['name' => <string>].
-   */
-  public static function getIngredients(int $productId): array {
-    $sql = "SELECT name
-              FROM product_ingredients
-             WHERE product_id = ?
-          ORDER BY sort ASC, id ASC";
-    $st = db()->prepare($sql);
-    $st->execute([$productId]);
-    return $st->fetchAll(PDO::FETCH_ASSOC);
-  }
-
-  /**
-   * Salva ingredientes do formulário Admin.
-   * Recebe array de strings (names). Substitui os existentes.
-   */
-  public static function saveIngredients(int $productId, array $ingredients): void {
-    $pdo = db();
-    $pdo->beginTransaction();
-    try {
-      $pdo->prepare("DELETE FROM product_ingredients WHERE product_id=?")->execute([$productId]);
-
-      if (!empty($ingredients)) {
-        $ins = $pdo->prepare("INSERT INTO product_ingredients (product_id, name, sort) VALUES (?,?,?)");
-        $sort = 0;
-        foreach ($ingredients as $name) {
-          $name = trim((string)$name);
-          if ($name === '') continue;
-          $ins->execute([$productId, $name, $sort++]);
-        }
-      }
-
-      $pdo->commit();
-    } catch (Throwable $e) {
-      $pdo->rollBack();
-      throw $e;
-    }
-  }
-
-  /* ========================
    * COMBO: GRUPOS + ITENS
    * ======================== */
 
