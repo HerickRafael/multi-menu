@@ -119,7 +119,7 @@ class AdminProductController extends Controller {
   public function edit($params){
     [$u,$company] = $this->guard($params['slug']);
     $cats = Category::allByCompany((int)$company['id']);
-    $p = Product::find((int)$params['id']);
+    $p = Product::find((int)$params['id']); main
 
   public function update($params){
     [$u,$company] = $this->guard($params['slug']);
