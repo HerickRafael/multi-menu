@@ -125,7 +125,9 @@ class AdminProductController extends Controller {
     $p = Product::find((int)$params['id']);
     // getIngredients agora retorna [['name'=>...], ...]; extrai apenas os nomes
     $ingredientsRows = Product::getIngredients((int)$params['id']);
-    $ingredients = array_map(fn($r) => $r['name'], $ingredientsRows);
+    $ingredients = array_map(function ($row) {
+      return $row['name'];
+    }, $ingredientsRows);
     return $this->view('admin/products/form', compact('company','cats','p','ingredients'));
   }
 
