@@ -120,8 +120,7 @@ class AdminProductController extends Controller {
     [$u,$company] = $this->guard($params['slug']);
     $cats = Category::allByCompany((int)$company['id']);
     $p = Product::find((int)$params['id']);
-    return $this->view('admin/products/form', compact('company','cats','p'));
-  }
+
 
   public function update($params){
     [$u,$company] = $this->guard($params['slug']);
