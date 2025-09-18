@@ -38,8 +38,7 @@ class AdminProductController extends Controller {
       'name'=>'','description'=>'','price'=>0,'promo_price'=>null,'sku'=>'',
       'sort_order'=>0,'active'=>1,'category_id'=>null,'image'=>null
     ];
-    $ingredients = [];
-    return $this->view('admin/products/form', compact('company','cats','p','ingredients'));
+    return $this->view('admin/products/form', compact('company','cats','p'));
   }
 
   /**
@@ -113,23 +112,14 @@ class AdminProductController extends Controller {
       'active'      => isset($_POST['active']) ? 1 : 0,
       'sort_order'  => (int)$_POST['sort_order'],
     ];
-    $pid = Product::create($data);
-    $ings = array_filter(array_map('trim', $_POST['ingredients'] ?? []));
-    Product::saveIngredients($pid, $ings);
+    Product::create($data);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
   }
 
   public function edit($params){
     [$u,$company] = $this->guard($params['slug']);
     $cats = Category::allByCompany((int)$company['id']);
-    $p = Product::find((int)$params['id']);
-    // getIngredients agora retorna [['name'=>...], ...]; extrai apenas os nomes
-    $ingredientsRows = Product::getIngredients((int)$params['id']);
-    $ingredients = array_map(function ($row) {
-      return $row['name'];
-    }, $ingredientsRows);
-    return $this->view('admin/products/form', compact('company','cats','p','ingredients'));
-  }
+    $p = Product::find((int)$params['id']); main
 
   public function update($params){
     [$u,$company] = $this->guard($params['slug']);
@@ -151,8 +141,6 @@ class AdminProductController extends Controller {
       'sort_order'  => (int)$_POST['sort_order'],
     ];
     Product::update((int)$params['id'], $data);
-    $ings = array_filter(array_map('trim', $_POST['ingredients'] ?? []));
-    Product::saveIngredients((int)$params['id'], $ings);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
   }
 
