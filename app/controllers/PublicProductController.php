@@ -12,7 +12,6 @@ class PublicProductController extends Controller
      * Mostra a página pública do produto.
      * - Carrega empresa por slug
      * - Valida que o produto pertence à empresa e está ativo
-     * - Carrega ingredientes simples
      * - Carrega grupos de opções (combo) + itens (se o produto for do tipo != 'simple')
      */
     public function show($params)
@@ -40,9 +39,6 @@ class PublicProductController extends Controller
             return;
         }
 
-        // Ingredientes (lista simples) no formato [['name'=>...], ...]
-        $ingredients = Product::getIngredients($id);
-
         // Grupos de opções (combo) — somente se tipo != 'simple'
         $groups = [];
         $type = $product['type'] ?? 'simple';
@@ -51,8 +47,8 @@ class PublicProductController extends Controller
         }
 
         // Renderiza a view pública
-        // A view espera: $company, $product, $ingredients, $groups
-        return $this->view('public/product', compact('company', 'product', 'ingredients', 'groups'));
+        // A view espera: $company, $product, $groups
+        return $this->view('public/product', compact('company', 'product', 'groups'));
     }
 
     /**

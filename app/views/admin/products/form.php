@@ -1,5 +1,5 @@
 <?php
-// admin/products/form.php — Ingredientes integrados à Personalização
+// admin/products/form.php — Formulário de produtos
 
 /* ===== Guard rails / Vars padrão ===== */
 $p              = $p              ?? [];
@@ -7,7 +7,7 @@ $company        = $company        ?? [];
 $cats           = $cats           ?? [];
 $groups         = $groups         ?? [];           // COMPOSIÇÃO (combo)
 $simpleProducts = $simpleProducts ?? [];           // para combos
-$mods           = $mods           ?? [];           // PERSONALIZAÇÃO (com os “ingredientes padrão” marcáveis)
+$mods           = $mods           ?? [];           // PERSONALIZAÇÃO
 $errors         = $errors         ?? [];
 
 $title   = "Produto - " . ($company['name'] ?? '');
@@ -235,24 +235,23 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     </div>
   </fieldset>
 
-  <!-- PERSONALIZAÇÃO (MODS) + Ingrediente padrão -->
+  <!-- PERSONALIZAÇÃO (MODS) -->
   <?php $hasMods = !empty($mods); ?>
   <fieldset class="grid gap-3">
-    <legend class="text-base font-medium">Personalização (tirar/colocar/extra) + Ingredientes</legend>
+    <legend class="text-base font-medium">Personalização (tirar/colocar/extra)</legend>
 
     <!-- Flag -->
     <input type="hidden" name="use_mods" value="<?= $hasMods ? '1' : '0' ?>">
 
     <label class="inline-flex items-center gap-2">
       <input type="checkbox" id="mods-toggle" name="use_mods" value="1" <?= $hasMods ? 'checked' : '' ?>>
-      <span>Permitir personalização e definir ingredientes padrão</span>
+      <span>Permitir personalização de itens</span>
     </label>
 
     <div id="mods-block" class="grid gap-3 <?= $hasMods ? '' : 'hidden' ?>" aria-hidden="<?= $hasMods ? 'false' : 'true' ?>">
       <div class="rounded-lg border p-2 text-xs text-gray-600">
-        Crie grupos como <strong>Ingredientes</strong>, <strong>Adicionais</strong>, <strong>Molhos</strong>.<br>
+        Crie grupos como <strong>Itens principais</strong>, <strong>Adicionais</strong>, <strong>Molhos</strong>.<br>
         Tipos: <code>remove</code> (removíveis, Δ=0), <code>add/extra</code> (acrescentam custo), <code>single</code> (escolha única), <code>swap</code> (troca).<br>
-        Marque <em>Ingrediente padrão</em> nos itens que devem aparecer na aba “Ingredientes” do produto.
       </div>
 
       <div id="mods-container" class="grid gap-3" aria-live="polite">
@@ -264,7 +263,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         ?>
         <div class="border p-2 rounded-lg mod-group" data-index="<?= $mi ?>">
           <div class="flex flex-wrap gap-2 mb-2">
-            <input name="mods[<?= $mi ?>][name]" value="<?= e($mg['name'] ?? '') ?>" placeholder="Nome do grupo (ex.: Ingredientes)" class="border rounded p-1 flex-1" required>
+            <input name="mods[<?= $mi ?>][name]" value="<?= e($mg['name'] ?? '') ?>" placeholder="Nome do grupo" class="border rounded p-1 flex-1" required>
             <select name="mods[<?= $mi ?>][type]" class="border rounded p-1">
               <?php foreach (['remove','add','extra','swap','single'] as $t): ?>
                 <option value="<?= e($t) ?>" <?= $mType === $t ? 'selected' : '' ?>><?= ucfirst($t) ?></option>
@@ -280,17 +279,12 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
               $name   = (string)($it['name'] ?? '');
               $delta  = (string)($it['delta'] ?? '0');
               $isDef  = !empty($it['is_default'] ?? $it['default']);
-              // suporta varios nomes possíveis vindos do banco
-              $isBase = !empty($it['is_base'] ?? $it['show_on_product'] ?? $it['is_ingredient'] ?? false);
             ?>
             <div class="flex flex-wrap gap-2 mod-item">
               <input name="mods[<?= $mi ?>][items][<?= $ii ?>][name]" value="<?= e($name) ?>" placeholder="Item (ex.: Cebola, Bacon)" class="border rounded p-1 flex-1" required>
               <input type="text" inputmode="decimal" name="mods[<?= $mi ?>][items][<?= $ii ?>][delta]" value="<?= e($delta) ?>" placeholder="Δ (ex.: 0,00)" class="border rounded p-1 w-28">
               <label class="flex items-center gap-1 text-xs px-2">
                 <input type="checkbox" name="mods[<?= $mi ?>][items][<?= $ii ?>][default]" <?= $isDef ? 'checked' : '' ?>>Default
-              </label>
-              <label class="flex items-center gap-1 text-xs px-2">
-                <input type="checkbox" class="ck-ingredient" name="mods[<?= $mi ?>][items][<?= $ii ?>][is_base]" <?= $isBase ? 'checked' : '' ?>>Ingrediente padrão
               </label>
               <button type="button" class="remove-mod-item px-2 border rounded" aria-label="Remover item">✕</button>
             </div>
@@ -368,7 +362,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
   <template id="tpl-mod-group">
     <div class="border p-2 rounded-lg mod-group" data-index="__IDX__">
       <div class="flex flex-wrap gap-2 mb-2">
-        <input name="mods[__IDX__][name]" placeholder="Nome do grupo (ex.: Ingredientes)" class="border rounded p-1 flex-1" required>
+        <input name="mods[__IDX__][name]" placeholder="Nome do grupo" class="border rounded p-1 flex-1" required>
         <select name="mods[__IDX__][type]" class="border rounded p-1">
           <option value="remove">Remove</option>
           <option value="add">Add</option>
@@ -392,15 +386,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       <label class="flex items-center gap-1 text-xs px-2">
         <input type="checkbox" name="mods[__G__][items][__I__][default]">Default
       </label>
-      <label class="flex items-center gap-1 text-xs px-2">
-        <input type="checkbox" class="ck-ingredient" name="mods[__G__][items][__I__][is_base]">Ingrediente padrão
-      </label>
       <button type="button" class="remove-mod-item px-2 border rounded" aria-label="Remover item">✕</button>
     </div>
   </template>
-
-  <!-- ========== Sincronização oculta de ingredientes[] para compat ▲ ========== -->
-  <div id="derived-ingredients" class="hidden" aria-hidden="true"></div>
 
   <!-- Script -->
   <script>
@@ -476,51 +464,14 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
     let mIndex=modsContainer ? Array.from(modsContainer.children).length : 0;
     function addModGroupFn(){ const idx=mIndex++; const html=tplModGroup.innerHTML.replace(/__IDX__/g,String(idx)); const div=document.createElement('div'); div.innerHTML=html.trim(); const node=div.firstElementChild; modsContainer.appendChild(node); return node; }
-    function addModItemFn(groupEl){ const idx=groupEl.dataset.index; const items=groupEl.querySelector('.mod-items'); const iIdx=items.children.length; const html=tplModItem.innerHTML.replace(/__G__/g,String(idx)).replace(/__I__/g,String(iIdx)); const wrap=document.createElement('div'); wrap.innerHTML=html.trim(); items.appendChild(wrap.firstElementChild); bindIngredientSync(); }
+    function addModItemFn(groupEl){ const idx=groupEl.dataset.index; const items=groupEl.querySelector('.mod-items'); const iIdx=items.children.length; const html=tplModItem.innerHTML.replace(/__G__/g,String(idx)).replace(/__I__/g,String(iIdx)); const wrap=document.createElement('div'); wrap.innerHTML=html.trim(); items.appendChild(wrap.firstElementChild); }
 
     addModGroup?.addEventListener('click', addModGroupFn);
     modsContainer?.addEventListener('click', (e)=>{ const t=e.target;
       if(t.classList.contains('add-mod-item')) addModItemFn(t.closest('.mod-group'));
-      else if(t.classList.contains('remove-mod-group')) { t.closest('.mod-group')?.remove(); syncDerivedIngredients(); }
-      else if(t.classList.contains('remove-mod-item')) { t.closest('.mod-item')?.remove(); syncDerivedIngredients(); }
+      else if(t.classList.contains('remove-mod-group')) { t.closest('.mod-group')?.remove(); }
+      else if(t.classList.contains('remove-mod-item')) { t.closest('.mod-item')?.remove(); }
     });
-
-    // ===== Ingredientes derivados (compat com backend atual) =====
-    const derivedBox = document.getElementById('derived-ingredients');
-
-    function syncDerivedIngredients(){
-      // zera
-      derivedBox.innerHTML = '';
-      // coleta todos os itens marcados como “Ingrediente padrão”
-      modsContainer.querySelectorAll('.mod-item').forEach(row=>{
-        const ck = row.querySelector('.ck-ingredient');
-        const nm = row.querySelector('input[name$="[name]"]');
-        if(ck && ck.checked && nm && nm.value.trim()){
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'ingredients[]';
-          input.value = nm.value.trim();
-          derivedBox.appendChild(input);
-        }
-      });
-    }
-
-    function bindIngredientSync(){
-      modsContainer.querySelectorAll('.ck-ingredient').forEach(ck=>{
-        if(ck._binded) return;
-        ck._binded = true;
-        ck.addEventListener('change', syncDerivedIngredients);
-      });
-      modsContainer.querySelectorAll('.mod-item input[name$="[name]"]').forEach(nm=>{
-        if(nm._binded) return;
-        nm._binded = true;
-        nm.addEventListener('input', syncDerivedIngredients);
-      });
-      // inicial
-      syncDerivedIngredients();
-    }
-
-    bindIngredientSync();
 
     // ===== Validação + normalização =====
     document.getElementById('product-form')?.addEventListener('submit', (e)=>{
@@ -567,8 +518,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         }
       }
 
-      // Gera ingredients[] antes de enviar
-      syncDerivedIngredients();
     });
 
     // coerência min/max ao digitar
