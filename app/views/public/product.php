@@ -15,7 +15,6 @@
  *       ]],
  *       ...
  *   ]
- *   $ingredients (array|null) -> fallback legado: [['name'=>'...'], ...]
  * ============================================================================ */
 
 /** Helpers */
@@ -31,25 +30,9 @@ $company = $company ?? [];
 $product = $product ?? [];
 $simpleMods = $simpleMods ?? null;
 $comboGroups = $comboGroups ?? null;
-$ingredients = $ingredients ?? [];
 
 $slug  = (string)($company['slug'] ?? '');
 $pId   = (int)($product['id'] ?? 0);
-
-/** Ingredientes a exibir (preferir os marcados como default em $simpleMods) */
-$displayIngredients = [];
-if (!empty($simpleMods['items']) && is_array($simpleMods['items'])) {
-  foreach ($simpleMods['items'] as $it) {
-    if (!empty($it['default'])) {
-      $displayIngredients[] = (string)($it['name'] ?? '');
-    }
-  }
-}
-if (empty($displayIngredients) && !empty($ingredients)) { // fallback legado
-  foreach ($ingredients as $ing) {
-    $displayIngredients[] = (string)($ing['name'] ?? '');
-  }
-}
 
 /** É combo? */
 $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
@@ -103,11 +86,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
 
   .section h3{margin:8px 0 6px;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
   .body{font-size:14px;color:#374151;line-height:1.5}
-
-  /* Ingredientes (bolinhas pretas) */
-  .checklist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
-  .checklist li{display:flex;align-items:flex-start;gap:10px;font-size:14px}
-  .bullet{width:7px;height:7px;border-radius:999px;background:#111;margin-top:7px;flex:0 0 7px}
 
   /* Botão "Personalizar" */
   .customize-wrap{background:var(--card)}
@@ -200,18 +178,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
     </section>
     <?php endif; ?>
 
-    <!-- Ingredientes (padrões, com bolinhas pretas) -->
-    <?php if (!empty($displayIngredients)): ?>
-    <section class="section">
-      <h3>Ingredientes</h3>
-      <ul class="checklist">
-        <?php foreach ($displayIngredients as $ing): if (!$ing) continue; ?>
-          <li><span class="bullet" aria-hidden="true"></span><span><?= e($ing) ?></span></li>
-        <?php endforeach; ?>
-      </ul>
-      <!-- [ADMIN → “Personalização / Ingredientes (simplificado)” → marcar “Padrão” para aparecer aqui] -->
-    </section>
-    <?php endif; ?>
   </main>
 
   <!-- Botão PERSONALIZAR: só mostra se houver itens em simpleMods -->
@@ -219,12 +185,14 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
   <div class="customize-wrap">
     <div class="customize">
       <a class="btn-outline" href="<?= e($customizeUrl) ?>">
-        <span>Personalizar ingredientes</span>
+        <span>
+          <strong>Personalizar</strong>
+          <small style="display:block;color:#6b7280;font-size:12px;margin-top:6px">Escolha adicionais ou ajuste seu pedido.</small>
+        </span>
         <span class="chev" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
       </a>
-      <!-- [ADMIN → “Personalização / Ingredientes (simplificado)” → ativar e cadastrar itens] -->
     </div>
   </div>
   <?php endif; ?>
