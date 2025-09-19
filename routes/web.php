@@ -54,6 +54,14 @@ $router->get('/admin/{slug}/products/{id}/edit',    'AdminProductController@edit
 $router->post('/admin/{slug}/products/{id}',        'AdminProductController@update');
 $router->post('/admin/{slug}/products/{id}/del',    'AdminProductController@destroy');
 
+// Ingredientes (CRUD)
+$router->get('/admin/{slug}/ingredients',              'AdminIngredientController@index');
+$router->get('/admin/{slug}/ingredients/create',       'AdminIngredientController@create');
+$router->post('/admin/{slug}/ingredients',             'AdminIngredientController@store');
+$router->get('/admin/{slug}/ingredients/{id}/edit',    'AdminIngredientController@edit');
+$router->post('/admin/{slug}/ingredients/{id}',        'AdminIngredientController@update');
+$router->post('/admin/{slug}/ingredients/{id}/del',    'AdminIngredientController@destroy');
+
 /* ========= Constraints globais ========= */
 if (method_exists($router, 'where')) {
   $router->where('slug', '[a-z0-9\-]+');
