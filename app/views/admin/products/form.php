@@ -686,7 +686,14 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
   <script>
     // ===== Utils =====
     function formatMoney(v){ const n = isNaN(v) ? 0 : Number(v); return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
-    function brToFloat(v){ if(v==null) return 0; return parseFloat(String(v).replace(/\./g,'').replace(',','.')) || 0; }
+    function brToFloat(v){
+      if(v==null) return 0;
+      const raw = String(v).trim();
+      if(raw.includes(',')){
+        return parseFloat(raw.replace(/\./g,'').replace(',','.')) || 0;
+      }
+      return parseFloat(raw) || 0;
+    }
     function toggleBlock(block, on){
       block.classList.toggle('hidden', !on);
       block.setAttribute('aria-hidden', String(!on));
