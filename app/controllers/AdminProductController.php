@@ -5,6 +5,7 @@ require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Product.php';
+require_once __DIR__ . '/../models/Ingredient.php';
 require_once __DIR__ . '/../models/ProductCustomization.php';
 
 class AdminProductController extends Controller {
@@ -58,7 +59,8 @@ class AdminProductController extends Controller {
     ];
 
     $customization = ['enabled' => false, 'groups' => []];
-    return $this->view('admin/products/form', compact('company','cats','p','customization'));
+    $ingredients = Ingredient::allForCompany((int)$company['id']);
+    return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients'));
   }
 
   /**
@@ -122,7 +124,7 @@ class AdminProductController extends Controller {
     if ($imgError) $_SESSION['flash_error'] = $imgError;
 
     $custPayload = $_POST['customization'] ?? [];
-    $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : []);
+    $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
 
     $data = [
       'company_id'  => (int)$company['id'],
@@ -156,8 +158,9 @@ class AdminProductController extends Controller {
       'enabled' => !empty($p['allow_customize']),
       'groups'  => ProductCustomization::loadForAdmin((int)$p['id']),
     ];
+    $ingredients = Ingredient::allForCompany((int)$company['id']);
 
-    return $this->view('admin/products/form', compact('company','cats','p','customization'));
+    return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients'));
   } // <-- ESTA CHAVE FALTAVA
 
   /** Persistência da edição */
@@ -172,7 +175,7 @@ class AdminProductController extends Controller {
     if ($imgError) $_SESSION['flash_error'] = $imgError;
 
     $custPayload = $_POST['customization'] ?? [];
-    $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : []);
+    $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
 
     $data = [
       'category_id' => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,

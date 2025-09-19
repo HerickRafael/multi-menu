@@ -1,51 +1,78 @@
 <?php
+
 require_once __DIR__ . '/../config/db.php';
 
 class Ingredient
 {
   public static function listByCompany(int $companyId, ?int $productId = null, ?string $q = null): array
   {
-    $sql = "SELECT i.*, p.name AS product_name
+    $pdo = db();
+
+    $sql = "SELECT i.*, GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR '||') AS product_names
               FROM ingredients i
-              INNER JOIN products p ON p.id = i.product_id
-             WHERE p.company_id = ?";
-    $args = [$companyId];
+         LEFT JOIN product_custom_items  pci ON pci.ingredient_id = i.id
+         LEFT JOIN product_custom_groups pcg ON pcg.id = pci.group_id
+         LEFT JOIN products p ON p.id = pcg.product_id AND p.company_id = :company
+             WHERE i.company_id = :company";
+
+    $params = ['company' => $companyId];
 
     if ($productId) {
-      $sql .= " AND i.product_id = ?";
-      $args[] = $productId;
+      $sql .= " AND EXISTS (
+                  SELECT 1
+                    FROM product_custom_items pci2
+                    JOIN product_custom_groups pcg2 ON pcg2.id = pci2.group_id
+                   WHERE pci2.ingredient_id = i.id
+                     AND pcg2.product_id = :productId
+                )";
+      $params['productId'] = $productId;
     }
 
-    if ($q) {
-      $sql .= " AND i.name LIKE ?";
-      $args[] = '%' . $q . '%';
+    if ($q !== null && $q !== '') {
+      $sql .= " AND i.name LIKE :q";
+      $params['q'] = '%' . $q . '%';
     }
 
-    $sql .= " ORDER BY p.name, i.name";
+    $sql .= " GROUP BY i.id
+              ORDER BY i.name";
 
-    $st = db()->prepare($sql);
-    $st->execute($args);
-    return $st->fetchAll(PDO::FETCH_ASSOC);
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
+    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 
   public static function listRecentByCompany(int $companyId, int $limit = 8): array
   {
-    $sql = "SELECT i.*, p.name AS product_name
-              FROM ingredients i
-              INNER JOIN products p ON p.id = i.product_id
-             WHERE p.company_id = ?
-          ORDER BY i.id DESC
-             LIMIT ?";
-    $st = db()->prepare($sql);
+    $pdo = db();
+    $sql = "SELECT * FROM ingredients WHERE company_id = ? ORDER BY updated_at DESC LIMIT ?";
+    $st = $pdo->prepare($sql);
     $st->bindValue(1, $companyId, PDO::PARAM_INT);
     $st->bindValue(2, $limit, PDO::PARAM_INT);
     $st->execute();
-    return $st->fetchAll(PDO::FETCH_ASSOC);
+    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  }
+
+  public static function countByCompany(int $companyId): int
+  {
+    $pdo = db();
+    $st = $pdo->prepare('SELECT COUNT(*) AS total FROM ingredients WHERE company_id = ?');
+    $st->execute([$companyId]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    return (int)($row['total'] ?? 0);
+  }
+
+  public static function allForCompany(int $companyId): array
+  {
+    $pdo = db();
+    $st = $pdo->prepare('SELECT * FROM ingredients WHERE company_id = ? ORDER BY name');
+    $st->execute([$companyId]);
+    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 
   public static function find(int $id): ?array
   {
-    $st = db()->prepare("SELECT * FROM ingredients WHERE id = ?");
+    $pdo = db();
+    $st = $pdo->prepare('SELECT * FROM ingredients WHERE id = ?');
     $st->execute([$id]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     return $row ?: null;
@@ -53,11 +80,8 @@ class Ingredient
 
   public static function findForCompany(int $companyId, int $ingredientId): ?array
   {
-    $sql = "SELECT i.*, p.name AS product_name, p.company_id
-              FROM ingredients i
-              INNER JOIN products p ON p.id = i.product_id
-             WHERE i.id = ? AND p.company_id = ?";
-    $st = db()->prepare($sql);
+    $pdo = db();
+    $st = $pdo->prepare('SELECT * FROM ingredients WHERE id = ? AND company_id = ?');
     $st->execute([$ingredientId, $companyId]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     return $row ?: null;
@@ -65,32 +89,59 @@ class Ingredient
 
   public static function create(array $data): int
   {
-    $st = db()->prepare("INSERT INTO ingredients (product_id, name) VALUES (?, ?)");
-    $st->execute([$data['product_id'], $data['name']]);
-    return (int)db()->lastInsertId();
+    $pdo = db();
+    $st = $pdo->prepare('INSERT INTO ingredients (company_id, name, min_qty, max_qty, image_path) VALUES (?,?,?,?,?)');
+    $st->execute([
+      $data['company_id'],
+      $data['name'],
+      $data['min_qty'],
+      $data['max_qty'],
+      $data['image_path'] ?? null,
+    ]);
+    return (int)$pdo->lastInsertId();
   }
 
   public static function update(int $id, array $data): void
   {
-    $st = db()->prepare("UPDATE ingredients SET product_id = ?, name = ? WHERE id = ?");
-    $st->execute([$data['product_id'], $data['name'], $id]);
+    $pdo = db();
+    $st = $pdo->prepare('UPDATE ingredients SET name = ?, min_qty = ?, max_qty = ?, image_path = ?, updated_at = NOW() WHERE id = ?');
+    $st->execute([
+      $data['name'],
+      $data['min_qty'],
+      $data['max_qty'],
+      $data['image_path'] ?? null,
+      $id,
+    ]);
   }
 
-  public static function delete(int $id): void
+  public static function delete(int $companyId, int $ingredientId): void
   {
-    $st = db()->prepare("DELETE FROM ingredients WHERE id = ?");
-    $st->execute([$id]);
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+      $pdo->prepare('DELETE pci FROM product_custom_items pci WHERE pci.ingredient_id = ?')
+          ->execute([$ingredientId]);
+      $pdo->prepare('DELETE FROM ingredients WHERE id = ? AND company_id = ?')
+          ->execute([$ingredientId, $companyId]);
+      $pdo->commit();
+    } catch (Throwable $e) {
+      $pdo->rollBack();
+      throw $e;
+    }
   }
 
-  public static function countByCompany(int $companyId): int
+  public static function assignedProducts(int $ingredientId): array
   {
-    $sql = "SELECT COUNT(*) AS total
-              FROM ingredients i
-              INNER JOIN products p ON p.id = i.product_id
-             WHERE p.company_id = ?";
-    $st = db()->prepare($sql);
-    $st->execute([$companyId]);
-    $row = $st->fetch(PDO::FETCH_ASSOC);
-    return (int)($row['total'] ?? 0);
+    $pdo = db();
+    $sql = "SELECT DISTINCT p.id, p.name
+              FROM product_custom_items pci
+              JOIN product_custom_groups pcg ON pcg.id = pci.group_id
+              JOIN products p ON p.id = pcg.product_id
+              JOIN ingredients i ON i.id = pci.ingredient_id
+             WHERE pci.ingredient_id = ? AND p.company_id = i.company_id
+          ORDER BY p.name";
+    $st = $pdo->prepare($sql);
+    $st->execute([$ingredientId]);
+    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 }

@@ -187,6 +187,22 @@ CREATE TABLE `order_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- Tabela: ingredients (SEM FK inline)
+-- --------------------------------------------------------
+CREATE TABLE `ingredients` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `company_id` int(11) NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `min_qty` int(11) NOT NULL DEFAULT 0,
+  `max_qty` int(11) NOT NULL DEFAULT 1,
+  `image_path` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `ingredient_company_idx` (`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Tabela: product_custom_groups  (SEM FK inline)
 -- --------------------------------------------------------
 CREATE TABLE `product_custom_groups` (
@@ -207,12 +223,17 @@ CREATE TABLE `product_custom_groups` (
 CREATE TABLE `product_custom_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `group_id` int(11) NOT NULL,
+  `ingredient_id` int(11) DEFAULT NULL,
   `label` varchar(200) NOT NULL,
   `delta` decimal(10,2) NOT NULL DEFAULT 0.00,
   `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `default_qty` int(11) NOT NULL DEFAULT 1,
+  `min_qty` int(11) NOT NULL DEFAULT 0,
+  `max_qty` int(11) NOT NULL DEFAULT 1,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  KEY `pci_group_idx` (`group_id`)
+  KEY `pci_group_idx` (`group_id`),
+  KEY `pci_ingredient_idx` (`ingredient_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------

@@ -59,13 +59,13 @@ class AdminIngredientController extends Controller
 
     $ingredient = [
       'id' => null,
-      'product_id' => $old['product_id'] ?? '',
       'name' => $old['name'] ?? '',
+      'min_qty' => $old['min_qty'] ?? 0,
+      'max_qty' => $old['max_qty'] ?? 1,
+      'image_path' => null,
     ];
 
-    $products = Product::allForCompany($companyId);
-
-    return $this->view('admin/ingredients/form', compact('company', 'ingredient', 'products', 'error'));
+    return $this->view('admin/ingredients/form', compact('company', 'ingredient', 'error'));
   }
 
   public function store($params)
@@ -73,28 +73,35 @@ class AdminIngredientController extends Controller
     [$u, $company] = $this->guard($params['slug']);
     $companyId = (int)$company['id'];
 
-    $productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
     $name = trim($_POST['name'] ?? '');
+    $min = isset($_POST['min_qty']) ? max(0, (int)$_POST['min_qty']) : 0;
+    $max = isset($_POST['max_qty']) ? max(0, (int)$_POST['max_qty']) : 1;
+    if ($max < $min) {
+      $max = $min;
+    }
 
-    $product = $productId ? Product::findByCompanyAndId($companyId, $productId) : null;
+    [$imagePath, $uploadError] = $this->handleUpload($_FILES['image'] ?? null);
 
-    if (!$product) {
-      $_SESSION['flash_error'] = 'Selecione um produto válido.';
-      $_SESSION['flash_old_ingredient'] = ['product_id' => $productId, 'name' => $name];
+    if ($name === '') {
+      $_SESSION['flash_error'] = 'Informe o nome do ingrediente.';
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
       exit;
     }
 
-    if ($name === '') {
-      $_SESSION['flash_error'] = 'Informe o nome do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = ['product_id' => $productId, 'name' => $name];
+    if ($uploadError) {
+      $_SESSION['flash_error'] = $uploadError;
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
       exit;
     }
 
     Ingredient::create([
-      'product_id' => $productId,
+      'company_id' => $companyId,
       'name' => $name,
+      'min_qty' => $min,
+      'max_qty' => $max,
+      'image_path' => $imagePath,
     ]);
 
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients'));
@@ -113,13 +120,12 @@ class AdminIngredientController extends Controller
     $old = $this->consumeFlash('flash_old_ingredient');
 
     if ($old) {
-      $ingredient['product_id'] = $old['product_id'];
       $ingredient['name'] = $old['name'];
+      $ingredient['min_qty'] = $old['min_qty'];
+      $ingredient['max_qty'] = $old['max_qty'];
     }
 
-    $products = Product::allForCompany($companyId);
-
-    return $this->view('admin/ingredients/form', compact('company', 'ingredient', 'products', 'error'));
+    return $this->view('admin/ingredients/form', compact('company', 'ingredient', 'error'));
   }
 
   public function update($params)
@@ -131,27 +137,34 @@ class AdminIngredientController extends Controller
     $ingredient = Ingredient::findForCompany($companyId, $ingredientId);
     if (!$ingredient) { echo "Ingrediente não encontrado."; exit; }
 
-    $productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
     $name = trim($_POST['name'] ?? '');
+    $min = isset($_POST['min_qty']) ? max(0, (int)$_POST['min_qty']) : 0;
+    $max = isset($_POST['max_qty']) ? max(0, (int)$_POST['max_qty']) : 1;
+    if ($max < $min) {
+      $max = $min;
+    }
 
-    $product = $productId ? Product::findByCompanyAndId($companyId, $productId) : null;
-    if (!$product) {
-      $_SESSION['flash_error'] = 'Selecione um produto válido.';
-      $_SESSION['flash_old_ingredient'] = ['product_id' => $productId, 'name' => $name];
+    [$imagePath, $uploadError] = $this->handleUpload($_FILES['image'] ?? null, $ingredient['image_path'] ?? null);
+
+    if ($name === '') {
+      $_SESSION['flash_error'] = 'Informe o nome do ingrediente.';
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
       exit;
     }
 
-    if ($name === '') {
-      $_SESSION['flash_error'] = 'Informe o nome do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = ['product_id' => $productId, 'name' => $name];
+    if ($uploadError) {
+      $_SESSION['flash_error'] = $uploadError;
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
       exit;
     }
 
     Ingredient::update($ingredientId, [
-      'product_id' => $productId,
       'name' => $name,
+      'min_qty' => $min,
+      'max_qty' => $max,
+      'image_path' => $imagePath,
     ]);
 
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients'));
@@ -167,9 +180,47 @@ class AdminIngredientController extends Controller
     $ingredient = Ingredient::findForCompany($companyId, $ingredientId);
     if (!$ingredient) { echo "Ingrediente não encontrado."; exit; }
 
-    Ingredient::delete($ingredientId);
+    Ingredient::delete($companyId, $ingredientId);
 
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients'));
     exit;
+  }
+
+  private function handleUpload(?array $file, ?string $current = null): array
+  {
+    if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+      return [$current, null];
+    }
+
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+      return [$current, 'Falha ao enviar a imagem (código ' . $file['error'] . ').'];
+    }
+
+    $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg','jpeg','png','webp'], true)) {
+      return [$current, 'Formato inválido. Use JPG, PNG ou WEBP.'];
+    }
+
+    $name = 'ingredient_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
+    $dest = __DIR__ . '/../../public/uploads/' . $name;
+    $dir = dirname($dest);
+
+    if (!is_dir($dir) && !mkdir($dir, 0777, true)) {
+      return [$current, 'Não foi possível criar o diretório de uploads.'];
+    }
+
+    if (!is_writable($dir)) {
+      return [$current, 'Diretório de uploads sem permissão de escrita.'];
+    }
+
+    if (!is_uploaded_file($file['tmp_name'] ?? '')) {
+      return [$current, 'Arquivo inválido.'];
+    }
+
+    if (!move_uploaded_file($file['tmp_name'], $dest)) {
+      return [$current, 'Não foi possível salvar o arquivo enviado.'];
+    }
+
+    return ['uploads/' . $name, null];
   }
 }

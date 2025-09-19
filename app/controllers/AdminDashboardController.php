@@ -63,6 +63,11 @@ class AdminDashboardController extends Controller
     $products   = Product::listByCompany($companyId);
     $ingredientsCount = Ingredient::countByCompany($companyId);
     $recentIngredients = Ingredient::listRecentByCompany($companyId, 8);
+    foreach ($recentIngredients as &$ing) {
+      $assigned = Ingredient::assignedProducts((int)$ing['id']);
+      $ing['product_names'] = array_column($assigned, 'name');
+    }
+    unset($ing);
 
     // slug efetivo do contexto (usado para montar URLs no dashboard, ex.: botão Pedidos)
     $activeSlug = $this->currentCompanySlug() ?? $slug;

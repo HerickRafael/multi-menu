@@ -125,6 +125,8 @@ ob_start(); ?>
       <?php foreach ($recentIngredients as $ing): ?>
         <li>
           <?= e($ing['name']) ?>
+          <?php if (!empty($ing['product_names'])): ?>
+            <span class="text-xs text-gray-500">(<?= e(implode(', ', (array)$ing['product_names'])) ?>)</span>
           <?php if (!empty($ing['product_name'])): ?>
             <span class="text-xs text-gray-500">(<?= e($ing['product_name']) ?>)</span>
           <?php endif; ?>

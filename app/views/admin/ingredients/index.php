@@ -33,6 +33,8 @@ ob_start(); ?>
   <thead class="bg-slate-100">
     <tr>
       <th class="text-left p-3">Ingrediente</th>
+      <th class="text-left p-3">Mín / Máx</th>
+      <th class="text-left p-3">Produtos</th>
       <th class="text-left p-3">Produto</th>
       <th class="p-3"></th>
     </tr>
@@ -40,6 +42,36 @@ ob_start(); ?>
   <tbody>
   <?php foreach ($items as $item): ?>
     <tr class="border-t">
+      <td class="p-3">
+        <div class="flex items-center gap-3">
+          <?php if (!empty($item['image_path'])): ?>
+            <img src="<?= e(base_url($item['image_path'])) ?>" alt="" class="w-10 h-10 rounded-full object-cover">
+          <?php else: ?>
+            <div class="w-10 h-10 rounded-full bg-slate-200 grid place-items-center text-slate-500 text-xs">IMG</div>
+          <?php endif; ?>
+          <div>
+            <div class="font-medium"><?= e($item['name']) ?></div>
+            <?php $created = !empty($item['created_at']) ? date('d/m/Y', strtotime($item['created_at'])) : null; ?>
+            <?php if ($created): ?>
+              <div class="text-xs text-slate-500">Criado em <?= e($created) ?></div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </td>
+      <td class="p-3">
+        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">Mín <?= (int)($item['min_qty'] ?? 0) ?> · Máx <?= (int)($item['max_qty'] ?? 0) ?></span>
+      </td>
+      <td class="p-3">
+        <?php if (!empty($item['product_names'])): ?>
+          <div class="flex flex-wrap gap-1">
+            <?php foreach (explode('||', $item['product_names']) as $prodName): $prodName = trim($prodName); if ($prodName === '') continue; ?>
+              <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs text-amber-700"><?= e($prodName) ?></span>
+            <?php endforeach; ?>
+          </div>
+        <?php else: ?>
+          <span class="text-xs text-slate-400">Não vinculado</span>
+        <?php endif; ?>
+      </td>
       <td class="p-3"><?= e($item['name']) ?></td>
       <td class="p-3"><?= e($item['product_name'] ?? '') ?></td>
       <td class="p-3 text-right">
