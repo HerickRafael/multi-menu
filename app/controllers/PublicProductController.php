@@ -4,6 +4,7 @@ require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Product.php';
+require_once __DIR__ . '/../models/ProductCustomization.php';
 
 class PublicProductController extends Controller
 {
@@ -40,15 +41,24 @@ class PublicProductController extends Controller
         }
 
         // Grupos de opções (combo) — somente se tipo != 'simple'
-        $groups = [];
+        $comboGroups = [];
         $type = $product['type'] ?? 'simple';
         if ($type !== 'simple' && method_exists('Product', 'getComboGroupsWithItems')) {
-            $groups = Product::getComboGroupsWithItems($id);
+            $comboGroups = Product::getComboGroupsWithItems($id);
         }
 
+        $mods = ProductCustomization::loadForPublic($id);
+        $hasCustomization = !empty($mods);
+
         // Renderiza a view pública
-        // A view espera: $company, $product, $groups
-        return $this->view('public/product', compact('company', 'product', 'groups'));
+        // A view espera: $company, $product, $comboGroups, $mods
+        return $this->view('public/product', [
+            'company'          => $company,
+            'product'          => $product,
+            'comboGroups'      => $comboGroups,
+            'mods'             => $mods,
+            'hasCustomization' => $hasCustomization,
+        ]);
     }
 
     /**
@@ -57,13 +67,77 @@ class PublicProductController extends Controller
      */
     public function saveCustomization($params)
     {
-        // Implemente conforme sua modelagem (ex.: salvar em sessão/carrinho).
-        // $slug = $params['slug'] ?? null;
-        // $id   = isset($params['id']) ? (int)$params['id'] : 0;
-        // $payload = $_POST; // sanitizar/validar
-        // ...
-        http_response_code(501);
-        echo "Not Implemented";
+        $slug = $params['slug'] ?? null;
+        $id   = isset($params['id']) ? (int)$params['id'] : 0;
+
+        $company = Company::findBySlug($slug);
+        if (!$company || (int)($company['active'] ?? 0) !== 1) {
+            http_response_code(404);
+            echo "Empresa não encontrada";
+            return;
+        }
+
+        $product = Product::find($id);
+        if (
+            !$product ||
+            (int)$product['company_id'] !== (int)$company['id'] ||
+            (int)($product['active'] ?? 0) !== 1
+        ) {
+            http_response_code(404);
+            echo "Produto não encontrado";
+            return;
+        }
+
+        $mods = ProductCustomization::loadForPublic($id);
+        if (!$mods) {
+            http_response_code(400);
+            echo "Personalização indisponível para este produto.";
+            return;
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        if (!isset($_SESSION['customizations']) || !is_array($_SESSION['customizations'])) {
+            $_SESSION['customizations'] = [];
+        }
+
+        $addons = [];
+        if (isset($_POST['addons']) && is_array($_POST['addons'])) {
+            foreach ($_POST['addons'] as $k => $qty) {
+                $addons[(string)$k] = max(0, (int)$qty);
+            }
+        }
+
+        $customSingle = [];
+        if (isset($_POST['custom_single']) && is_array($_POST['custom_single'])) {
+            foreach ($_POST['custom_single'] as $g => $idx) {
+                $customSingle[(int)$g] = (int)$idx;
+            }
+        }
+
+        $customQty = [];
+        if (isset($_POST['custom_qty']) && is_array($_POST['custom_qty'])) {
+            foreach ($_POST['custom_qty'] as $g => $items) {
+                if (!is_array($items)) continue;
+                foreach ($items as $i => $qty) {
+                    $customQty[(int)$g][(int)$i] = (int)$qty;
+                }
+            }
+        }
+
+        $quantity = isset($_POST['qty']) ? max(1, (int)$_POST['qty']) : null;
+
+        $_SESSION['customizations'][$id] = [
+            'addons'   => $addons,
+            'single'   => $customSingle,
+            'qty'      => $customQty,
+            'quantity' => $quantity,
+        ];
+
+        $redirect = base_url($slug . '/produto/' . $id);
+        header('Location: ' . $redirect);
+        exit;
     }
 
     public function customize($params)
@@ -85,6 +159,40 @@ class PublicProductController extends Controller
             return;
         }
 
-        return $this->view('public/customize', compact('company', 'product'));
+        $mods = ProductCustomization::loadForPublic($id);
+        if (!$mods) {
+            http_response_code(404);
+            echo "Personalização indisponível para este produto.";
+            return;
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        $saved = $_SESSION['customizations'][$id] ?? null;
+        if ($saved) {
+            foreach ($mods as $gi => &$group) {
+                $gType = $group['type'] ?? 'extra';
+                if ($gType === 'single') {
+                    $sel = isset($saved['single'][$gi]) ? (int)$saved['single'][$gi] : null;
+                    if ($sel !== null) {
+                        foreach ($group['items'] as $ii => &$item) {
+                            $item['default'] = ($ii === $sel);
+                        }
+                        unset($item);
+                    }
+                } elseif (isset($saved['qty'][$gi]) && is_array($saved['qty'][$gi])) {
+                    foreach ($group['items'] as $ii => &$item) {
+                        if (isset($saved['qty'][$gi][$ii])) {
+                            $item['qty'] = (int)$saved['qty'][$gi][$ii];
+                        }
+                    }
+                    unset($item);
+                }
+            }
+            unset($group);
+        }
+
+        return $this->view('public/customization', compact('company', 'product', 'mods'));
     }
 }
