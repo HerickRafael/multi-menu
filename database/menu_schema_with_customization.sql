@@ -240,7 +240,7 @@ CREATE TABLE `order_items` (
 
 CREATE TABLE `product_custom_groups` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `product_id` int(11) unsigned NOT NULL,
+  `product_id` int(11) NOT NULL,
   `name` varchar(200) NOT NULL,
   `type` enum('single','extra','addon','component') NOT NULL DEFAULT 'extra',
   `min_qty` int(11) NOT NULL DEFAULT 0,
