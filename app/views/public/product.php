@@ -10,8 +10,9 @@ if (!function_exists('price_br')) { function price_br($v){ return 'R$ ' . number
 /** Variáveis básicas */
 $company = $company ?? [];
 $product = $product ?? [];
-$simpleMods = $simpleMods ?? null;
 $comboGroups = $comboGroups ?? null;
+$mods = $mods ?? [];
+$hasCustomization = isset($hasCustomization) ? (bool)$hasCustomization : (!empty($mods));
 
 $slug  = (string)($company['slug'] ?? '');
 $pId   = (int)($product['id'] ?? 0);
@@ -148,8 +149,8 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
 
   </main>
 
-  <!-- Botão PERSONALIZAR: visível se houver mods simples -->
-  <?php if (!empty($simpleMods['items'])): ?>
+  <!-- Botão PERSONALIZAR: visível se houver personalização disponível -->
+  <?php if ($hasCustomization): ?>
   <div class="customize-wrap">
     <div class="customize">
       <?php

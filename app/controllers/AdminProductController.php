@@ -5,6 +5,7 @@ require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Product.php';
+require_once __DIR__ . '/../models/ProductCustomization.php';
 
 class AdminProductController extends Controller {
 
@@ -56,7 +57,8 @@ class AdminProductController extends Controller {
       'image'       => null,
     ];
 
-    return $this->view('admin/products/form', compact('company','cats','p'));
+    $customization = ['enabled' => false, 'groups' => []];
+    return $this->view('admin/products/form', compact('company','cats','p','customization'));
   }
 
   /**
@@ -119,6 +121,9 @@ class AdminProductController extends Controller {
     $img = $this->handleUpload($_FILES['image'] ?? null, $imgError);
     if ($imgError) $_SESSION['flash_error'] = $imgError;
 
+    $custPayload = $_POST['customization'] ?? [];
+    $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : []);
+
     $data = [
       'company_id'  => (int)$company['id'],
       'category_id' => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
@@ -130,9 +135,11 @@ class AdminProductController extends Controller {
       'image'       => $img, // pode ser null
       'active'      => isset($_POST['active']) ? 1 : 0,
       'sort_order'  => (int)($_POST['sort_order'] ?? 0),
+      'allow_customize' => !empty($custData['enabled']) && !empty($custData['groups']) ? 1 : 0,
     ];
 
-    Product::create($data);
+    $productId = Product::create($data);
+    ProductCustomization::save($productId, $custData);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
     exit;
   }
@@ -145,7 +152,12 @@ class AdminProductController extends Controller {
 
     if (!$p) { echo "Produto não encontrado."; exit; }
 
-    return $this->view('admin/products/form', compact('company','cats','p'));
+    $customization = [
+      'enabled' => !empty($p['allow_customize']),
+      'groups'  => ProductCustomization::loadForAdmin((int)$p['id']),
+    ];
+
+    return $this->view('admin/products/form', compact('company','cats','p','customization'));
   } // <-- ESTA CHAVE FALTAVA
 
   /** Persistência da edição */
@@ -159,6 +171,9 @@ class AdminProductController extends Controller {
     $img = $uploaded ?: ($p['image'] ?? null);
     if ($imgError) $_SESSION['flash_error'] = $imgError;
 
+    $custPayload = $_POST['customization'] ?? [];
+    $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : []);
+
     $data = [
       'category_id' => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
       'name'        => trim($_POST['name'] ?? ''),
@@ -169,9 +184,12 @@ class AdminProductController extends Controller {
       'image'       => $img,
       'active'      => isset($_POST['active']) ? 1 : 0,
       'sort_order'  => (int)($_POST['sort_order'] ?? 0),
+      'allow_customize' => !empty($custData['enabled']) && !empty($custData['groups']) ? 1 : 0,
     ];
 
-    Product::update((int)$params['id'], $data);
+    $productId = (int)$params['id'];
+    Product::update($productId, $data);
+    ProductCustomization::save($productId, $custData);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
     exit;
   }
