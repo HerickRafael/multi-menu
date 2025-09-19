@@ -1,29 +1,11 @@
 <?php
 /** ============================================================================
  * app/views/public/product.php
- * ----------------------------------------------------------------------------
  * Página pública do produto
- *
- * Controller deve fornecer:
- *   $company (array) -> ['slug'=>..., 'name'=>...]
- *   $product (array) -> ['id'=>..., 'name'=>..., 'price'=>..., 'promo_price'=>?, 'image'=>?, 'type'=>('simple'|'combo')]
- *   $simpleMods (array|null) -> ['items'=>[ ['name','delta','default', 'img', 'min','max','qty'] ]]
- *   $comboGroups (array|null) -> [
- *       ['name'=>'Bebida','items'=>[
- *           ['id'=>123,'name'=>'Coca 350','image'=>'/img/coca.png','delta'=>0,'default'=>true],
- *           ...
- *       ]],
- *       ...
- *   ]
  * ============================================================================ */
 
-/** Helpers */
-if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-}
-if (!function_exists('price_br')) {
-  function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); }
-}
+if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
+if (!function_exists('price_br')) { function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); } }
 
 /** Variáveis básicas */
 $company = $company ?? [];
@@ -38,8 +20,8 @@ $pId   = (int)($product['id'] ?? 0);
 $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
 
 /** URLs (ajuste às suas rotas reais) */
-$customizeUrl = base_url($slug . '/produto/' . $pId . '/customizar');          // GET (tela de customização)
-$addToCartUrl = base_url($slug . '/orders/add');                                // POST (adiciona ao carrinho)
+$customizeBase = base_url($slug . '/produto/' . $pId . '/customizar');          // GET (tela de customização)
+$addToCartUrl  = base_url($slug . '/orders/add');                                // POST (adiciona ao carrinho)
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -58,18 +40,14 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
-  @media (min-width:768px){ .app{max-width:375px} } /* tablet/desktop limitam a 375px */
+  @media (min-width:768px){ .app{max-width:375px} }
 
-  /* Hero */
   .hero-wrap{position:relative}
-  .nav-btn{
-    position:absolute;top:12px;left:12px;z-index:2;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
-    background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer
-  }
+  .nav-btn{position:absolute;top:12px;left:12px;z-index:2;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
+    background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer}
   .hero{width:100%;height:360px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);display:grid;place-items:center}
   .hero img{width:100%;height:100%;object-fit:contain;filter: drop-shadow(0 18px 34px rgba(0,0,0,.25))}
 
-  /* Card */
   .card{background:var(--card);border-radius:26px 26px 0 0;margin-top:-8px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px}
   .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:13px}
   .brand .dot{width:18px;height:18px;border-radius:999px;background:#ffb703;display:grid;place-items:center;color:#7c2d12;font-weight:800;font-size:11px}
@@ -77,7 +55,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
   .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
   .price{font-size:22px;font-weight:800}
 
-  /* Stepper */
   .qty{display:flex;align-items:center;gap:8px}
   .btn-circ{width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--card);display:grid;place-items:center;cursor:pointer}
   .btn-circ svg{width:18px;height:18px}
@@ -87,18 +64,14 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
   .section h3{margin:8px 0 6px;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
   .body{font-size:14px;color:#374151;line-height:1.5}
 
-  /* Botão "Personalizar" */
   .customize-wrap{background:var(--card)}
   .customize{padding:24px 16px}
-  .btn-outline{
-    width:100%;background:#fff;color:#111;border:1px solid #d8d8d8;border-radius:12px;padding:18px;font-size:18px;font-weight:500;
-    display:flex;align-items:center;justify-content:space-between;text-decoration:none
-  }
+  .btn-outline{width:100%;background:#fff;color:#111;border:1px solid #d8d8d8;border-radius:12px;padding:18px;font-size:18px;font-weight:500;
+    display:flex;align-items:center;justify-content:space-between;text-decoration:none}
   .btn-outline:active{background:#f9f9f9}
   .btn-outline .chev{display:grid;place-items:center}
   .btn-outline .chev svg{width:22px;height:22px}
 
-  /* Combo (grupos) */
   .combo{background:var(--card);padding:8px 0 8px}
   .combo .group{padding:10px 16px 0}
   .combo h2{font-size:32px;line-height:1.1;margin:12px 0 8px;font-weight:800;letter-spacing:-0.5px}
@@ -114,7 +87,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
 
-  /* Footer CTA */
   .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
   .cta{width:100%;border:none;border-radius:16px;padding:14px 16px;background:var(--cta);color:#1f2937;font-weight:800;font-size:16px;cursor:pointer}
   .cta:active{background:var(--cta-press)}
@@ -123,7 +95,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
 <body>
 <div class="app">
 
-  <!-- Voltar + Hero -->
   <div class="hero-wrap">
     <button class="nav-btn" onclick="history.back()" aria-label="Voltar">
       <svg viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -140,7 +111,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
     </div>
   </div>
 
-  <!-- Card de informações -->
   <main class="card" role="main">
     <div class="brand">
       <span class="dot"><?= e(strtoupper(mb_substr($company['name'] ?? 'M', 0, 1))) ?></span>
@@ -158,7 +128,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
         ?>
       </div>
 
-      <!-- Stepper de quantidade -->
       <div class="qty" aria-label="Selecionar quantidade">
         <button type="button" class="btn-circ" id="qminus" aria-label="Diminuir">
           <svg viewBox="0 0 24 24"><path d="M5 12h14" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg>
@@ -170,7 +139,6 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
       </div>
     </div>
 
-    <!-- Sobre -->
     <?php if (!empty($product['description'])): ?>
     <section class="section">
       <h3>Sobre</h3>
@@ -180,11 +148,15 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
 
   </main>
 
-  <!-- Botão PERSONALIZAR: só mostra se houver itens em simpleMods -->
+  <!-- Botão PERSONALIZAR: visível se houver mods simples -->
   <?php if (!empty($simpleMods['items'])): ?>
   <div class="customize-wrap">
     <div class="customize">
-      <a class="btn-outline" href="<?= e($customizeUrl) ?>">
+      <?php
+        // Construímos a URL com qty atual via JS; deixamos href “limpo” como fallback
+        $customizeUrl = $customizeBase;
+      ?>
+      <a class="btn-outline" id="btn-customize" href="<?= e($customizeUrl) ?>">
         <span>
           <strong>Personalizar</strong>
           <small style="display:block;color:#6b7280;font-size:12px;margin-top:6px">Escolha adicionais ou ajuste seu pedido.</small>
@@ -197,14 +169,11 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
   </div>
   <?php endif; ?>
 
-  <!-- ===== BLOCO DE COMBO (real, condicional) ===== -->
+  <!-- ===== BLOCO DE COMBO ===== -->
   <?php if ($isCombo): ?>
   <section class="combo" aria-label="Montar combo">
     <?php foreach ($comboGroups as $gi => $group): ?>
-      <?php
-        $gname = (string)($group['name'] ?? ('Etapa '.($gi+1)));
-        $items = $group['items'] ?? [];
-      ?>
+      <?php $gname = (string)($group['name'] ?? ('Etapa '.($gi+1))); $items = $group['items'] ?? []; ?>
       <div class="group">
         <h2><?= e($gname) ?></h2>
         <div class="choice-row" data-group-index="<?= (int)$gi ?>">
@@ -217,11 +186,7 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
             ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
-                <?php if ($img): ?>
-                  <img src="<?= e($img) ?>" alt="<?= e($opt['name'] ?? '') ?>">
-                <?php else: ?>
-                  <img src="<?= e(base_url('assets/logo-placeholder.png')) ?>" alt="">
-                <?php endif; ?>
+                <img src="<?= e($img ?: base_url('assets/logo-placeholder.png')) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
@@ -235,9 +200,7 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
     <?php endforeach; ?>
   </section>
   <?php endif; ?>
-  <!-- ===== FIM BLOCO COMBO ===== -->
 
-  <!-- CTA / Form de Add-to-cart -->
   <form class="footer" method="post" action="<?= e($addToCartUrl) ?>" onsubmit="return attach(event)">
     <input type="hidden" name="product_id" value="<?= $pId ?>">
     <input type="hidden" name="qty" id="qtyField" value="1">
@@ -269,12 +232,22 @@ $addToCartUrl = base_url($slug . '/orders/add');                                
   plus ?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)+1));
   function attach(e){ setQty(parseInt(qval.textContent,10)||1); return true; }
 
+  // Botão Personalizar: acrescenta qty atual na URL (opcional)
+  const btnCust = document.getElementById('btn-customize');
+  btnCust?.addEventListener('click', (ev)=>{
+    // deixa o link normal funcionar; apenas ajusta o href antes
+    const base = btnCust.getAttribute('href') || '<?= e($customizeBase) ?>';
+    const qty  = parseInt(qval?.textContent||'1',10) || 1;
+    const url  = new URL(base, window.location.origin);
+    url.searchParams.set('qty', String(qty));
+    btnCust.setAttribute('href', url.toString());
+  });
+
   // ===== Seleção por grupo (Combo) =====
   document.querySelectorAll('.choice-row').forEach(row=>{
     const gi = row.dataset.groupIndex;
     const hidden = document.getElementById('combo_field_' + gi);
     const items = row.querySelectorAll('.choice');
-
     items.forEach(item=>{
       const ring = item.querySelector('.ring');
       ring?.addEventListener('click', ()=>{
