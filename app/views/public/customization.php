@@ -2,10 +2,15 @@
 /** ============================================================================
  * app/views/public/customization.php
  * TELA DE PERSONALIZAÇÃO DO PRODUTO
- * ============================================================================ */
+ * ============================================================================
+ */
 
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
-if (!function_exists('price_br')) { function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); } }
+if (!function_exists('e')) {
+  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
+if (!function_exists('price_br')) {
+  function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); }
+}
 
 $slug    = $company['slug'] ?? '';
 $pName   = $product['name'] ?? 'Produto';
@@ -14,12 +19,17 @@ $pId     = (int)($product['id'] ?? 0);
 // lemos qty opcional da querystring (vinda do botão Personalizar)
 $qtyGet = isset($_GET['qty']) ? max(1, min(99, (int)$_GET['qty'])) : null;
 
+/**
+ * Montagem de $addons (apenas itens com delta>0 de grupos NÃO "single")
+ * e cópia direta de $groups (vindos de $mods).
+ */
 $addons = [];
 $groups = [];
 foreach (($mods ?? []) as $gIndex => $g) {
   $gType = $g['type'] ?? 'extra';
   $items = $g['items'] ?? [];
   $groups[] = $g;
+
   if ($gType !== 'single') {
     foreach ($items as $it) {
       $delta = (float)($it['delta'] ?? 0);
@@ -65,10 +75,13 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   .top{display:flex;align-items:center;gap:10px;padding:12px 12px 6px;border-bottom:1px solid var(--border)}
   .back{width:36px;height:36px;border:1px solid var(--border);border-radius:999px;background:#fff;display:grid;place-items:center;cursor:pointer;text-decoration:none}
   .title{font-weight:600}
+
   .container{padding:12px 16px 140px}
   .h1{font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.5px;margin:14px 0 8px}
   .sub{color:var(--muted);margin-top:-6px}
+
   .group-title{font-size:22px;line-height:1.2;font-weight:800;margin:22px 0 12px;letter-spacing:-.3px}
+
   .row{display:flex;align-items:center;gap:12px;padding:14px 12px;border-top:1px solid var(--border)}
   .row:first-of-type{border-top:0}
   .thumb{width:52px;height:52px;border-radius:999px;background:var(--chip);display:grid;place-items:center;overflow:hidden}
@@ -76,22 +89,25 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   .info{flex:1 1 auto}
   .name{font-weight:700}
   .price{color:#374151;font-size:14px;margin-top:2px}
+
   .stepper{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:999px;padding:6px 10px;min-width:104px;justify-content:space-between}
   .st-btn{width:28px;height:28px;border-radius:999px;background:#fff;border:none;display:grid;place-items:center;cursor:pointer}
   .st-btn svg{width:18px;height:18px}
   .st-val{min-width:16px;text-align:center;font-weight:600}
+
   .radio-wrap{margin-left:auto}
   .radio-btn{width:28px;height:28px;border-radius:999px;border:2px solid var(--ring);display:grid;place-items:center;background:#fff;}
   .radio-btn.sel{background:var(--ring);border-color:var(--ring)}
   .radio-btn svg{width:16px;height:16px;color:#111;display:none}
   .radio-btn.sel svg{display:block}
+
   .footer{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;height:64px;border-top:1px solid var(--border);background:#fff;}
   .btn-cancel,.btn-confirm{flex:1 1 50%;font-size:17px;font-weight:600;border:none;cursor:pointer}
   .btn-cancel{background:#fff;color:#111}
   .btn-confirm{background:var(--cta);color:#111;transition:background .2s}
   .btn-confirm:active{background:var(--cta-press)}
-  .homebar{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:44%;height:4px;background:#111;border-radius:999px;opacity:.9}
-  .hint{color:#6b7280;font-size:12px;margin:6px 2px 12px}
+
+  .hint{color:#6b7280;font-size:12px;margin:6px 2px 12px;display:none;} /* deixado por compat, porém oculto */
 </style>
 </head>
 <body>
@@ -107,13 +123,11 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   </header>
 
   <div class="container">
-    <h1 class="h1">Como deseja<br>personalizar?</h1>
-    <div class="sub"><?= e($pName) ?></div>
 
     <?php if (!empty($addons)): ?>
       <div class="list addons" id="list-addons" aria-label="Adicionais">
-        <?php foreach($addons as $i=>$it): 
-          $rowId = 'addon_' . $i; 
+        <?php foreach($addons as $i=>$it):
+          $rowId = 'addon_' . $i;
           $img   = $it['img'] ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'; ?>
           <div class="row" id="<?= e($rowId) ?>"
                data-min="<?= (int)$it['min'] ?>" data-max="<?= (int)$it['max'] ?>">
@@ -138,31 +152,31 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
     <?php endif; ?>
 
     <?php if (!empty($groups)): ?>
-      <h2 class="group-title">Personalizar <?= e($pName) ?></h2>
-
-      <?php foreach ($groups as $gi => $g): 
+      <?php foreach ($groups as $gi => $g):
         $gName = (string)($g['name'] ?? ('Grupo '.($gi+1)));
         $gType = (string)($g['type'] ?? 'extra');
-        $gMin  = (int)($g['min'] ?? 0);
+        $gMin  = (int)($g['min'] ?? 0); // mantidos para regras JS/servidor, mas não exibidos
         $gMax  = (int)($g['max'] ?? 0);
         $items = $g['items'] ?? [];
       ?>
 
-        <div class="hint">
-          <?= e($gName) ?> 
-          <?php if ($gType === 'single'): ?>
-            — escolha 1 opção
-          <?php else: ?>
-            <?php $range=[]; if ($gMin > 0) $range[]="mín. $gMin"; if ($gMax > 0) $range[]="máx. $gMax"; ?>
-            <?= !empty($range) ? '— ' . e(implode(' | ', $range)) : '' ?>
-          <?php endif; ?>
-        </div>
+        <!-- Título grande: nome do grupo -->
+        <h2 class="group-title"><?= e($gName) ?></h2>
 
         <?php if ($gType === 'single'): ?>
-          <?php $selectedIndex = 0; foreach ($items as $ii => $it) { if (!empty($it['default'])) { $selectedIndex = $ii; break; } } ?>
-          <?php foreach ($items as $ii => $it): $isSel = ($ii === $selectedIndex); $img = $it['img'] ?? null; ?>
+          <?php
+            $selectedIndex = 0;
+            foreach ($items as $ii => $it) {
+              if (!empty($it['default'])) { $selectedIndex = $ii; break; }
+            }
+          ?>
+          <?php foreach ($items as $ii => $it):
+            $isSel = ($ii === $selectedIndex);
+            $img   = $it['img'] ?? null; ?>
             <div class="row radio" data-radio="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
-              <div class="thumb"><img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'"></div>
+              <div class="thumb">
+                <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
+              </div>
               <div class="info">
                 <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
                 <div class="name"><?= e($optName) ?></div>
@@ -180,6 +194,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
             </div>
           <?php endforeach; ?>
           <input type="hidden" name="custom_single[<?= (int)$gi ?>]" id="f_single_<?= (int)$gi ?>" value="<?= (int)$selectedIndex ?>">
+
         <?php else: ?>
           <div class="list" aria-label="<?= e($gName) ?>">
             <?php foreach ($items as $ii => $it):
@@ -190,7 +205,9 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
               $delta = (float)($it['delta'] ?? 0);
             ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">
-                <div class="thumb"><img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'"></div>
+                <div class="thumb">
+                  <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
+                </div>
                 <div class="info">
                   <?php $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii+1)); ?>
                   <div class="name"><?= e($itemName) ?></div>
@@ -223,7 +240,6 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   <div class="footer">
     <button type="button" class="btn-cancel" onclick="window.location.href='<?= e($backUrl) ?>'">Cancelar</button>
     <button type="submit" class="btn-confirm">Confirmar</button>
-    <div class="homebar" aria-hidden="true"></div>
   </div>
 </form>
 
