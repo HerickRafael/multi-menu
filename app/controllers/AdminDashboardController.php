@@ -5,6 +5,7 @@ require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Product.php';
+require_once __DIR__ . '/../models/Ingredient.php';
 
 class AdminDashboardController extends Controller
 {
@@ -60,6 +61,13 @@ class AdminDashboardController extends Controller
     $companyId = (int)$company['id'];
     $categories = Category::listByCompany($companyId);
     $products   = Product::listByCompany($companyId);
+    $ingredientsCount = Ingredient::countByCompany($companyId);
+    $recentIngredients = Ingredient::listRecentByCompany($companyId, 8);
+    foreach ($recentIngredients as &$ing) {
+      $assigned = Ingredient::assignedProducts((int)$ing['id']);
+      $ing['product_names'] = array_column($assigned, 'name');
+    }
+    unset($ing);
 
     // slug efetivo do contexto (usado para montar URLs no dashboard, ex.: botão Pedidos)
     $activeSlug = $this->currentCompanySlug() ?? $slug;
@@ -69,6 +77,8 @@ class AdminDashboardController extends Controller
       'u',
       'categories',
       'products',
+      'ingredientsCount',
+      'recentIngredients',
       'activeSlug'
     ));
   }
