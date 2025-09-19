@@ -35,6 +35,7 @@ ob_start(); ?>
       <th class="text-left p-3">Ingrediente</th>
       <th class="text-left p-3">Mín / Máx</th>
       <th class="text-left p-3">Produtos</th>
+      <th class="text-left p-3">Produto</th>
       <th class="p-3"></th>
     </tr>
   </thead>
@@ -71,6 +72,8 @@ ob_start(); ?>
           <span class="text-xs text-slate-400">Não vinculado</span>
         <?php endif; ?>
       </td>
+      <td class="p-3"><?= e($item['name']) ?></td>
+      <td class="p-3"><?= e($item['product_name'] ?? '') ?></td>
       <td class="p-3 text-right">
           <a class="px-3 py-1 border rounded-xl" href="<?= e(base_url('admin/' . $slug . '/ingredients/' . (int)$item['id'] . '/edit')) ?>">Editar</a>
           <form method="post" action="<?= e(base_url('admin/' . $slug . '/ingredients/' . (int)$item['id'] . '/del')) ?>" class="inline" onsubmit="return confirm('Excluir ingrediente?');">

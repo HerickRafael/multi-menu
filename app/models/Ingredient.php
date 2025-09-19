@@ -145,3 +145,4 @@ class Ingredient
     return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 }
+}
