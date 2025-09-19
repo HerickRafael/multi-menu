@@ -36,6 +36,18 @@ ob_start(); ?>
 
 <!-- Abas -->
 <nav class="flex flex-wrap gap-2 mb-5">
+    <a href="<?= e(base_url('admin/' . $slug . '/settings')) ?>"
+     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">⚙️ Geral</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/categories')) ?>"
+     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🗂️ Categorias</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/products')) ?>"
+     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🧾 Produtos</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>"
+     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🥕 Ingredientes</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
+     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">📦 Pedidos</a>
+    <a href="<?= e(base_url($publicSlug)) ?>" target="_blank"
+     class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🔗 Ver cardápio</a>
   <a href="<?= e(base_url('admin/' . $slug . '/settings')) ?>"    class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">⚙️ Geral</a>
   <a href="<?= e(base_url('admin/' . $slug . '/categories')) ?>"  class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🗂️ Categorias</a>
   <a href="<?= e(base_url('admin/' . $slug . '/products')) ?>"    class="px-3 py-2 rounded-xl border bg-white hover:bg-slate-50">🧾 Produtos</a>
@@ -67,6 +79,15 @@ ob_start(); ?>
     <div class="flex gap-2">
       <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>">Gerenciar</a>
       <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients/create')) ?>">+ Novo</a>
+    </div>
+  </div>
+
+  <div class="rounded-2xl bg-white border p-4">
+    <div class="text-sm text-gray-500 mb-1">Ingredientes</div>
+    <div class="text-3xl font-bold mb-3"><?= (int)$ingredientsCount ?></div>
+    <div class="flex gap-2">
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>">Gerenciar</a>
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients/create')) ?>">+ Novo</a>
     </div>
   </div>
 
@@ -125,6 +146,7 @@ ob_start(); ?>
       <?php endif; ?>
     </ul>
     <div class="mt-3 flex gap-2">
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>">+ Novo produto</a>
       <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>">+ Novo produto</a>
       <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/products')) ?>">Ver todos</a>
     </div>
@@ -135,6 +157,9 @@ ob_start(); ?>
     <ul class="list-disc ml-5">
       <?php foreach ($recentIngredients as $ing): ?>
         <li>
+          <?= e($ing['name']) ?>
+          <?php if (!empty($ing['product_names'])): ?>
+            <span class="text-xs text-gray-500">(<?= e(implode(', ', (array)$ing['product_names'])) ?>)</span>
           <?= e($ing['name'] ?? '') ?>
           <?php if (!empty($ing['product_names'])): ?>
             <span class="text-xs text-gray-500">
@@ -151,6 +176,8 @@ ob_start(); ?>
       <?php endif; ?>
     </ul>
     <div class="mt-3 flex gap-2">
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients/create')) ?>">+ Novo ingrediente</a>
+        <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>">Ver todos</a>
       <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients/create')) ?>">+ Novo ingrediente</a>
       <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>">Ver todos</a>
     </div>

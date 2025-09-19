@@ -224,3 +224,4 @@ class AdminIngredientController extends Controller
     return ['uploads/' . $name, null];
   }
 }
+}
