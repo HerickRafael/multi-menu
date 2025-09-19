@@ -12,30 +12,16 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
- /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
- //*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
- //*!40101 SET NAMES utf8mb4 */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
 --
 -- Banco de dados: `menu`
 --
 
 -- --------------------------------------------------------
--- Tabela: categories
--- --------------------------------------------------------
-CREATE TABLE `categories` (
-  `id` int(11) NOT NULL,
-  `company_id` int(11) NOT NULL,
-  `name` varchar(150) NOT NULL,
-  `sort_order` int(11) NOT NULL DEFAULT 0,
-  `active` tinyint(1) NOT NULL DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-INSERT INTO `categories` (`id`, `company_id`, `name`, `sort_order`, `active`) VALUES
-(1, 1, 'herick', 0, 1);
-
--- --------------------------------------------------------
--- Tabela: companies
+-- Estrutura da tabela `companies`
 -- --------------------------------------------------------
 CREATE TABLE `companies` (
   `id` int(11) NOT NULL,
@@ -57,7 +43,21 @@ INSERT INTO `companies` (`id`, `slug`, `name`, `whatsapp`, `address`, `highlight
 (1, 'wollburger', 'Wollburger', '55', '', '', NULL, NULL, NULL, NULL, NULL, 1, '2025-09-11 01:38:16');
 
 -- --------------------------------------------------------
--- Tabela: company_hours
+-- Estrutura da tabela `categories`
+-- --------------------------------------------------------
+CREATE TABLE `categories` (
+  `id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `active` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `categories` (`id`, `company_id`, `name`, `sort_order`, `active`) VALUES
+(1, 1, 'herick', 0, 1);
+
+-- --------------------------------------------------------
+-- Estrutura da tabela `company_hours`
 -- --------------------------------------------------------
 CREATE TABLE `company_hours` (
   `id` int(11) NOT NULL,
@@ -80,7 +80,7 @@ INSERT INTO `company_hours` (`id`, `company_id`, `weekday`, `is_open`, `open1`, 
 (7, 1, 7, 0, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
--- Tabela: customers
+-- Estrutura da tabela `customers`
 -- --------------------------------------------------------
 CREATE TABLE `customers` (
   `id` int(11) NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE `customers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Tabela: orders
+-- Estrutura da tabela `orders`
 -- --------------------------------------------------------
 CREATE TABLE `orders` (
   `id` int(11) NOT NULL,
@@ -111,7 +111,7 @@ CREATE TABLE `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Tabela: products
+-- Estrutura da tabela `products`
 -- --------------------------------------------------------
 CREATE TABLE `products` (
   `id` int(11) NOT NULL,
@@ -137,16 +137,7 @@ INSERT INTO `products` (`id`, `company_id`, `category_id`, `name`, `description`
 (1, 1, 1, 'herick', 'herick', 10.00, NULL, NULL, NULL, 'simple', 'fixed', 0, 1, 1, '2025-09-11 01:58:33', NULL, NULL);
 
 -- --------------------------------------------------------
--- Tabela: ingredients
--- --------------------------------------------------------
-CREATE TABLE `ingredients` (
-  `id` int(11) NOT NULL,
-  `product_id` int(11) NOT NULL,
-  `name` varchar(150) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
--- Tabela: combo_groups
+-- Estrutura da tabela `combo_groups`
 -- --------------------------------------------------------
 CREATE TABLE `combo_groups` (
   `id` int(11) NOT NULL,
@@ -161,7 +152,7 @@ CREATE TABLE `combo_groups` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Tabela: combo_group_items
+-- Estrutura da tabela `combo_group_items`
 -- --------------------------------------------------------
 CREATE TABLE `combo_group_items` (
   `id` int(11) NOT NULL,
@@ -175,7 +166,7 @@ CREATE TABLE `combo_group_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Tabela: order_items
+-- Estrutura da tabela `order_items`
 -- --------------------------------------------------------
 CREATE TABLE `order_items` (
   `id` int(11) NOT NULL,
@@ -187,36 +178,50 @@ CREATE TABLE `order_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Tabela: product_custom_groups  (SEM FK inline)
+-- Estrutura da tabela `ingredients`
+-- --------------------------------------------------------
+CREATE TABLE `ingredients` (
+  `id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `min_qty` int(11) NOT NULL DEFAULT 0,
+  `max_qty` int(11) NOT NULL DEFAULT 1,
+  `image_path` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Estrutura da tabela `product_custom_groups`
 -- --------------------------------------------------------
 CREATE TABLE `product_custom_groups` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL,
   `product_id` int(11) NOT NULL,
   `name` varchar(200) NOT NULL,
   `type` enum('single','extra','addon','component') NOT NULL DEFAULT 'extra',
   `min_qty` int(11) NOT NULL DEFAULT 0,
   `max_qty` int(11) NOT NULL DEFAULT 99,
-  `sort_order` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `pcg_product_idx` (`product_id`)
+  `sort_order` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Tabela: product_custom_items (SEM FK inline)
+-- Estrutura da tabela `product_custom_items`
 -- --------------------------------------------------------
 CREATE TABLE `product_custom_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL,
   `group_id` int(11) NOT NULL,
+  `ingredient_id` int(11) DEFAULT NULL,
   `label` varchar(200) NOT NULL,
   `delta` decimal(10,2) NOT NULL DEFAULT 0.00,
   `is_default` tinyint(1) NOT NULL DEFAULT 0,
-  `sort_order` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `pci_group_idx` (`group_id`)
+  `default_qty` int(11) NOT NULL DEFAULT 1,
+  `min_qty` int(11) NOT NULL DEFAULT 0,
+  `max_qty` int(11) NOT NULL DEFAULT 1,
+  `sort_order` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Tabela: users
+-- Estrutura da tabela `users`
 -- --------------------------------------------------------
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
@@ -235,16 +240,15 @@ INSERT INTO `users` (`id`, `company_id`, `name`, `email`, `password_hash`, `role
 (3, 1, 'Atendente 1', 'staff1@wollburger.local', '$2y$10$2LxL1b0Jr3m6y8oE0EJk2uYw7s5qf7o8x7mY4O1mF0b4oE2Y5eTZu', 'staff', 1, '2025-09-11 01:49:38');
 
 -- --------------------------------------------------------
--- ÍNDICES
+-- Índices para tabelas despejadas
 -- --------------------------------------------------------
+ALTER TABLE `companies`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `slug` (`slug`);
 
 ALTER TABLE `categories`
   ADD PRIMARY KEY (`id`),
   ADD KEY `company_id` (`company_id`);
-
-ALTER TABLE `companies`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `slug` (`slug`);
 
 ALTER TABLE `company_hours`
   ADD PRIMARY KEY (`id`),
@@ -263,10 +267,6 @@ ALTER TABLE `products`
   ADD KEY `company_id` (`company_id`),
   ADD KEY `category_id` (`category_id`);
 
-ALTER TABLE `ingredients`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `product_id` (`product_id`);
-
 ALTER TABLE `combo_groups`
   ADD PRIMARY KEY (`id`),
   ADD KEY `product_id` (`product_id`);
@@ -281,11 +281,18 @@ ALTER TABLE `order_items`
   ADD KEY `order_id` (`order_id`),
   ADD KEY `product_id` (`product_id`);
 
+ALTER TABLE `ingredients`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `ingredient_company_idx` (`company_id`);
+
 ALTER TABLE `product_custom_groups`
-  ADD KEY `product_id` (`product_id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `pcg_product_idx` (`product_id`);
 
 ALTER TABLE `product_custom_items`
-  ADD KEY `group_id` (`group_id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `pci_group_idx` (`group_id`),
+  ADD KEY `pci_ingredient_idx` (`ingredient_id`);
 
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
@@ -295,11 +302,10 @@ ALTER TABLE `users`
 -- --------------------------------------------------------
 -- AUTO_INCREMENT
 -- --------------------------------------------------------
-
-ALTER TABLE `categories`
+ALTER TABLE `companies`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
-ALTER TABLE `companies`
+ALTER TABLE `categories`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 ALTER TABLE `company_hours`
@@ -314,9 +320,6 @@ ALTER TABLE `orders`
 ALTER TABLE `products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
-ALTER TABLE `ingredients`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
 ALTER TABLE `combo_groups`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
@@ -324,6 +327,9 @@ ALTER TABLE `combo_group_items`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `order_items`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `ingredients`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `product_custom_groups`
@@ -336,9 +342,8 @@ ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 -- --------------------------------------------------------
--- RESTRIÇÕES (FKs)  — criadas por último
+-- Restrições para tabelas despejadas
 -- --------------------------------------------------------
-
 ALTER TABLE `categories`
   ADD CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
 
@@ -355,9 +360,6 @@ ALTER TABLE `products`
   ADD CONSTRAINT `products_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `products_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL;
 
-ALTER TABLE `ingredients`
-  ADD CONSTRAINT `ingredients_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
-
 ALTER TABLE `combo_groups`
   ADD CONSTRAINT `combo_groups_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
 
@@ -369,11 +371,15 @@ ALTER TABLE `order_items`
   ADD CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
 
+ALTER TABLE `ingredients`
+  ADD CONSTRAINT `fk_ingredients_company` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
+
 ALTER TABLE `product_custom_groups`
   ADD CONSTRAINT `fk_pcg_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `product_custom_items`
-  ADD CONSTRAINT `fk_pci_group` FOREIGN KEY (`group_id`) REFERENCES `product_custom_groups` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_pci_group` FOREIGN KEY (`group_id`) REFERENCES `product_custom_groups` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_pci_ingredient` FOREIGN KEY (`ingredient_id`) REFERENCES `ingredients` (`id`) ON DELETE SET NULL;
 
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL;
@@ -381,5 +387,5 @@ ALTER TABLE `users`
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
- //*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
- //*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

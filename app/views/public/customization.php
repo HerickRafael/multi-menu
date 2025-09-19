@@ -201,7 +201,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
               $img   = $it['img'] ?? null;
               $min   = isset($it['min']) ? (int)$it['min'] : 0;
               $max   = isset($it['max']) ? (int)$it['max'] : 5;
-              $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? 1 : 0);
+              $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? (int)($it['default_qty'] ?? $min) : $min);
               $delta = (float)($it['delta'] ?? 0);
             ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">

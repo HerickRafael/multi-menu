@@ -1,6 +1,8 @@
 <?php
 // app/models/ProductCustomization.php
+
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/Ingredient.php';
 
 class ProductCustomization
 {
@@ -8,13 +10,13 @@ class ProductCustomization
      * Normaliza os dados vindos do formulário do admin.
      * Retorna um array no formato ['enabled'=>bool,'groups'=>[...]].
      */
-    public static function sanitizePayload(array $payload): array
+    public static function sanitizePayload(array $payload, int $companyId): array
     {
         $enabled = !empty($payload['enabled']);
         $groups  = [];
 
         if (!empty($payload['groups']) && is_array($payload['groups'])) {
-            $groups = self::normalizeGroups($payload['groups']);
+            $groups = self::normalizeGroups($payload['groups'], $companyId);
         }
 
         if (!$groups) {
@@ -53,8 +55,8 @@ class ProductCustomization
                      VALUES (?,?,?,?,?,?)"
                 );
                 $insItem = $pdo->prepare(
-                    "INSERT INTO product_custom_items (group_id, label, delta, is_default, sort_order)
-                     VALUES (?,?,?,?,?)"
+                    "INSERT INTO product_custom_items (group_id, ingredient_id, label, delta, is_default, default_qty, min_qty, max_qty, sort_order)
+                     VALUES (?,?,?,?,?,?,?,?,?)"
                 );
 
                 foreach ($groups as $gIndex => $group) {
@@ -72,9 +74,13 @@ class ProductCustomization
                     foreach ($items as $iIndex => $item) {
                         $insItem->execute([
                             $groupId,
+                            $item['ingredient_id'] ?? null,
                             $item['label'],
                             isset($item['delta']) ? (float)$item['delta'] : 0.00,
                             !empty($item['default']) ? 1 : 0,
+                            (int)($item['default_qty'] ?? 1),
+                            (int)($item['min_qty'] ?? 0),
+                            (int)($item['max_qty'] ?? 1),
                             $item['sort_order'] ?? $iIndex,
                         ]);
                     }
@@ -103,14 +109,21 @@ class ProductCustomization
     {
         $groups = self::fetchGroups($productId);
         foreach ($groups as &$group) {
-            foreach ($group['items'] as &$item) {
+            $items = $group['items'] ?? [];
+            $isSingle = true;
+            foreach ($items as &$item) {
                 $item['name'] = $item['label'];
-                if (!array_key_exists('delta', $item)) {
-                    $item['delta'] = 0.0;
+                $item['delta'] = isset($item['delta']) ? (float)$item['delta'] : 0.0;
+                $item['img'] = $item['img'] ?? ($item['image_path'] ?? null);
+                $item['min'] = isset($item['min_qty']) ? (int)$item['min_qty'] : 0;
+                $item['max'] = isset($item['max_qty']) ? (int)$item['max_qty'] : 1;
+                $item['qty'] = !empty($item['default']) ? (int)($item['default_qty'] ?? $item['min']) : $item['min'];
+                if ($item['min'] !== 1 || $item['max'] !== 1) {
+                    $isSingle = false;
                 }
-                $item['img'] = $item['img'] ?? null;
             }
             unset($item);
+            $group['type'] = $isSingle ? 'single' : 'extra';
         }
         unset($group);
         return $groups;
@@ -119,7 +132,7 @@ class ProductCustomization
     /**
      * Normaliza grupos vindos do formulário do admin.
      */
-    private static function normalizeGroups(array $groups): array
+    private static function normalizeGroups(array $groups, int $companyId): array
     {
         $normalized = [];
         $gSort = 0;
@@ -129,57 +142,64 @@ class ProductCustomization
             $name = trim((string)($group['name'] ?? ''));
             if ($name === '') continue;
 
-            $min = isset($group['min']) ? max(0, (int)$group['min']) : 0;
-            $max = isset($group['max']) ? max(0, (int)$group['max']) : 99;
-            if ($max < $min) {
-                $max = $min;
-            }
-
             $itemsRaw = $group['items'] ?? [];
             if (!is_array($itemsRaw)) {
                 $itemsRaw = [];
             }
 
             $items = [];
+            $seenIngredients = [];
             $iSort = 0;
             foreach ($itemsRaw as $item) {
                 if (!is_array($item)) continue;
-                $label = trim((string)($item['label'] ?? ''));
-                if ($label === '') continue;
+                $ingredientId = isset($item['ingredient_id']) ? (int)$item['ingredient_id'] : 0;
+                if ($ingredientId <= 0) continue;
+
+                $ingredient = Ingredient::findForCompany($companyId, $ingredientId);
+                if (!$ingredient) {
+                    continue;
+                }
+
+                if (isset($seenIngredients[$ingredientId])) {
+                    continue;
+                }
+                $seenIngredients[$ingredientId] = true;
+
+                $minQty = isset($ingredient['min_qty']) ? (int)$ingredient['min_qty'] : 0;
+                $maxQty = isset($ingredient['max_qty']) ? (int)$ingredient['max_qty'] : 1;
+                if ($maxQty < $minQty) {
+                    $maxQty = $minQty;
+                }
+
+                $isDefault = !empty($item['default']);
+                $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : $minQty;
+                if ($defaultQty < $minQty) {
+                    $defaultQty = $minQty;
+                }
+                if ($defaultQty > $maxQty) {
+                    $defaultQty = $maxQty;
+                }
 
                 $items[] = [
-                    'label'      => $label,
-                    'delta'      => isset($item['delta']) ? (float)$item['delta'] : 0.0,
-                    'default'    => !empty($item['default']),
-                    'sort_order' => $iSort++,
+                    'ingredient_id' => $ingredientId,
+                    'label'         => $ingredient['name'],
+                    'delta'         => 0.0,
+                    'default'       => $isDefault,
+                    'default_qty'   => $isDefault ? $defaultQty : $minQty,
+                    'min_qty'       => $minQty,
+                    'max_qty'       => $maxQty,
+                    'image_path'    => $ingredient['image_path'] ?? null,
+                    'sort_order'    => $iSort++,
                 ];
             }
 
             if (!$items) continue;
 
-            $type = ($min === 1 && $max === 1) ? 'single' : 'extra';
-            if ($type === 'single') {
-                $defaultApplied = false;
-                foreach ($items as &$it) {
-                    if ($defaultApplied) {
-                        $it['default'] = false;
-                        continue;
-                    }
-                    if (!empty($it['default'])) {
-                        $defaultApplied = true;
-                    }
-                }
-                unset($it);
-                if (!$defaultApplied && isset($items[0])) {
-                    $items[0]['default'] = true;
-                }
-            }
-
             $normalized[] = [
                 'name'       => $name,
-                'type'       => $type,
-                'min'        => $min,
-                'max'        => $max,
+                'type'       => 'extra',
+                'min'        => 0,
+                'max'        => 99,
                 'sort_order' => $gSort++,
                 'items'      => $items,
             ];
@@ -204,9 +224,15 @@ class ProductCustomization
                        pci.label       AS item_label,
                        pci.delta       AS item_delta,
                        pci.is_default  AS item_default,
-                       pci.sort_order  AS item_sort
+                       pci.default_qty AS item_default_qty,
+                       pci.min_qty     AS item_min_qty,
+                       pci.max_qty     AS item_max_qty,
+                       pci.sort_order  AS item_sort,
+                       pci.ingredient_id AS item_ingredient_id,
+                       ing.image_path  AS ingredient_image
                   FROM product_custom_groups pcg
              LEFT JOIN product_custom_items  pci ON pci.group_id = pcg.id
+             LEFT JOIN ingredients ing ON ing.id = pci.ingredient_id
                  WHERE pcg.product_id = ?
               ORDER BY pcg.sort_order ASC, pcg.id ASC, pci.sort_order ASC, pci.id ASC";
 
@@ -235,14 +261,28 @@ class ProductCustomization
 
             if (!empty($row['item_id'])) {
                 $groups[$gid]['items'][] = [
-                    'id'         => (int)$row['item_id'],
-                    'label'      => $row['item_label'],
-                    'delta'      => (float)$row['item_delta'],
-                    'default'    => (bool)$row['item_default'],
-                    'sort_order' => (int)$row['item_sort'],
+                    'id'            => (int)$row['item_id'],
+                    'label'         => $row['item_label'],
+                    'delta'         => (float)$row['item_delta'],
+                    'default'       => (bool)$row['item_default'],
+                    'default_qty'   => (int)$row['item_default_qty'],
+                    'min_qty'       => (int)$row['item_min_qty'],
+                    'max_qty'       => (int)$row['item_max_qty'],
+                    'ingredient_id' => $row['item_ingredient_id'] ? (int)$row['item_ingredient_id'] : null,
+                    'image_path'    => $row['ingredient_image'] ?? null,
+                    'sort_order'    => (int)$row['item_sort'],
                 ];
             }
         }
+
+        foreach ($groups as &$group) {
+            if (isset($group['items'])) {
+                usort($group['items'], function ($a, $b) {
+                    return ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0);
+                });
+            }
+        }
+        unset($group);
 
         return array_values($groups);
     }

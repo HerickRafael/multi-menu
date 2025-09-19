@@ -34,6 +34,13 @@ class Product
     return $st->fetchAll(PDO::FETCH_ASSOC);
   }
 
+  public static function allForCompany(int $companyId): array {
+    $sql = "SELECT * FROM products WHERE company_id = ? ORDER BY name";
+    $st = db()->prepare($sql);
+    $st->execute([$companyId]);
+    return $st->fetchAll(PDO::FETCH_ASSOC);
+  }
+
   public static function find(int $id): ?array {
     $st = db()->prepare("SELECT * FROM products WHERE id = ?");
     $st->execute([$id]);

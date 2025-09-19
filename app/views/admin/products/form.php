@@ -7,6 +7,7 @@ $company        = $company        ?? [];
 $cats           = $cats           ?? [];
 $groups         = $groups         ?? [];           // COMPOSIÇÃO (combo)
 $simpleProducts = $simpleProducts ?? [];           // para combos
+$ingredients    = $ingredients    ?? [];
 $errors         = $errors         ?? [];
 
 // NOVO: estrutura opcional para o layout de Personalização
@@ -346,15 +347,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     <div id="customization-wrap" class="<?= $custEnabled ? '' : 'hidden' ?>" aria-hidden="<?= $custEnabled ? 'false' : 'true' ?>">
       <!-- ajuda -->
       <div class="rounded-lg bg-slate-50 text-slate-700 text-sm p-3 leading-relaxed">
-        Crie grupos (ex.: <strong>Adicionais</strong>, <strong>Molhos</strong>). Em cada item, apenas selecione um
-        <em>produto simples</em> e (opcional) marque como <strong>Default</strong>.
+        Crie grupos (ex.: <strong>Ingredientes</strong>, <strong>Molhos</strong>) e escolha os ingredientes já cadastrados.
+        Ative <strong>Ingrediente padrão</strong> para definir a quantidade exibida ao cliente.
       </div>
 
       <div id="cust-groups-container" class="grid gap-3">
         <?php if (!empty($custGroups)): foreach ($custGroups as $gi => $cg): $gi=(int)$gi;
           $cgName = $cg['name'] ?? '';
-          $cgMin  = (int)($cg['min'] ?? 0);
-          $cgMax  = (int)($cg['max'] ?? 99);
           $cItems = $cg['items'] ?? [[]];
         ?>
         <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="<?= $gi ?>">
@@ -370,52 +369,64 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           </div>
 
           <?php foreach ($cItems as $ii => $ci): $ii=(int)$ii;
-            $label = $ci['label'] ?? '';
+            $selId = isset($ci['ingredient_id']) ? (int)$ci['ingredient_id'] : 0;
             $def   = !empty($ci['default']);
+            $minQ  = isset($ci['min_qty']) ? (int)$ci['min_qty'] : 0;
+            $maxQ  = isset($ci['max_qty']) ? (int)$ci['max_qty'] : 1;
+            if ($maxQ < $minQ) { $maxQ = $minQ; }
+            $defQty = $def ? (int)($ci['default_qty'] ?? $minQ) : $minQ;
           ?>
-          <div class="grid gap-3 p-3 md:grid-cols-[1fr_72px_72px_auto_auto] md:items-center cust-item" data-item-index="<?= $ii ?>">
-            <input
-              type="text"
-              name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][label]"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Item (ex.: Cebola, Bacon)"
-              value="<?= e($label) ?>"
-            />
-
-            <input
-              type="number"
-              min="0"
-              name="customization[groups][<?= $gi ?>][min]"
-              value="<?= $cgMin ?>"
-              class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-              aria-label="Quantidade mínima"
-            />
-
-            <input
-              type="number"
-              min="1"
-              name="customization[groups][<?= $gi ?>][max]"
-              value="<?= $cgMax ?>"
-              class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-              aria-label="Quantidade máxima"
-            />
-
-            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][default]" value="1" <?= $def ? 'checked' : '' ?>>
-              <span>Default</span>
-            </label>
-
-            <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover item">✕</button>
+          <div class="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_40px] md:items-center cust-item" data-item-index="<?= $ii ?>">
+            <div>
+              <label class="block text-xs text-slate-500">Ingrediente</label>
+              <select
+                name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][ingredient_id]"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 cust-ingredient-select"
+                data-default-min="<?= $minQ ?>"
+                data-default-max="<?= $maxQ ?>"
+              >
+                <option value="">Selecione</option>
+                <?php foreach ($ingredients as $ing): ?>
+                  <option
+                    value="<?= (int)$ing['id'] ?>"
+                    data-min="<?= (int)($ing['min_qty'] ?? 0) ?>"
+                    data-max="<?= (int)($ing['max_qty'] ?? 1) ?>"
+                    data-img="<?= e($ing['image_path'] ?? '') ?>"
+                    <?= $selId === (int)$ing['id'] ? 'selected' : '' ?>
+                  ><?= e($ing['name']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="text-sm text-slate-500 self-start md:self-center">
+              <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="<?= $minQ ?>" data-max="<?= $maxQ ?>">
+                Mín <?= $minQ ?> · Máx <?= $maxQ ?>
+              </span>
+            </div>
+            <div class="flex flex-col items-start gap-2">
+              <input type="hidden" class="cust-default-flag" name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][default]" value="<?= $def ? '1' : '0' ?>">
+              <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default <?= $def ? 'is-active' : '' ?>">Ingrediente padrão</button>
+            </div>
+            <div class="cust-default-qty-wrap <?= $def ? '' : 'hidden' ?>">
+              <label class="block text-xs text-slate-500">Quantidade padrão</label>
+              <input
+                type="number"
+                class="rounded-lg border border-slate-300 px-3 py-2 cust-default-qty"
+                name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][default_qty]"
+                value="<?= $defQty ?>"
+                min="<?= $minQ ?>"
+                max="<?= $maxQ ?>"
+              >
+            </div>
+            <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
           </div>
           <?php endforeach; ?>
 
           <div class="flex items-center justify-between gap-3 border-t border-slate-200 p-3">
-            <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Item</button>
+            <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Ingrediente</button>
             <span class="text-sm text-transparent select-none">.</span>
           </div>
         </div>
         <?php endforeach; else: ?>
-        <!-- cartão default (1 grupo / 1 item) -->
         <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="0">
           <div class="flex items-center gap-3 p-3 border-b border-slate-200">
             <input
@@ -428,42 +439,51 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
           </div>
 
-          <div class="grid gap-3 p-3 md:grid-cols-[1fr_72px_72px_auto_auto] md:items-center cust-item" data-item-index="0">
-            <input
-              type="text"
-              name="customization[groups][0][items][0][label]"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Item (ex.: Cebola, Bacon)"
-            />
-
-            <input
-              type="number"
-              min="0"
-              name="customization[groups][0][min]"
-              value="0"
-              class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-              aria-label="Quantidade mínima"
-            />
-
-            <input
-              type="number"
-              min="1"
-              name="customization[groups][0][max]"
-              value="99"
-              class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-              aria-label="Quantidade máxima"
-            />
-
-            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" name="customization[groups][0][items][0][default]" value="1">
-              <span>Default</span>
-            </label>
-
-            <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover item">✕</button>
+          <div class="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_40px] md:items-center cust-item" data-item-index="0">
+            <div>
+              <label class="block text-xs text-slate-500">Ingrediente</label>
+              <select
+                name="customization[groups][0][items][0][ingredient_id]"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 cust-ingredient-select"
+                data-default-min="0"
+                data-default-max="1"
+              >
+                <option value="">Selecione</option>
+                <?php foreach ($ingredients as $ing): ?>
+                  <option
+                    value="<?= (int)$ing['id'] ?>"
+                    data-min="<?= (int)($ing['min_qty'] ?? 0) ?>"
+                    data-max="<?= (int)($ing['max_qty'] ?? 1) ?>"
+                    data-img="<?= e($ing['image_path'] ?? '') ?>"
+                  ><?= e($ing['name']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="text-sm text-slate-500 self-start md:self-center">
+              <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
+                Mín 0 · Máx 1
+              </span>
+            </div>
+            <div class="flex flex-col items-start gap-2">
+              <input type="hidden" class="cust-default-flag" name="customization[groups][0][items][0][default]" value="0">
+              <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default">Ingrediente padrão</button>
+            </div>
+            <div class="cust-default-qty-wrap hidden">
+              <label class="block text-xs text-slate-500">Quantidade padrão</label>
+              <input
+                type="number"
+                class="rounded-lg border border-slate-300 px-3 py-2 cust-default-qty"
+                name="customization[groups][0][items][0][default_qty]"
+                value="0"
+                min="0"
+                max="1"
+              >
+            </div>
+            <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
           </div>
 
           <div class="flex items-center justify-between gap-3 border-t border-slate-200 p-3">
-            <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Item</button>
+            <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Ingrediente</button>
             <span class="text-sm text-transparent select-none">.</span>
           </div>
         </div>
@@ -605,80 +625,98 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
       </div>
 
-      <div class="grid gap-3 p-3 md:grid-cols-[1fr_72px_72px_auto_auto] md:items-center cust-item" data-item-index="0">
-        <input
-          type="text"
-          name="customization[groups][__CGI__][items][0][label]"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2"
-          placeholder="Item (ex.: Cebola, Bacon)"
-        />
-
-        <input
-          type="number"
-          min="0"
-          name="customization[groups][__CGI__][min]"
-          value="0"
-          class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-          aria-label="Quantidade mínima"
-        />
-
-        <input
-          type="number"
-          min="1"
-          name="customization[groups][__CGI__][max]"
-          value="99"
-          class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-          aria-label="Quantidade máxima"
-        />
-
-        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="customization[groups][__CGI__][items][0][default]" value="1">
-          <span>Default</span>
-        </label>
-
-        <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover item">✕</button>
+      <div class="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_40px] md:items-center cust-item" data-item-index="0">
+        <div>
+          <label class="block text-xs text-slate-500">Ingrediente</label>
+          <select
+            name="customization[groups][__CGI__][items][0][ingredient_id]"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 cust-ingredient-select"
+            data-default-min="0"
+            data-default-max="1"
+          >
+            <option value="">Selecione</option>
+            <?php foreach ($ingredients as $ing): ?>
+              <option
+                value="<?= (int)$ing['id'] ?>"
+                data-min="<?= (int)($ing['min_qty'] ?? 0) ?>"
+                data-max="<?= (int)($ing['max_qty'] ?? 1) ?>"
+                data-img="<?= e($ing['image_path'] ?? '') ?>"
+              ><?= e($ing['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="text-sm text-slate-500 self-start md:self-center">
+          <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
+            Mín 0 · Máx 1
+          </span>
+        </div>
+        <div class="flex flex-col items-start gap-2">
+          <input type="hidden" class="cust-default-flag" name="customization[groups][__CGI__][items][0][default]" value="0">
+          <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default">Ingrediente padrão</button>
+        </div>
+        <div class="cust-default-qty-wrap hidden">
+          <label class="block text-xs text-slate-500">Quantidade padrão</label>
+          <input
+            type="number"
+            class="rounded-lg border border-slate-300 px-3 py-2 cust-default-qty"
+            name="customization[groups][__CGI__][items][0][default_qty]"
+            value="0"
+            min="0"
+            max="1"
+          >
+        </div>
+        <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
       </div>
 
       <div class="flex items-center justify-between gap-3 border-t border-slate-200 p-3">
-        <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Item</button>
+        <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Ingrediente</button>
         <span class="text-sm text-transparent select-none">.</span>
       </div>
     </div>
   </template>
 
   <template id="tpl-cust-item">
-    <div class="grid gap-3 p-3 md:grid-cols-[1fr_72px_72px_auto_auto] md:items-center cust-item" data-item-index="__CII__">
-      <input
-        type="text"
-        name="customization[groups][__CGI__][items][__CII__][label]"
-        class="w-full rounded-lg border border-slate-300 px-3 py-2"
-        placeholder="Item (ex.: Cebola, Bacon)"
-      />
-
-      <input
-        type="number"
-        min="0"
-        name="customization[groups][__CGI__][min]"
-        value="0"
-        class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-        aria-label="Quantidade mínima"
-      />
-
-      <input
-        type="number"
-        min="1"
-        name="customization[groups][__CGI__][max]"
-        value="99"
-        class="rounded-lg border border-slate-300 px-3 py-2 text-center"
-        aria-label="Quantidade máxima"
-      />
-
-      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" name="customization[groups][__CGI__][items][__CII__][default]" value="1">
-        <span>Default</span>
-      </label>
-
-      <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover item">✕</button>
+    <div class="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_40px] md:items-center cust-item" data-item-index="__CII__">
+      <div>
+        <label class="block text-xs text-slate-500">Ingrediente</label>
+        <select
+          name="customization[groups][__CGI__][items][__CII__][ingredient_id]"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 cust-ingredient-select"
+          data-default-min="0"
+          data-default-max="1"
+        >
+          <option value="">Selecione</option>
+          <?php foreach ($ingredients as $ing): ?>
+            <option
+              value="<?= (int)$ing['id'] ?>"
+              data-min="<?= (int)($ing['min_qty'] ?? 0) ?>"
+              data-max="<?= (int)($ing['max_qty'] ?? 1) ?>"
+              data-img="<?= e($ing['image_path'] ?? '') ?>"
+            ><?= e($ing['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="text-sm text-slate-500 self-start md:self-center">
+        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
+          Mín 0 · Máx 1
+        </span>
+      </div>
+      <div class="flex flex-col items-start gap-2">
+        <input type="hidden" class="cust-default-flag" name="customization[groups][__CGI__][items][__CII__][default]" value="0">
+        <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default">Ingrediente padrão</button>
+      </div>
+      <div class="cust-default-qty-wrap hidden">
+        <label class="block text-xs text-slate-500">Quantidade padrão</label>
+        <input
+          type="number"
+          class="rounded-lg border border-slate-300 px-3 py-2 cust-default-qty"
+          name="customization[groups][__CGI__][items][__CII__][default_qty]"
+          value="0"
+          min="0"
+          max="1"
+        >
+      </div>
+      <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
     </div>
   </template>
 
@@ -861,6 +899,61 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       return idxs.length ? Math.max(...idxs) + 1 : 0;
     }
 
+    function updateCustItem(itemEl) {
+      if (!itemEl) return;
+      const select = itemEl.querySelector('.cust-ingredient-select');
+      const limits = itemEl.querySelector('.cust-limits');
+      const qtyWrap = itemEl.querySelector('.cust-default-qty-wrap');
+      const qtyInput = itemEl.querySelector('.cust-default-qty');
+      const toggleBtn = itemEl.querySelector('.cust-toggle-default');
+      const flag = itemEl.querySelector('.cust-default-flag');
+
+      let min = 0;
+      let max = 1;
+      if (select) {
+        const opt = select.options[select.selectedIndex];
+        min = opt ? Number(opt.dataset.min ?? select.dataset.defaultMin ?? 0) : Number(select.dataset.defaultMin ?? 0);
+        max = opt ? Number(opt.dataset.max ?? select.dataset.defaultMax ?? 1) : Number(select.dataset.defaultMax ?? 1);
+        if (max < min) max = min;
+      }
+
+      if (limits) {
+        limits.dataset.min = String(min);
+        limits.dataset.max = String(max);
+        limits.textContent = `Mín ${min} · Máx ${max}`;
+      }
+
+      if (qtyInput) {
+        qtyInput.min = String(min);
+        qtyInput.max = String(max);
+        if (qtyInput.value === '' || Number(qtyInput.value) < min) qtyInput.value = String(min);
+        if (Number(qtyInput.value) > max) qtyInput.value = String(max);
+      }
+
+      if (toggleBtn && flag) {
+        const isActive = toggleBtn.classList.contains('is-active');
+        flag.value = isActive ? '1' : '0';
+        if (!isActive && qtyInput) {
+          qtyInput.value = String(min);
+        }
+      }
+
+      if (qtyWrap) {
+        const isActive = toggleBtn?.classList.contains('is-active');
+        qtyWrap.classList.toggle('hidden', !isActive);
+      }
+    }
+
+    function wireCustItem(itemEl) {
+      if (!itemEl) return;
+      updateCustItem(itemEl);
+    }
+
+    function wireCustGroup(groupEl) {
+      if (!groupEl) return;
+      groupEl.querySelectorAll('.cust-item').forEach(wireCustItem);
+    }
+
     function addCustGroup(){
       const gi = nextCustGroupIndex();
       const html = tplCustGrp.innerHTML.replaceAll('__CGI__', gi);
@@ -868,6 +961,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       wrap.innerHTML = html.trim();
       const node = wrap.firstElementChild;
       custCont.appendChild(node);
+      wireCustGroup(node);
       return node;
     }
 
@@ -879,9 +973,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       wrap.innerHTML = html.trim();
       const row = wrap.firstElementChild;
 
-      // insere antes do footer
       const footerBar = Array.from(groupEl.children).find(el => el.matches('.flex.border-t, .border-t'));
       if (footerBar) groupEl.insertBefore(row, footerBar); else groupEl.appendChild(row);
+      wireCustItem(row);
       return row;
     }
 
@@ -896,8 +990,53 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         t.closest('.cust-group')?.remove();
       } else if (t.classList.contains('cust-remove-item')) {
         t.closest('.cust-item')?.remove();
+      } else if (t.classList.contains('cust-toggle-default')) {
+        const itemEl = t.closest('.cust-item');
+        t.classList.toggle('is-active');
+        if (itemEl) {
+          const flag = itemEl.querySelector('.cust-default-flag');
+          if (flag) flag.value = t.classList.contains('is-active') ? '1' : '0';
+          const qty = itemEl.querySelector('.cust-default-qty');
+          const limits = itemEl.querySelector('.cust-limits');
+          const min = limits ? Number(limits.dataset.min ?? 0) : Number(qty?.min ?? 0);
+          const max = limits ? Number(limits.dataset.max ?? 1) : Number(qty?.max ?? 1);
+          if (qty) {
+            if (t.classList.contains('is-active')) {
+              let current = Number(qty.value || min);
+              if (current < min) current = min;
+              if (current > max) current = max;
+              qty.value = String(current);
+            } else {
+              qty.value = String(min);
+            }
+          }
+          const wrap = itemEl.querySelector('.cust-default-qty-wrap');
+          if (wrap) wrap.classList.toggle('hidden', !t.classList.contains('is-active'));
+        }
       }
     });
+
+    custCont?.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.classList.contains('cust-ingredient-select')) {
+        const itemEl = t.closest('.cust-item');
+        updateCustItem(itemEl);
+      }
+    });
+
+    custCont?.addEventListener('input', (e) => {
+      const t = e.target;
+      if (t.classList.contains('cust-default-qty')) {
+        const min = Number(t.min || 0);
+        const max = Number(t.max || 0);
+        let val = Number(t.value || min);
+        if (val < min) val = min;
+        if (val > max) val = max;
+        t.value = String(val);
+      }
+    });
+
+    custCont?.querySelectorAll('.cust-group').forEach(wireCustGroup);
 
     // ===== Validação + normalização =====
     document.getElementById('product-form')?.addEventListener('submit', (e)=>{
@@ -934,22 +1073,37 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         for (const cg of cgs){
           const nameEl = cg.querySelector('input[name^="customization"][name$="[name]"]');
           const items  = cg.querySelectorAll('.cust-item');
-          ensureMinMax(cg);
-          const minEl=cg.querySelector('input[name$="[min]"]'), maxEl=cg.querySelector('input[name$="[max]"]');
-          const min=Number(minEl?.value||0), max=Number(maxEl?.value||0);
-          if(max && max<min){ e.preventDefault(); alert('Na personalização "'+(nameEl.value||'')+'", o máximo não pode ser menor que o mínimo.'); maxEl.focus(); return; }
           if(!nameEl.value.trim()){ e.preventDefault(); alert('Cada grupo de personalização precisa de um nome.'); nameEl.focus(); return; }
-          if(!items.length){ e.preventDefault(); alert('Adicione pelo menos um item no grupo "'+(nameEl.value||'')+'".'); return; }
-          for(const it of items){
-            const lbl = it.querySelector('input[name$="[label]"]');
-            if(!lbl.value.trim()){ e.preventDefault(); alert('Cada item da personalização precisa de um nome/descrição.'); lbl.focus(); return; }
+          if(!items.length){ e.preventDefault(); alert('Adicione pelo menos um ingrediente no grupo "'+(nameEl.value||'')+'".'); return; }
+          for (const it of items){
+            const sel = it.querySelector('.cust-ingredient-select');
+            if (!sel || !sel.value) {
+              e.preventDefault();
+              alert('Selecione um ingrediente em cada item do grupo "'+(nameEl.value||'')+'".');
+              sel?.focus();
+              return;
+            }
+            const limits = it.querySelector('.cust-limits');
+            const min = limits ? Number(limits.dataset.min ?? 0) : 0;
+            const max = limits ? Number(limits.dataset.max ?? 1) : 1;
+            const toggleBtn = it.querySelector('.cust-toggle-default');
+            const qty = it.querySelector('.cust-default-qty');
+            if (toggleBtn?.classList.contains('is-active')) {
+              const val = qty ? Number(qty.value || min) : min;
+              if (val < min || val > max) {
+                e.preventDefault();
+                alert('A quantidade padrão precisa estar entre o mínimo e máximo do ingrediente escolhido.');
+                qty?.focus();
+                return;
+              }
+            }
           }
         }
       }
     });
 
     // coerência min/max ao digitar
-    ;['groups-container','cust-groups-container'].forEach(id=>{
+    ;['groups-container'].forEach(id=>{
       const el=document.getElementById(id); if(!el) return;
       el.addEventListener('input', e=>{
         if(e.target.name?.endsWith('[min]') || e.target.name?.endsWith('[max]')) ensureMinMax(el);
