@@ -200,8 +200,22 @@ class ProductCustomization
         $normalized = [];
         $gSort = 0;
 
+        $orderedGroups = [];
         foreach ($groups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $group['_order'] = isset($group['sort_order']) ? (int)$group['sort_order'] : count($orderedGroups);
+            $orderedGroups[] = $group;
+        }
+
+        usort($orderedGroups, function ($a, $b) {
+            return ($a['_order'] ?? 0) <=> ($b['_order'] ?? 0);
+        });
+
+        foreach ($orderedGroups as $group) {
             if (!is_array($group)) continue;
+            unset($group['_order']);
 
             $name = trim((string)($group['name'] ?? ''));
             if ($name === '') continue;

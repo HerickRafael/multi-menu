@@ -368,14 +368,22 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="<?= $gi ?>" data-mode="<?= e($gMode) ?>">
           <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
             <div class="flex items-center gap-3">
-            <input
-              type="text"
-              name="customization[groups][<?= $gi ?>][name]"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Nome do grupo"
-              value="<?= e($cgName) ?>"
-            />
-            <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+              <button
+                type="button"
+                class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+                title="Arrastar para reordenar"
+                aria-label="Arrastar para reordenar grupo"
+                draggable="true"
+              >↕</button>
+              <input
+                type="text"
+                name="customization[groups][<?= $gi ?>][name]"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2"
+                placeholder="Nome do grupo"
+                value="<?= e($cgName) ?>"
+              />
+              <input type="hidden" class="cust-order-input" name="customization[groups][<?= $gi ?>][sort_order]" value="<?= isset($cg['sort_order']) ? (int)$cg['sort_order'] : $gi ?>">
+              <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
             </div>
             <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
               <label class="grid gap-1 text-sm">
@@ -502,14 +510,22 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="0" data-mode="extra">
           <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
             <div class="flex items-center gap-3">
-            <input
-              type="text"
-              name="customization[groups][0][name]"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Nome do grupo"
-              value=""
-            />
-            <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+              <button
+                type="button"
+                class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+                title="Arrastar para reordenar"
+                aria-label="Arrastar para reordenar grupo"
+                draggable="true"
+              >↕</button>
+              <input
+                type="text"
+                name="customization[groups][0][name]"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2"
+                placeholder="Nome do grupo"
+                value=""
+              />
+              <input type="hidden" class="cust-order-input" name="customization[groups][0][sort_order]" value="0">
+              <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
             </div>
             <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
               <label class="grid gap-1 text-sm">
@@ -752,6 +768,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="__CGI__" data-mode="extra">
       <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
         <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+            title="Arrastar para reordenar"
+            aria-label="Arrastar para reordenar grupo"
+            draggable="true"
+          >↕</button>
           <input
             type="text"
             name="customization[groups][__CGI__][name]"
@@ -759,6 +782,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             placeholder="Nome do grupo"
             value=""
           />
+          <input type="hidden" class="cust-order-input" name="customization[groups][__CGI__][sort_order]" value="0">
           <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
         </div>
         <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
@@ -1108,6 +1132,32 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     const custAddGrp = document.getElementById('cust-add-group');
     const tplCustGrp = document.getElementById('tpl-cust-group');
     const tplCustItm = document.getElementById('tpl-cust-item');
+    let   custDragging = null;
+
+    function refreshCustGroupOrder() {
+      if (!custCont) return;
+      const groups = Array.from(custCont.querySelectorAll('.cust-group'));
+      groups.forEach((group, index) => {
+        const orderInput = group.querySelector('.cust-order-input');
+        if (orderInput) {
+          orderInput.value = String(index);
+        }
+      });
+    }
+
+    function getCustDragAfterElement(container, y) {
+      const siblings = Array.from(container.querySelectorAll('.cust-group'))
+        .filter((el) => el !== custDragging);
+      let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+      for (const child of siblings) {
+        const box = child.getBoundingClientRect();
+        const offset = y - (box.top + box.height / 2);
+        if (offset < 0 && offset > closest.offset) {
+          closest = { offset, element: child };
+        }
+      }
+      return closest.element;
+    }
 
     function syncCust(){
       const on = !!custToggle?.checked;
@@ -1237,6 +1287,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const node = wrap.firstElementChild;
       custCont.appendChild(node);
       wireCustGroup(node);
+      refreshCustGroupOrder();
       return node;
     }
 
@@ -1270,9 +1321,54 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         addCustItem(groupEl);
       } else if (t.classList.contains('cust-remove-group')) {
         t.closest('.cust-group')?.remove();
+        refreshCustGroupOrder();
       } else if (t.classList.contains('cust-remove-item')) {
         t.closest('.cust-item')?.remove();
       }
+    });
+
+    custCont?.addEventListener('dragstart', (e) => {
+      const handle = e.target.closest('.cust-drag-handle');
+      if (!handle) {
+        e.preventDefault();
+        return;
+      }
+      const group = handle.closest('.cust-group');
+      if (!group) {
+        e.preventDefault();
+        return;
+      }
+      custDragging = group;
+      group.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', '');
+      }
+    });
+
+    custCont?.addEventListener('dragend', () => {
+      if (custDragging) {
+        custDragging.classList.remove('dragging');
+        custDragging = null;
+        refreshCustGroupOrder();
+      }
+    });
+
+    custCont?.addEventListener('dragover', (e) => {
+      if (!custDragging) return;
+      e.preventDefault();
+      const afterEl = getCustDragAfterElement(custCont, e.clientY);
+      if (!afterEl) {
+        custCont.appendChild(custDragging);
+      } else if (afterEl !== custDragging) {
+        custCont.insertBefore(custDragging, afterEl);
+      }
+    });
+
+    custCont?.addEventListener('drop', (e) => {
+      if (!custDragging) return;
+      e.preventDefault();
+      refreshCustGroupOrder();
     });
 
     custCont?.addEventListener('change', (e) => {
@@ -1325,6 +1421,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     });
 
     custCont?.querySelectorAll('.cust-group').forEach(wireCustGroup);
+    refreshCustGroupOrder();
 
     // ===== Validação + normalização =====
     document.getElementById('product-form')?.addEventListener('submit', (e)=>{
