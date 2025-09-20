@@ -397,14 +397,40 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 <?php endforeach; ?>
               </select>
             </div>
-            <div class="text-sm text-slate-500 self-start md:self-center">
-              <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="<?= $minQ ?>" data-max="<?= $maxQ ?>">
-                Mín <?= $minQ ?> · Máx <?= $maxQ ?>
-              </span>
+            <div class="self-start md:self-center">
+              <span class="block text-xs text-slate-500 mb-1">Limites</span>
+              <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="<?= $minQ ?>" data-max="<?= $maxQ ?>">
+                <label class="flex items-center gap-1 text-xs">
+                  <span>Mín</span>
+                  <input
+                    type="number"
+                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
+                    name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][min_qty]"
+                    value="<?= $minQ ?>"
+                    min="0"
+                    step="1"
+                  >
+                </label>
+                <span class="text-xs text-slate-400">·</span>
+                <label class="flex items-center gap-1 text-xs">
+                  <span>Máx</span>
+                  <input
+                    type="number"
+                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
+                    name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][max_qty]"
+                    value="<?= $maxQ ?>"
+                    min="0"
+                    step="1"
+                  >
+                </label>
+              </div>
             </div>
             <div class="flex flex-col items-start gap-2">
               <input type="hidden" class="cust-default-flag" name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][default]" value="<?= $def ? '1' : '0' ?>">
-              <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default <?= $def ? 'is-active' : '' ?>">Ingrediente padrão</button>
+              <label class="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" class="cust-default-toggle" <?= $def ? 'checked' : '' ?> aria-label="Definir ingrediente padrão">
+                <span>Ingrediente padrão</span>
+              </label>
             </div>
             <div class="cust-default-qty-wrap <?= $def ? '' : 'hidden' ?>">
               <label class="block text-xs text-slate-500">Quantidade padrão</label>
@@ -415,6 +441,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 value="<?= $defQty ?>"
                 min="<?= $minQ ?>"
                 max="<?= $maxQ ?>"
+                step="1"
               >
             </div>
             <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
@@ -459,14 +486,40 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 <?php endforeach; ?>
               </select>
             </div>
-            <div class="text-sm text-slate-500 self-start md:self-center">
-              <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
-                Mín 0 · Máx 1
-              </span>
+            <div class="self-start md:self-center">
+              <span class="block text-xs text-slate-500 mb-1">Limites</span>
+              <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
+                <label class="flex items-center gap-1 text-xs">
+                  <span>Mín</span>
+                  <input
+                    type="number"
+                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
+                    name="customization[groups][0][items][0][min_qty]"
+                    value="0"
+                    min="0"
+                    step="1"
+                  >
+                </label>
+                <span class="text-xs text-slate-400">·</span>
+                <label class="flex items-center gap-1 text-xs">
+                  <span>Máx</span>
+                  <input
+                    type="number"
+                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
+                    name="customization[groups][0][items][0][max_qty]"
+                    value="1"
+                    min="0"
+                    step="1"
+                  >
+                </label>
+              </div>
             </div>
             <div class="flex flex-col items-start gap-2">
               <input type="hidden" class="cust-default-flag" name="customization[groups][0][items][0][default]" value="0">
-              <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default">Ingrediente padrão</button>
+              <label class="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" class="cust-default-toggle" aria-label="Definir ingrediente padrão">
+                <span>Ingrediente padrão</span>
+              </label>
             </div>
             <div class="cust-default-qty-wrap hidden">
               <label class="block text-xs text-slate-500">Quantidade padrão</label>
@@ -477,6 +530,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 value="0"
                 min="0"
                 max="1"
+                step="1"
               >
             </div>
             <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
@@ -645,14 +699,40 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             <?php endforeach; ?>
           </select>
         </div>
-        <div class="text-sm text-slate-500 self-start md:self-center">
-          <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
-            Mín 0 · Máx 1
-          </span>
+        <div class="self-start md:self-center">
+          <span class="block text-xs text-slate-500 mb-1">Limites</span>
+          <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
+            <label class="flex items-center gap-1 text-xs">
+              <span>Mín</span>
+              <input
+                type="number"
+                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
+                name="customization[groups][__CGI__][items][0][min_qty]"
+                value="0"
+                min="0"
+                step="1"
+              >
+            </label>
+            <span class="text-xs text-slate-400">·</span>
+            <label class="flex items-center gap-1 text-xs">
+              <span>Máx</span>
+              <input
+                type="number"
+                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
+                name="customization[groups][__CGI__][items][0][max_qty]"
+                value="1"
+                min="0"
+                step="1"
+              >
+            </label>
+          </div>
         </div>
         <div class="flex flex-col items-start gap-2">
           <input type="hidden" class="cust-default-flag" name="customization[groups][__CGI__][items][0][default]" value="0">
-          <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default">Ingrediente padrão</button>
+          <label class="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" class="cust-default-toggle" aria-label="Definir ingrediente padrão">
+            <span>Ingrediente padrão</span>
+          </label>
         </div>
         <div class="cust-default-qty-wrap hidden">
           <label class="block text-xs text-slate-500">Quantidade padrão</label>
@@ -663,6 +743,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             value="0"
             min="0"
             max="1"
+            step="1"
           >
         </div>
         <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
@@ -696,14 +777,40 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="text-sm text-slate-500 self-start md:self-center">
-        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
-          Mín 0 · Máx 1
-        </span>
+      <div class="self-start md:self-center">
+        <span class="block text-xs text-slate-500 mb-1">Limites</span>
+        <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
+          <label class="flex items-center gap-1 text-xs">
+            <span>Mín</span>
+            <input
+              type="number"
+                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
+              name="customization[groups][__CGI__][items][__CII__][min_qty]"
+              value="0"
+              min="0"
+              step="1"
+            >
+          </label>
+          <span class="text-xs text-slate-400">·</span>
+          <label class="flex items-center gap-1 text-xs">
+            <span>Máx</span>
+            <input
+              type="number"
+                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
+              name="customization[groups][__CGI__][items][__CII__][max_qty]"
+              value="1"
+              min="0"
+              step="1"
+            >
+          </label>
+        </div>
       </div>
       <div class="flex flex-col items-start gap-2">
         <input type="hidden" class="cust-default-flag" name="customization[groups][__CGI__][items][__CII__][default]" value="0">
-        <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm cust-toggle-default">Ingrediente padrão</button>
+        <label class="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" class="cust-default-toggle" aria-label="Definir ingrediente padrão">
+          <span>Ingrediente padrão</span>
+        </label>
       </div>
       <div class="cust-default-qty-wrap hidden">
         <label class="block text-xs text-slate-500">Quantidade padrão</label>
@@ -714,6 +821,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           value="0"
           min="0"
           max="1"
+          step="1"
         >
       </div>
       <button type="button" class="justify-self-end rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-item" title="Remover ingrediente">✕</button>
@@ -901,26 +1009,25 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
     function updateCustItem(itemEl) {
       if (!itemEl) return;
-      const select = itemEl.querySelector('.cust-ingredient-select');
       const limits = itemEl.querySelector('.cust-limits');
+      const minInput = itemEl.querySelector('.cust-min-input');
+      const maxInput = itemEl.querySelector('.cust-max-input');
       const qtyWrap = itemEl.querySelector('.cust-default-qty-wrap');
       const qtyInput = itemEl.querySelector('.cust-default-qty');
-      const toggleBtn = itemEl.querySelector('.cust-toggle-default');
+      const checkbox = itemEl.querySelector('.cust-default-toggle');
       const flag = itemEl.querySelector('.cust-default-flag');
 
-      let min = 0;
-      let max = 1;
-      if (select) {
-        const opt = select.options[select.selectedIndex];
-        min = opt ? Number(opt.dataset.min ?? select.dataset.defaultMin ?? 0) : Number(select.dataset.defaultMin ?? 0);
-        max = opt ? Number(opt.dataset.max ?? select.dataset.defaultMax ?? 1) : Number(select.dataset.defaultMax ?? 1);
-        if (max < min) max = min;
-      }
+      let min = Number(minInput?.value ?? 0);
+      if (Number.isNaN(min) || min < 0) min = 0;
+      if (minInput) minInput.value = String(min);
+
+      let max = Number(maxInput?.value ?? min);
+      if (Number.isNaN(max) || max < min) max = min;
+      if (maxInput) maxInput.value = String(max);
 
       if (limits) {
         limits.dataset.min = String(min);
         limits.dataset.max = String(max);
-        limits.textContent = `Mín ${min} · Máx ${max}`;
       }
 
       if (qtyInput) {
@@ -930,22 +1037,26 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         if (Number(qtyInput.value) > max) qtyInput.value = String(max);
       }
 
-      if (toggleBtn && flag) {
-        const isActive = toggleBtn.classList.contains('is-active');
+      const isActive = !!checkbox?.checked;
+      if (flag) {
         flag.value = isActive ? '1' : '0';
-        if (!isActive && qtyInput) {
-          qtyInput.value = String(min);
-        }
+      }
+      if (!isActive && qtyInput) {
+        qtyInput.value = String(min);
       }
 
       if (qtyWrap) {
-        const isActive = toggleBtn?.classList.contains('is-active');
         qtyWrap.classList.toggle('hidden', !isActive);
       }
     }
 
     function wireCustItem(itemEl) {
       if (!itemEl) return;
+      const flag = itemEl.querySelector('.cust-default-flag');
+      const checkbox = itemEl.querySelector('.cust-default-toggle');
+      if (flag && checkbox) {
+        checkbox.checked = flag.value === '1';
+      }
       updateCustItem(itemEl);
     }
 
@@ -990,35 +1101,15 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         t.closest('.cust-group')?.remove();
       } else if (t.classList.contains('cust-remove-item')) {
         t.closest('.cust-item')?.remove();
-      } else if (t.classList.contains('cust-toggle-default')) {
-        const itemEl = t.closest('.cust-item');
-        t.classList.toggle('is-active');
-        if (itemEl) {
-          const flag = itemEl.querySelector('.cust-default-flag');
-          if (flag) flag.value = t.classList.contains('is-active') ? '1' : '0';
-          const qty = itemEl.querySelector('.cust-default-qty');
-          const limits = itemEl.querySelector('.cust-limits');
-          const min = limits ? Number(limits.dataset.min ?? 0) : Number(qty?.min ?? 0);
-          const max = limits ? Number(limits.dataset.max ?? 1) : Number(qty?.max ?? 1);
-          if (qty) {
-            if (t.classList.contains('is-active')) {
-              let current = Number(qty.value || min);
-              if (current < min) current = min;
-              if (current > max) current = max;
-              qty.value = String(current);
-            } else {
-              qty.value = String(min);
-            }
-          }
-          const wrap = itemEl.querySelector('.cust-default-qty-wrap');
-          if (wrap) wrap.classList.toggle('hidden', !t.classList.contains('is-active'));
-        }
       }
     });
 
     custCont?.addEventListener('change', (e) => {
       const t = e.target;
       if (t.classList.contains('cust-ingredient-select')) {
+        const itemEl = t.closest('.cust-item');
+        updateCustItem(itemEl);
+      } else if (t.classList.contains('cust-default-toggle')) {
         const itemEl = t.closest('.cust-item');
         updateCustItem(itemEl);
       }
@@ -1033,6 +1124,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         if (val < min) val = min;
         if (val > max) val = max;
         t.value = String(val);
+      } else if (t.classList.contains('cust-min-input') || t.classList.contains('cust-max-input')) {
+        const itemEl = t.closest('.cust-item');
+        updateCustItem(itemEl);
       }
     });
 
@@ -1086,9 +1180,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             const limits = it.querySelector('.cust-limits');
             const min = limits ? Number(limits.dataset.min ?? 0) : 0;
             const max = limits ? Number(limits.dataset.max ?? 1) : 1;
-            const toggleBtn = it.querySelector('.cust-toggle-default');
+            const toggleCheckbox = it.querySelector('.cust-default-toggle');
             const qty = it.querySelector('.cust-default-qty');
-            if (toggleBtn?.classList.contains('is-active')) {
+            if (toggleCheckbox?.checked) {
               const val = qty ? Number(qty.value || min) : min;
               if (val < min || val > max) {
                 e.preventDefault();

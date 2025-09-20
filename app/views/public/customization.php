@@ -32,13 +32,13 @@ foreach (($mods ?? []) as $gIndex => $g) {
 
   if ($gType !== 'single') {
     foreach ($items as $it) {
-      $delta = (float)($it['delta'] ?? 0);
-      if ($delta > 0) {
+      $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
+      if ($sale > 0) {
         $itemName = $it['name'] ?? $it['label'] ?? '';
         $addons[] = [
           'id'   => md5(($g['name'] ?? 'grp').('|').($itemName !== '' ? $itemName : 'item')),
           'name' => 'Adicionar: ' . (string)$itemName,
-          'price'=> $delta,
+          'price'=> $sale,
           'img'  => $it['img'] ?? null,
           'min'  => isset($it['min']) ? (int)$it['min'] : 0,
           'max'  => isset($it['max']) ? (int)$it['max'] : 5,
@@ -134,7 +134,9 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
             <div class="thumb"><img src="<?= e($img) ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'"></div>
             <div class="info">
               <div class="name"><?= e($it['name'] ?? $it['label'] ?? '') ?></div>
-              <div class="price"><?= price_br($it['price']) ?></div>
+              <?php if (isset($it['price']) && (float)$it['price'] > 0): ?>
+                <div class="price"><?= price_br($it['price']) ?></div>
+              <?php endif; ?>
             </div>
             <div class="stepper">
               <button class="st-btn" type="button" data-act="dec" aria-label="Diminuir">
@@ -180,10 +182,9 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
               <div class="info">
                 <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
                 <div class="name"><?= e($optName) ?></div>
-                <?php if (!empty($it['delta'])): ?>
-                  <div class="price">+ <?= price_br((float)$it['delta']) ?></div>
-                <?php else: ?>
-                  <div class="price"><?= price_br(0) ?></div>
+                <?php $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : 0.0; ?>
+                <?php if ($sale > 0): ?>
+                  <div class="price"><?= price_br($sale) ?></div>
                 <?php endif; ?>
               </div>
               <div class="radio-wrap">
@@ -202,7 +203,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
               $min   = isset($it['min']) ? (int)$it['min'] : 0;
               $max   = isset($it['max']) ? (int)$it['max'] : 5;
               $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? (int)($it['default_qty'] ?? $min) : $min);
-              $delta = (float)($it['delta'] ?? 0);
+              $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
             ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">
                 <div class="thumb">
@@ -211,7 +212,9 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
                 <div class="info">
                   <?php $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii+1)); ?>
                   <div class="name"><?= e($itemName) ?></div>
-                  <div class="price"><?= $delta>0 ? '+ '.price_br($delta) : price_br(0) ?></div>
+                  <?php if ($sale > 0): ?>
+                    <div class="price"><?= price_br($sale) ?></div>
+                  <?php endif; ?>
                 </div>
                 <div class="stepper">
                   <button class="st-btn" type="button" data-act="dec" aria-label="Diminuir">
