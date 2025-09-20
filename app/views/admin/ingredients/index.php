@@ -7,6 +7,9 @@ if (!function_exists('base_url')) {
     return $b . '/' . ltrim((string)$p, '/');
   }
 }
+if (!function_exists('price_br')) {
+  function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); }
+}
 
 $title = "Ingredientes - " . ($company['name'] ?? '');
 $slug = rawurlencode($company['slug'] ?? '');
@@ -42,7 +45,9 @@ ob_start(); ?>
   <thead class="bg-slate-100">
     <tr>
       <th class="text-left p-3">Ingrediente</th>
-      <th class="text-left p-3">Mín / Máx</th>
+      <th class="text-left p-3">Custo</th>
+      <th class="text-left p-3">Valor de venda</th>
+      <th class="text-left p-3">Unidade</th>
       <th class="text-left p-3">Produtos</th>
       <th class="p-3"></th>
     </tr>
@@ -67,10 +72,23 @@ ob_start(); ?>
         </div>
       </td>
 
-      <td class="p-3">
-        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-          Mín <?= (int)($item['min_qty'] ?? 0) ?> · Máx <?= (int)($item['max_qty'] ?? 0) ?>
-        </span>
+      <td class="p-3 text-sm text-slate-600"><?= price_br($item['cost'] ?? 0) ?></td>
+      <td class="p-3 text-sm text-slate-600"><?= price_br($item['sale_price'] ?? 0) ?></td>
+      <td class="p-3 text-sm text-slate-600">
+        <?php
+          $uVal = $item['unit_value'] ?? null;
+          $uTxt = $item['unit'] ?? '';
+          if ($uVal !== null && $uVal !== '') {
+            if (!is_string($uVal)) {
+              $uVal = rtrim(rtrim(number_format((float)$uVal, 3, ',', '.'), '0'), ',');
+            }
+          }
+        ?>
+        <?php
+          $unitDisplay = ($uVal !== null && $uVal !== '' ? $uVal : '1') . ' ' . (string)$uTxt;
+          $unitDisplay = trim($unitDisplay);
+        ?>
+        <?= e($unitDisplay) ?>
       </td>
 
       <td class="p-3">
