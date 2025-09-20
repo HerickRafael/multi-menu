@@ -109,8 +109,15 @@ class ProductCustomization
     public static function loadForPublic(int $productId): array
     {
         $groups = self::fetchGroups($productId);
+
         foreach ($groups as &$group) {
             $items = $group['items'] ?? [];
+            if (!is_array($items) || !$items) {
+                $group['items'] = [];
+                $group['type']  = 'extra';
+                continue;
+            }
+
             $isSingle = true;
 
             foreach ($items as &$item) {
@@ -129,14 +136,19 @@ class ProductCustomization
                 }
 
                 $defaultQty = !empty($item['default']) ? (int)($item['default_qty'] ?? $min) : $min;
-                if ($defaultQty < $min) $defaultQty = $min;
-                if ($max > 0 && $defaultQty > $max) $defaultQty = $max;
+                if ($defaultQty < $min) {
+                    $defaultQty = $min;
+                }
+                if ($max > 0 && $defaultQty > $max) {
+                    $defaultQty = $max;
+                }
 
-                $item['min'] = $min;
-                $item['max'] = $max;
-                $item['qty'] = $defaultQty;
+                $item['min']         = $min;
+                $item['max']         = $max;
+                $item['qty']         = $defaultQty;
                 $item['default_qty'] = $defaultQty;
 
+                // Disponibiliza o preço de venda do ingrediente para a UI pública
                 $item['sale_price'] = isset($item['sale_price']) ? (float)$item['sale_price'] : 0.0;
 
                 if ($item['min'] !== 1 || $item['max'] !== 1) {
@@ -145,6 +157,7 @@ class ProductCustomization
             }
             unset($item);
 
+            $group['items'] = $items;
             // Se todos os itens do grupo são 1..1, tratamos como 'single'; caso contrário 'extra'
             $group['type'] = $isSingle ? 'single' : 'extra';
         }
