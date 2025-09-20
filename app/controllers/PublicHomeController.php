@@ -108,7 +108,31 @@ class PublicHomeController extends Controller
       // Retorna o HTML com os produtos para busca instantânea
       $products = Product::listByCompany($cid, $q);
       if (!function_exists('badgePromo')) {
-        function badgePromo($p){ return !empty($p['promo_price']); }
+        function badgePromo($p){
+          if (!is_array($p)) return false;
+          $price = isset($p['price']) ? (float)$p['price'] : 0;
+          $promoRaw = $p['promo_price'] ?? null;
+          if ($price <= 0 || $promoRaw === null || $promoRaw === '') {
+            return false;
+          }
+          if (is_array($promoRaw)) {
+            $promoRaw = reset($promoRaw);
+          }
+          $promoStr = trim((string)$promoRaw);
+          if ($promoStr === '') {
+            return false;
+          }
+          $promoStr = str_replace(' ', '', $promoStr);
+          if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
+            $promoStr = str_replace('.', '', $promoStr);
+          }
+          $promoStr = str_replace(',', '.', $promoStr);
+          if (!is_numeric($promoStr)) {
+            return false;
+          }
+          $promo = (float)$promoStr;
+          return $promo > 0 && $promo < $price;
+        }
       }
       ob_start();
       if ($q !== '') {

@@ -22,17 +22,37 @@
         </p>
       <?php endif; ?>
 
+      <?php
+        $priceVal = isset($p['price']) ? (float)$p['price'] : 0;
+        $promoRaw = $p['promo_price'] ?? null;
+        $promoVal = null;
+        if ($promoRaw !== null && $promoRaw !== '') {
+          $promoStr = is_array($promoRaw) ? reset($promoRaw) : $promoRaw;
+          $promoStr = trim((string)$promoStr);
+          if ($promoStr !== '') {
+            $promoStr = str_replace(' ', '', $promoStr);
+            if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
+              $promoStr = str_replace('.', '', $promoStr);
+            }
+            $promoStr = str_replace(',', '.', $promoStr);
+            if (is_numeric($promoStr)) {
+              $promoVal = (float)$promoStr;
+            }
+          }
+        }
+        $hasPromo = $priceVal > 0 && $promoVal !== null && $promoVal > 0 && $promoVal < $priceVal;
+      ?>
       <div class="mt-1">
-        <?php if (!empty($p['promo_price'])): ?>
+        <?php if ($hasPromo): ?>
           <span class="text-sm text-gray-400 line-through">
-            R$ <?= number_format($p['price'], 2, ',', '.') ?>
+            R$ <?= number_format($priceVal, 2, ',', '.') ?>
           </span>
           <span class="ml-2 text-lg font-bold">
-            R$ <?= number_format($p['promo_price'], 2, ',', '.') ?>
+            R$ <?= number_format($promoVal, 2, ',', '.') ?>
           </span>
         <?php else: ?>
           <span class="text-lg font-bold">
-            R$ <?= number_format($p['price'], 2, ',', '.') ?>
+            R$ <?= number_format($priceVal, 2, ',', '.') ?>
           </span>
         <?php endif; ?>
       </div>

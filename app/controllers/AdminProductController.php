@@ -10,6 +10,45 @@ require_once __DIR__ . '/../models/ProductCustomization.php';
 
 class AdminProductController extends Controller {
 
+  /**
+   * Normaliza o preço promocional garantindo que só valores válidos sejam usados.
+   */
+  private function sanitizePromoPrice($input, float $basePrice): ?float {
+    if ($input === null) {
+      return null;
+    }
+
+    if (is_array($input)) {
+      $input = reset($input);
+    }
+
+    $raw = trim((string)$input);
+    if ($raw === '') {
+      return null;
+    }
+
+    $raw = str_replace(' ', '', $raw);
+    if (strpos($raw, ',') !== false && strpos($raw, '.') !== false) {
+      $raw = str_replace('.', '', $raw);
+    }
+    $raw = str_replace(',', '.', $raw);
+    if (!is_numeric($raw)) {
+      return null;
+    }
+
+    $promo = (float)$raw;
+    if ($promo <= 0) {
+      return null;
+    }
+
+    $price = (float)$basePrice;
+    if ($price <= 0 || $promo >= $price) {
+      return null;
+    }
+
+    return $promo;
+  }
+
   /** Protege rotas e valida empresa/usuário */
   private function guard($slug) {
     Auth::start();
@@ -126,13 +165,16 @@ class AdminProductController extends Controller {
     $custPayload = $_POST['customization'] ?? [];
     $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
 
+    $price = (float)($_POST['price'] ?? 0);
+    $promo = $this->sanitizePromoPrice($_POST['promo_price'] ?? null, $price);
+
     $data = [
       'company_id'  => (int)$company['id'],
       'category_id' => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
       'name'        => trim($_POST['name'] ?? ''),
       'description' => trim($_POST['description'] ?? ''),
-      'price'       => (float)($_POST['price'] ?? 0),
-      'promo_price' => ($_POST['promo_price'] === '' ? null : (float)$_POST['promo_price']),
+      'price'       => $price,
+      'promo_price' => $promo,
       'sku'         => trim($_POST['sku'] ?? ''),
       'image'       => $img, // pode ser null
       'active'      => isset($_POST['active']) ? 1 : 0,
@@ -177,12 +219,15 @@ class AdminProductController extends Controller {
     $custPayload = $_POST['customization'] ?? [];
     $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
 
+    $price = (float)($_POST['price'] ?? 0);
+    $promo = $this->sanitizePromoPrice($_POST['promo_price'] ?? null, $price);
+
     $data = [
       'category_id' => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
       'name'        => trim($_POST['name'] ?? ''),
       'description' => trim($_POST['description'] ?? ''),
-      'price'       => (float)($_POST['price'] ?? 0),
-      'promo_price' => ($_POST['promo_price'] === '' ? null : (float)$_POST['promo_price']),
+      'price'       => $price,
+      'promo_price' => $promo,
       'sku'         => trim($_POST['sku'] ?? ''),
       'image'       => $img,
       'active'      => isset($_POST['active']) ? 1 : 0,
