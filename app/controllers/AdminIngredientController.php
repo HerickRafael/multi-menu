@@ -8,34 +8,6 @@ require_once __DIR__ . '/../models/Ingredient.php';
 
 class AdminIngredientController extends Controller
 {
-  private function parseDecimal($value): ?float
-  {
-    if (is_int($value) || is_float($value)) {
-      return (float)$value;
-    }
-
-    if (!is_string($value)) {
-      return null;
-    }
-
-    $raw = trim($value);
-    if ($raw === '') {
-      return null;
-    }
-
-    $clean = preg_replace('/[^0-9,.-]/', '', $raw);
-    if ($clean === null || $clean === '') {
-      return null;
-    }
-
-    $normalized = str_replace(['.', ','], ['', '.'], $clean);
-    if (!is_numeric($normalized)) {
-      return null;
-    }
-
-    return (float)$normalized;
-  }
-
   private function guard($slug)
   {
     Auth::start();
@@ -88,10 +60,8 @@ class AdminIngredientController extends Controller
     $ingredient = [
       'id' => null,
       'name' => $old['name'] ?? '',
-      'cost' => $old['cost'] ?? '',
-      'sale_price' => $old['sale_price'] ?? '',
-      'unit' => $old['unit'] ?? '',
-      'unit_value' => $old['unit_value'] ?? '',
+      'min_qty' => $old['min_qty'] ?? 0,
+      'max_qty' => $old['max_qty'] ?? 1,
       'image_path' => null,
     ];
 
@@ -104,78 +74,17 @@ class AdminIngredientController extends Controller
     $companyId = (int)$company['id'];
 
     $name = trim($_POST['name'] ?? '');
-    $costRaw = $_POST['cost'] ?? '';
-    $salePriceRaw = $_POST['sale_price'] ?? '';
-    $unit = trim((string)($_POST['unit'] ?? ''));
-    $unitValueRaw = $_POST['unit_value'] ?? '';
-
-    $cost = $this->parseDecimal($costRaw);
-    $salePrice = $this->parseDecimal($salePriceRaw);
-    $unitValue = $this->parseDecimal($unitValueRaw);
+    $min = isset($_POST['min_qty']) ? max(0, (int)$_POST['min_qty']) : 0;
+    $max = isset($_POST['max_qty']) ? max(0, (int)$_POST['max_qty']) : 1;
+    if ($max < $min) {
+      $max = $min;
+    }
 
     [$imagePath, $uploadError] = $this->handleUpload($_FILES['image'] ?? null);
 
     if ($name === '') {
       $_SESSION['flash_error'] = 'Informe o nome do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
-      exit;
-    }
-
-    if ($cost === null) {
-      $_SESSION['flash_error'] = 'Informe o custo do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
-      exit;
-    }
-
-    if ($salePrice === null) {
-      $_SESSION['flash_error'] = 'Informe o valor de venda do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
-      exit;
-    }
-
-    if ($unit === '') {
-      $_SESSION['flash_error'] = 'Informe a unidade de medida.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
-      exit;
-    }
-
-    if ($unitValue === null || $unitValue <= 0) {
-      $_SESSION['flash_error'] = 'Informe o valor da unidade de medida.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
       exit;
     }
@@ -183,26 +92,14 @@ class AdminIngredientController extends Controller
     // Mantido do branch: checagem de duplicidade por nome
     if (Ingredient::existsByName($companyId, $name)) {
       $_SESSION['flash_error'] = 'Já existe um ingrediente com este nome.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
       exit;
     }
 
     if ($uploadError) {
       $_SESSION['flash_error'] = $uploadError;
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
       exit;
     }
@@ -210,12 +107,8 @@ class AdminIngredientController extends Controller
     Ingredient::create([
       'company_id' => $companyId,
       'name' => $name,
-      'cost' => $cost,
-      'sale_price' => $salePrice,
-      'unit' => $unit,
-      'unit_value' => $unitValue,
-      'min_qty' => 0,
-      'max_qty' => 1,
+      'min_qty' => $min,
+      'max_qty' => $max,
       'image_path' => $imagePath,
     ]);
 
@@ -236,10 +129,8 @@ class AdminIngredientController extends Controller
 
     if ($old) {
       $ingredient['name'] = $old['name'];
-      $ingredient['cost'] = $old['cost'];
-      $ingredient['sale_price'] = $old['sale_price'];
-      $ingredient['unit'] = $old['unit'];
-      $ingredient['unit_value'] = $old['unit_value'];
+      $ingredient['min_qty'] = $old['min_qty'];
+      $ingredient['max_qty'] = $old['max_qty'];
     }
 
     return $this->view('admin/ingredients/form', compact('company', 'ingredient', 'error'));
@@ -255,78 +146,17 @@ class AdminIngredientController extends Controller
     if (!$ingredient) { echo "Ingrediente não encontrado."; exit; }
 
     $name = trim($_POST['name'] ?? '');
-    $costRaw = $_POST['cost'] ?? '';
-    $salePriceRaw = $_POST['sale_price'] ?? '';
-    $unit = trim((string)($_POST['unit'] ?? ''));
-    $unitValueRaw = $_POST['unit_value'] ?? '';
-
-    $cost = $this->parseDecimal($costRaw);
-    $salePrice = $this->parseDecimal($salePriceRaw);
-    $unitValue = $this->parseDecimal($unitValueRaw);
+    $min = isset($_POST['min_qty']) ? max(0, (int)$_POST['min_qty']) : 0;
+    $max = isset($_POST['max_qty']) ? max(0, (int)$_POST['max_qty']) : 1;
+    if ($max < $min) {
+      $max = $min;
+    }
 
     [$imagePath, $uploadError] = $this->handleUpload($_FILES['image'] ?? null, $ingredient['image_path'] ?? null);
 
     if ($name === '') {
       $_SESSION['flash_error'] = 'Informe o nome do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
-      exit;
-    }
-
-    if ($cost === null) {
-      $_SESSION['flash_error'] = 'Informe o custo do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
-      exit;
-    }
-
-    if ($salePrice === null) {
-      $_SESSION['flash_error'] = 'Informe o valor de venda do ingrediente.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
-      exit;
-    }
-
-    if ($unit === '') {
-      $_SESSION['flash_error'] = 'Informe a unidade de medida.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
-      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
-      exit;
-    }
-
-    if ($unitValue === null || $unitValue <= 0) {
-      $_SESSION['flash_error'] = 'Informe o valor da unidade de medida.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
       exit;
     }
@@ -334,38 +164,22 @@ class AdminIngredientController extends Controller
     // Mantido do branch: checagem de duplicidade por nome (ignorando o próprio ID)
     if (Ingredient::existsByName($companyId, $name, $ingredientId)) {
       $_SESSION['flash_error'] = 'Já existe um ingrediente com este nome.';
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
       exit;
     }
 
     if ($uploadError) {
       $_SESSION['flash_error'] = $uploadError;
-      $_SESSION['flash_old_ingredient'] = [
-        'name' => $name,
-        'cost' => $costRaw,
-        'sale_price' => $salePriceRaw,
-        'unit' => $unit,
-        'unit_value' => $unitValueRaw,
-      ];
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
       exit;
     }
 
     Ingredient::update($ingredientId, [
       'name' => $name,
-      'cost' => $cost,
-      'sale_price' => $salePrice,
-      'unit' => $unit,
-      'unit_value' => $unitValue,
-      'min_qty' => 0,
-      'max_qty' => 1,
+      'min_qty' => $min,
+      'max_qty' => $max,
       'image_path' => $imagePath,
     ]);
 
