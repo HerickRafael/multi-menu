@@ -20,14 +20,40 @@ ob_start(); ?>
     <input name="name" value="<?= e($ingredient['name'] ?? '') ?>" class="border rounded-xl p-2" required>
   </label>
 
+  <?php
+    $costVal = $ingredient['cost'] ?? '';
+    if ($costVal !== '' && !is_string($costVal)) {
+      $costVal = number_format((float)$costVal, 2, ',', '.');
+    }
+    $saleVal = $ingredient['sale_price'] ?? '';
+    if ($saleVal !== '' && !is_string($saleVal)) {
+      $saleVal = number_format((float)$saleVal, 2, ',', '.');
+    }
+    $unitValueVal = $ingredient['unit_value'] ?? '';
+    if ($unitValueVal !== '' && !is_string($unitValueVal)) {
+      $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ',');
+    }
+  ?>
+
   <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
     <label class="grid gap-1">
-      <span class="text-sm">Quantidade mínima</span>
-      <input type="number" min="0" name="min_qty" value="<?= (int)($ingredient['min_qty'] ?? 0) ?>" class="border rounded-xl p-2" required>
+      <span class="text-sm">Custo <span class="text-red-500">*</span></span>
+      <input type="text" name="cost" value="<?= e($costVal) ?>" class="border rounded-xl p-2" inputmode="decimal" placeholder="Ex.: 3,50" required>
     </label>
     <label class="grid gap-1">
-      <span class="text-sm">Quantidade máxima</span>
-      <input type="number" min="1" name="max_qty" value="<?= (int)($ingredient['max_qty'] ?? 1) ?>" class="border rounded-xl p-2" required>
+      <span class="text-sm">Valor de venda <span class="text-red-500">*</span></span>
+      <input type="text" name="sale_price" value="<?= e($saleVal) ?>" class="border rounded-xl p-2" inputmode="decimal" placeholder="Ex.: 5,90" required>
+    </label>
+  </div>
+
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <label class="grid gap-1">
+      <span class="text-sm">Unidade de medida <span class="text-red-500">*</span></span>
+      <input name="unit" value="<?= e($ingredient['unit'] ?? '') ?>" class="border rounded-xl p-2" placeholder="Ex.: kg, un, pc" maxlength="20" required>
+    </label>
+    <label class="grid gap-1">
+      <span class="text-sm">Valor da unidade de medida <span class="text-red-500">*</span></span>
+      <input type="text" name="unit_value" value="<?= e($unitValueVal) ?>" class="border rounded-xl p-2" inputmode="decimal" placeholder="Ex.: 1" required>
     </label>
   </div>
 

@@ -120,6 +120,7 @@ class ProductCustomization
                 $item['min']   = isset($item['min_qty']) ? (int)$item['min_qty'] : 0;
                 $item['max']   = isset($item['max_qty']) ? (int)$item['max_qty'] : 1;
                 $item['qty']   = !empty($item['default']) ? (int)($item['default_qty'] ?? $item['min']) : $item['min'];
+                $item['sale_price'] = isset($item['sale_price']) ? (float)$item['sale_price'] : 0.0;
 
                 if ($item['min'] !== 1 || $item['max'] !== 1) {
                     $isSingle = false;
@@ -173,13 +174,13 @@ class ProductCustomization
                 }
                 $seenIngredients[$ingredientId] = true;
 
-                $minQty = isset($ingredient['min_qty']) ? (int)$ingredient['min_qty'] : 0;
-                $maxQty = isset($ingredient['max_qty']) ? (int)$ingredient['max_qty'] : 1;
+                $minQty = isset($item['min_qty']) ? max(0, (int)$item['min_qty']) : 0;
+                $maxQty = isset($item['max_qty']) ? (int)$item['max_qty'] : $minQty;
                 if ($maxQty < $minQty) {
                     $maxQty = $minQty;
                 }
 
-                $isDefault  = !empty($item['default']);
+                $isDefault  = !empty($item['default']) && (string)$item['default'] !== '0';
                 $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : $minQty;
                 if ($defaultQty < $minQty) $defaultQty = $minQty;
                 if ($defaultQty > $maxQty) $defaultQty = $maxQty;
@@ -233,7 +234,8 @@ class ProductCustomization
                        pci.max_qty       AS item_max_qty,
                        pci.sort_order    AS item_sort,
                        pci.ingredient_id AS item_ingredient_id,
-                       ing.image_path    AS ingredient_image
+                       ing.image_path    AS ingredient_image,
+                       ing.sale_price    AS ingredient_sale_price
                   FROM product_custom_groups pcg
              LEFT JOIN product_custom_items  pci ON pci.group_id = pcg.id
              LEFT JOIN ingredients ing          ON ing.id = pci.ingredient_id
@@ -265,18 +267,19 @@ class ProductCustomization
             }
 
             if (!empty($row['item_id'])) {
-                $groups[$gid]['items'][] = [
-                    'id'            => (int)$row['item_id'],
-                    'label'         => $row['item_label'],
-                    'delta'         => (float)$row['item_delta'],
-                    'default'       => (bool)$row['item_default'],
-                    'default_qty'   => (int)$row['item_default_qty'],
-                    'min_qty'       => (int)$row['item_min_qty'],
-                    'max_qty'       => (int)$row['item_max_qty'],
-                    'ingredient_id' => $row['item_ingredient_id'] ? (int)$row['item_ingredient_id'] : null,
-                    'image_path'    => $row['ingredient_image'] ?? null,
-                    'sort_order'    => (int)$row['item_sort'],
-                ];
+                    $groups[$gid]['items'][] = [
+                        'id'            => (int)$row['item_id'],
+                        'label'         => $row['item_label'],
+                        'delta'         => (float)$row['item_delta'],
+                        'default'       => (bool)$row['item_default'],
+                        'default_qty'   => (int)$row['item_default_qty'],
+                        'min_qty'       => (int)$row['item_min_qty'],
+                        'max_qty'       => (int)$row['item_max_qty'],
+                        'ingredient_id' => $row['item_ingredient_id'] ? (int)$row['item_ingredient_id'] : null,
+                        'image_path'    => $row['ingredient_image'] ?? null,
+                        'sale_price'    => isset($row['ingredient_sale_price']) ? (float)$row['ingredient_sale_price'] : 0.0,
+                        'sort_order'    => (int)$row['item_sort'],
+                    ];
             }
         }
 

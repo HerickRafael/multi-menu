@@ -108,13 +108,18 @@ class Ingredient
   {
     $pdo = db();
     $st = $pdo->prepare(
-      'INSERT INTO ingredients (company_id, name, min_qty, max_qty, image_path) VALUES (?,?,?,?,?)'
+      'INSERT INTO ingredients (company_id, name, cost, sale_price, unit, unit_value, min_qty, max_qty, image_path)
+       VALUES (?,?,?,?,?,?,?,?,?)'
     );
     $st->execute([
       $data['company_id'],
       $data['name'],
-      $data['min_qty'],
-      $data['max_qty'],
+      $data['cost'],
+      $data['sale_price'],
+      $data['unit'],
+      $data['unit_value'],
+      $data['min_qty'] ?? 0,
+      $data['max_qty'] ?? 1,
       $data['image_path'] ?? null,
     ]);
     return (int)$pdo->lastInsertId();
@@ -125,13 +130,17 @@ class Ingredient
     $pdo = db();
     $st = $pdo->prepare(
       'UPDATE ingredients
-          SET name = ?, min_qty = ?, max_qty = ?, image_path = ?, updated_at = NOW()
+          SET name = ?, cost = ?, sale_price = ?, unit = ?, unit_value = ?, min_qty = ?, max_qty = ?, image_path = ?, updated_at = NOW()
         WHERE id = ?'
     );
     $st->execute([
       $data['name'],
-      $data['min_qty'],
-      $data['max_qty'],
+      $data['cost'],
+      $data['sale_price'],
+      $data['unit'],
+      $data['unit_value'],
+      $data['min_qty'] ?? 0,
+      $data['max_qty'] ?? 1,
       $data['image_path'] ?? null,
       $id,
     ]);
