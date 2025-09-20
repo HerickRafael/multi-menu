@@ -1138,11 +1138,19 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       if(!name.value.trim()){ e.preventDefault(); alert('Informe o nome do produto.'); name.focus(); return; }
 
       // Normaliza BR -> float
-      ['price','promo_price'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; el.value=String(brToFloat(el.value||'0')); });
+      const priceEl = document.getElementById('price');
+      if(priceEl){ priceEl.value = String(brToFloat(priceEl.value||'0')); }
 
-      const price=parseFloat(document.getElementById('price').value||'0');
-      const promo=parseFloat(document.getElementById('promo_price').value||'0');
-      if(promo && price && promo>=price){ e.preventDefault(); alert('O preço promocional deve ser menor que o preço base.'); document.getElementById('promo_price').focus(); return; }
+      const promoEl = document.getElementById('promo_price');
+      if(promoEl){
+        const rawPromo = promoEl.value == null ? '' : String(promoEl.value).trim();
+        promoEl.value = rawPromo === '' ? '' : String(brToFloat(rawPromo));
+      }
+
+      const price=parseFloat((priceEl?.value||'0'));
+      const promoRaw = promoEl?.value ?? '';
+      const promo = promoRaw === '' ? null : parseFloat(promoRaw || '0');
+      if(promo !== null && !Number.isNaN(promo) && price > 0 && promo>=price){ e.preventDefault(); alert('O preço promocional deve ser menor que o preço base.'); document.getElementById('promo_price').focus(); return; }
 
       // COMBO
       if(groupsToggle && groupsToggle.checked){
