@@ -13,7 +13,7 @@ class Ingredient
               FROM ingredients i
          LEFT JOIN product_custom_items  pci ON pci.ingredient_id = i.id
          LEFT JOIN product_custom_groups pcg ON pcg.id = pci.group_id
-         LEFT JOIN products p ON p.id = pcg.product_id AND p.company_id = i.company_id
+         LEFT JOIN products p ON p.id = pcg.product_id AND p.company_id = :company
              WHERE i.company_id = :company";
 
     $params = ['company' => $companyId];
@@ -42,18 +42,22 @@ class Ingredient
     return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 
+  /** Checa duplicidade por nome (case-insensitive) dentro da empresa. */
   public static function existsByName(int $companyId, string $name, ?int $ignoreId = null): bool
   {
     $pdo = db();
-    $base = 'SELECT id FROM ingredients WHERE company_id = ? AND LOWER(name) = LOWER(?)';
+    $sql = 'SELECT id
+              FROM ingredients
+             WHERE company_id = ?
+               AND LOWER(name) = LOWER(?)';
     $params = [$companyId, $name];
 
     if ($ignoreId) {
-      $base .= ' AND id <> ?';
+      $sql .= ' AND id <> ?';
       $params[] = $ignoreId;
     }
 
-    $st = $pdo->prepare($base . ' LIMIT 1');
+    $st = $pdo->prepare($sql . ' LIMIT 1');
     $st->execute($params);
     return (bool)$st->fetchColumn();
   }
@@ -104,13 +108,15 @@ class Ingredient
     return $row ?: null;
   }
 
+  /**
+   * Agora inclui cost, sale_price, unit, unit_value (compatível com o seu controller).
+   */
   public static function create(array $data): int
   {
     $pdo = db();
-    $st = $pdo->prepare(
-      'INSERT INTO ingredients (company_id, name, cost, sale_price, unit, unit_value, min_qty, max_qty, image_path)
-       VALUES (?,?,?,?,?,?,?,?,?)'
-    );
+    $st = $pdo->prepare('INSERT INTO ingredients
+      (company_id, name, cost, sale_price, unit, unit_value, min_qty, max_qty, image_path)
+      VALUES (?,?,?,?,?,?,?,?,?)');
     $st->execute([
       $data['company_id'],
       $data['name'],
@@ -128,11 +134,17 @@ class Ingredient
   public static function update(int $id, array $data): void
   {
     $pdo = db();
-    $st = $pdo->prepare(
-      'UPDATE ingredients
-          SET name = ?, cost = ?, sale_price = ?, unit = ?, unit_value = ?, min_qty = ?, max_qty = ?, image_path = ?, updated_at = NOW()
-        WHERE id = ?'
-    );
+    $st = $pdo->prepare('UPDATE ingredients
+                            SET name = ?,
+                                cost = ?,
+                                sale_price = ?,
+                                unit = ?,
+                                unit_value = ?,
+                                min_qty = ?,
+                                max_qty = ?,
+                                image_path = ?,
+                                updated_at = NOW()
+                          WHERE id = ?');
     $st->execute([
       $data['name'],
       $data['cost'],
@@ -151,13 +163,10 @@ class Ingredient
     $pdo = db();
     $pdo->beginTransaction();
     try {
-      // Remove vínculos primeiro
       $pdo->prepare('DELETE pci FROM product_custom_items pci WHERE pci.ingredient_id = ?')
           ->execute([$ingredientId]);
-      // Depois remove o ingrediente
       $pdo->prepare('DELETE FROM ingredients WHERE id = ? AND company_id = ?')
           ->execute([$ingredientId, $companyId]);
-
       $pdo->commit();
     } catch (Throwable $e) {
       $pdo->rollBack();
@@ -173,8 +182,7 @@ class Ingredient
               JOIN product_custom_groups pcg ON pcg.id = pci.group_id
               JOIN products p ON p.id = pcg.product_id
               JOIN ingredients i ON i.id = pci.ingredient_id
-             WHERE pci.ingredient_id = ?
-               AND p.company_id = i.company_id
+             WHERE pci.ingredient_id = ? AND p.company_id = i.company_id
           ORDER BY p.name";
     $st = $pdo->prepare($sql);
     $st->execute([$ingredientId]);
