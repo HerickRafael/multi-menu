@@ -368,22 +368,22 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="<?= $gi ?>" data-mode="<?= e($gMode) ?>">
           <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
             <div class="flex items-center gap-3">
-            <button
-              type="button"
-              class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
-              title="Arrastar para reordenar"
-              aria-label="Arrastar para reordenar grupo"
-              draggable="true"
-            >↕</button>
-            <input
-              type="text"
-              name="customization[groups][<?= $gi ?>][name]"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Nome do grupo"
-              value="<?= e($cgName) ?>"
-            />
-            <input type="hidden" class="cust-order-input" name="customization[groups][<?= $gi ?>][sort_order]" value="<?= isset($cg['sort_order']) ? (int)$cg['sort_order'] : $gi ?>">
-            <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+              <button
+                type="button"
+                class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+                title="Arrastar para reordenar"
+                aria-label="Arrastar para reordenar grupo"
+                draggable="true"
+              >↕</button>
+              <input
+                type="text"
+                name="customization[groups][<?= $gi ?>][name]"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2"
+                placeholder="Nome do grupo"
+                value="<?= e($cgName) ?>"
+              />
+              <input type="hidden" class="cust-order-input" name="customization[groups][<?= $gi ?>][sort_order]" value="<?= isset($cg['sort_order']) ? (int)$cg['sort_order'] : $gi ?>">
+              <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
             </div>
             <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
               <label class="grid gap-1 text-sm">
@@ -510,22 +510,22 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="0" data-mode="extra">
           <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
             <div class="flex items-center gap-3">
-            <button
-              type="button"
-              class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
-              title="Arrastar para reordenar"
-              aria-label="Arrastar para reordenar grupo"
-              draggable="true"
-            >↕</button>
-            <input
-              type="text"
-              name="customization[groups][0][name]"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Nome do grupo"
-              value=""
-            />
-            <input type="hidden" class="cust-order-input" name="customization[groups][0][sort_order]" value="0">
-            <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+              <button
+                type="button"
+                class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+                title="Arrastar para reordenar"
+                aria-label="Arrastar para reordenar grupo"
+                draggable="true"
+              >↕</button>
+              <input
+                type="text"
+                name="customization[groups][0][name]"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2"
+                placeholder="Nome do grupo"
+                value=""
+              />
+              <input type="hidden" class="cust-order-input" name="customization[groups][0][sort_order]" value="0">
+              <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
             </div>
             <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
               <label class="grid gap-1 text-sm">
