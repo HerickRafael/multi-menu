@@ -19,34 +19,26 @@ $pId     = (int)($product['id'] ?? 0);
 // lemos qty opcional da querystring (vinda do botão Personalizar)
 $qtyGet = isset($_GET['qty']) ? max(1, min(99, (int)$_GET['qty'])) : null;
 
-/**
- * Montagem de $addons (apenas itens com delta>0 de grupos NÃO "single")
- * e cópia direta de $groups (vindos de $mods).
- */
-$addons = [];
 $groups = [];
 foreach (($mods ?? []) as $gIndex => $g) {
-  $gType = $g['type'] ?? 'extra';
-  $items = $g['items'] ?? [];
-  $groups[] = $g;
-
-  if ($gType !== 'single') {
-    foreach ($items as $it) {
-      $delta = (float)($it['delta'] ?? 0);
-      if ($delta > 0) {
-        $itemName = $it['name'] ?? $it['label'] ?? '';
-        $addons[] = [
-          'id'   => md5(($g['name'] ?? 'grp').('|').($itemName !== '' ? $itemName : 'item')),
-          'name' => 'Adicionar: ' . (string)$itemName,
-          'price'=> $delta,
-          'img'  => $it['img'] ?? null,
-          'min'  => isset($it['min']) ? (int)$it['min'] : 0,
-          'max'  => isset($it['max']) ? (int)$it['max'] : 5,
-          'qty'  => 0,
-        ];
-      }
-    }
+  if (empty($g['items']) || !is_array($g['items'])) {
+    continue;
   }
+
+  $items = [];
+  foreach ($g['items'] as $item) {
+    if (!is_array($item)) {
+      continue;
+    }
+    $items[] = $item;
+  }
+
+  if (!$items) {
+    continue;
+  }
+
+  $g['items'] = array_values($items);
+  $groups[] = $g;
 }
 
 // URLs
@@ -124,33 +116,6 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
 
   <div class="container">
 
-    <?php if (!empty($addons)): ?>
-      <div class="list addons" id="list-addons" aria-label="Adicionais">
-        <?php foreach($addons as $i=>$it):
-          $rowId = 'addon_' . $i;
-          $img   = $it['img'] ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'; ?>
-          <div class="row" id="<?= e($rowId) ?>"
-               data-min="<?= (int)$it['min'] ?>" data-max="<?= (int)$it['max'] ?>">
-            <div class="thumb"><img src="<?= e($img) ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'"></div>
-            <div class="info">
-              <div class="name"><?= e($it['name'] ?? $it['label'] ?? '') ?></div>
-              <div class="price"><?= price_br($it['price']) ?></div>
-            </div>
-            <div class="stepper">
-              <button class="st-btn" type="button" data-act="dec" aria-label="Diminuir">
-                <svg viewBox="0 0 24 24"><path d="M5 12h14" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
-              </button>
-              <div class="st-val" data-role="val"><?= (int)($it['qty'] ?? 0) ?></div>
-              <button class="st-btn" type="button" data-act="inc" aria-label="Aumentar">
-                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>
-              </button>
-            </div>
-            <input type="hidden" name="addons[<?= e($it['id']) ?>]" value="<?= (int)($it['qty'] ?? 0) ?>">
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-
     <?php if (!empty($groups)): ?>
       <?php foreach ($groups as $gi => $g):
         $gName = (string)($g['name'] ?? ('Grupo '.($gi+1)));
@@ -180,10 +145,9 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
               <div class="info">
                 <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
                 <div class="name"><?= e($optName) ?></div>
-                <?php if (!empty($it['delta'])): ?>
-                  <div class="price">+ <?= price_br((float)$it['delta']) ?></div>
-                <?php else: ?>
-                  <div class="price"><?= price_br(0) ?></div>
+                <?php $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : 0.0; ?>
+                <?php if ($sale > 0): ?>
+                  <div class="price"><?= price_br($sale) ?></div>
                 <?php endif; ?>
               </div>
               <div class="radio-wrap">
@@ -202,7 +166,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
               $min   = isset($it['min']) ? (int)$it['min'] : 0;
               $max   = isset($it['max']) ? (int)$it['max'] : 5;
               $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? (int)($it['default_qty'] ?? $min) : $min);
-              $delta = (float)($it['delta'] ?? 0);
+              $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
             ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">
                 <div class="thumb">
@@ -211,7 +175,9 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
                 <div class="info">
                   <?php $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii+1)); ?>
                   <div class="name"><?= e($itemName) ?></div>
-                  <div class="price"><?= $delta>0 ? '+ '.price_br($delta) : price_br(0) ?></div>
+                  <?php if ($sale > 0): ?>
+                    <div class="price"><?= price_br($sale) ?></div>
+                  <?php endif; ?>
                 </div>
                 <div class="stepper">
                   <button class="st-btn" type="button" data-act="dec" aria-label="Diminuir">

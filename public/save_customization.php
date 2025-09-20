@@ -5,19 +5,31 @@ if (!isset($_SESSION['customizations'])) {
     $_SESSION['customizations'] = [];
 }
 
-$productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+require_once __DIR__ . '/../app/models/ProductCustomization.php';
 
-$addons = [];
-if (isset($_POST['addons']) && is_array($_POST['addons'])) {
-    foreach ($_POST['addons'] as $k => $qty) {
-        $addons[(string)$k] = (int)$qty;
+$productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+$mods = [];
+if ($productId > 0) {
+    try {
+        $mods = ProductCustomization::loadForPublic($productId);
+    } catch (Throwable $e) {
+        $mods = [];
     }
 }
 
 $customSingle = [];
 if (isset($_POST['custom_single']) && is_array($_POST['custom_single'])) {
     foreach ($_POST['custom_single'] as $g => $idx) {
-        $customSingle[(int)$g] = (int)$idx;
+        $gi = (int)$g;
+        $sel = (int)$idx;
+        if (!isset($mods[$gi]['items']) || !is_array($mods[$gi]['items'])) {
+            continue;
+        }
+        $maxIdx = count($mods[$gi]['items']) - 1;
+        if ($sel < 0 || $sel > $maxIdx) {
+            continue;
+        }
+        $customSingle[$gi] = $sel;
     }
 }
 
@@ -26,7 +38,31 @@ if (isset($_POST['custom_qty']) && is_array($_POST['custom_qty'])) {
     foreach ($_POST['custom_qty'] as $g => $items) {
         if (is_array($items)) {
             foreach ($items as $i => $qty) {
-                $customQty[(int)$g][(int)$i] = (int)$qty;
+                $gi = (int)$g;
+                $ii = (int)$i;
+                if (!isset($mods[$gi]) || ($mods[$gi]['type'] ?? 'extra') === 'single') {
+                    continue;
+                }
+                if (!isset($mods[$gi]['items'][$ii])) {
+                    continue;
+                }
+
+                $item = $mods[$gi]['items'][$ii];
+                $min = isset($item['min']) ? (int)$item['min'] : 0;
+                $max = isset($item['max']) ? (int)$item['max'] : $min;
+                if ($max <= 0) {
+                    $max = max($min, 99);
+                }
+
+                $val = (int)$qty;
+                if ($val < $min) {
+                    $val = $min;
+                }
+                if ($max > 0 && $val > $max) {
+                    $val = $max;
+                }
+
+                $customQty[$gi][$ii] = $val;
             }
         }
     }
@@ -34,7 +70,6 @@ if (isset($_POST['custom_qty']) && is_array($_POST['custom_qty'])) {
 
 if ($productId > 0) {
     $_SESSION['customizations'][$productId] = [
-        'addons' => $addons,
         'single' => $customSingle,
         'qty'    => $customQty,
     ];

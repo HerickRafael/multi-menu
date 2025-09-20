@@ -102,17 +102,19 @@ class PublicProductController extends Controller
             $_SESSION['customizations'] = [];
         }
 
-        $addons = [];
-        if (isset($_POST['addons']) && is_array($_POST['addons'])) {
-            foreach ($_POST['addons'] as $k => $qty) {
-                $addons[(string)$k] = max(0, (int)$qty);
-            }
-        }
-
         $customSingle = [];
         if (isset($_POST['custom_single']) && is_array($_POST['custom_single'])) {
             foreach ($_POST['custom_single'] as $g => $idx) {
-                $customSingle[(int)$g] = (int)$idx;
+                $gi = (int)$g;
+                $sel = (int)$idx;
+                if (!isset($mods[$gi]['items']) || !is_array($mods[$gi]['items'])) {
+                    continue;
+                }
+                $maxIdx = count($mods[$gi]['items']) - 1;
+                if ($sel < 0 || $sel > $maxIdx) {
+                    continue;
+                }
+                $customSingle[$gi] = $sel;
             }
         }
 
@@ -120,8 +122,33 @@ class PublicProductController extends Controller
         if (isset($_POST['custom_qty']) && is_array($_POST['custom_qty'])) {
             foreach ($_POST['custom_qty'] as $g => $items) {
                 if (!is_array($items)) continue;
+                $gi = (int)$g;
+                if (!isset($mods[$gi]) || ($mods[$gi]['type'] ?? 'extra') === 'single') {
+                    continue;
+                }
+
                 foreach ($items as $i => $qty) {
-                    $customQty[(int)$g][(int)$i] = (int)$qty;
+                    $ii = (int)$i;
+                    if (!isset($mods[$gi]['items'][$ii])) {
+                        continue;
+                    }
+
+                    $item = $mods[$gi]['items'][$ii];
+                    $min = isset($item['min']) ? (int)$item['min'] : 0;
+                    $max = isset($item['max']) ? (int)$item['max'] : $min;
+                    if ($max <= 0) {
+                        $max = max($min, 99);
+                    }
+
+                    $val = (int)$qty;
+                    if ($val < $min) {
+                        $val = $min;
+                    }
+                    if ($max > 0 && $val > $max) {
+                        $val = $max;
+                    }
+
+                    $customQty[$gi][$ii] = $val;
                 }
             }
         }
@@ -129,7 +156,6 @@ class PublicProductController extends Controller
         $quantity = isset($_POST['qty']) ? max(1, (int)$_POST['qty']) : null;
 
         $_SESSION['customizations'][$id] = [
-            'addons'   => $addons,
             'single'   => $customSingle,
             'qty'      => $customQty,
             'quantity' => $quantity,
@@ -176,6 +202,12 @@ class PublicProductController extends Controller
                 if ($gType === 'single') {
                     $sel = isset($saved['single'][$gi]) ? (int)$saved['single'][$gi] : null;
                     if ($sel !== null) {
+                        $maxIdx = count($group['items']) - 1;
+                        if ($sel < 0 || $sel > $maxIdx) {
+                            $sel = null;
+                        }
+                    }
+                    if ($sel !== null) {
                         foreach ($group['items'] as $ii => &$item) {
                             $item['default'] = ($ii === $sel);
                         }
@@ -183,9 +215,22 @@ class PublicProductController extends Controller
                     }
                 } elseif (isset($saved['qty'][$gi]) && is_array($saved['qty'][$gi])) {
                     foreach ($group['items'] as $ii => &$item) {
-                        if (isset($saved['qty'][$gi][$ii])) {
-                            $item['qty'] = (int)$saved['qty'][$gi][$ii];
+                        if (!isset($saved['qty'][$gi][$ii])) {
+                            continue;
                         }
+                        $min = isset($item['min']) ? (int)$item['min'] : 0;
+                        $max = isset($item['max']) ? (int)$item['max'] : $min;
+                        if ($max <= 0) {
+                            $max = max($min, 99);
+                        }
+                        $val = (int)$saved['qty'][$gi][$ii];
+                        if ($val < $min) {
+                            $val = $min;
+                        }
+                        if ($max > 0 && $val > $max) {
+                            $val = $max;
+                        }
+                        $item['qty'] = $val;
                     }
                     unset($item);
                 }

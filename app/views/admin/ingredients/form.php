@@ -7,6 +7,50 @@ $action  = $editing
   : 'admin/' . $slug . '/ingredients';
 
 $image = $ingredient['image_path'] ?? null;
+
+$unitOptions = [
+  ['value' => 'un', 'label' => 'Unidade (un)'],
+  ['value' => 'kg', 'label' => 'Quilo (kg)'],
+  ['value' => 'g',  'label' => 'Grama (g)'],
+  ['value' => 'mg', 'label' => 'Miligrama (mg)'],
+  ['value' => 'l',  'label' => 'Litro (L)'],
+  ['value' => 'ml', 'label' => 'Mililitro (mL)'],
+  ['value' => 'pc', 'label' => 'Peça (pc)'],
+];
+
+$unitLabelMap = [
+  'un' => 'unidade',
+  'kg' => 'kg',
+  'g'  => 'g',
+  'mg' => 'mg',
+  'l'  => 'litro',
+  'ml' => 'mililitro',
+  'pc' => 'peça',
+];
+
+$unitRaw = trim((string)($ingredient['unit'] ?? ''));
+$unitSelectValue = '';
+foreach ($unitOptions as $opt) {
+  if (strcasecmp($unitRaw, $opt['value']) === 0) {
+    $unitSelectValue = $opt['value'];
+    break;
+  }
+}
+$unitCustomValue = '';
+if ($unitSelectValue === '') {
+  if ($unitRaw !== '') {
+    $unitSelectValue = 'custom';
+    $unitCustomValue = $unitRaw;
+  }
+} else {
+  $unitCustomValue = '';
+}
+
+$unitLabelDisplay = $unitSelectValue === 'custom'
+  ? ($unitCustomValue !== '' ? $unitCustomValue : 'unidade')
+  : ($unitLabelMap[$unitSelectValue] ?? ($unitSelectValue !== '' ? $unitSelectValue : 'unidade'));
+$unitLabelDisplay = $unitLabelDisplay !== '' ? $unitLabelDisplay : 'unidade';
+$unitValuePlaceholder = trim('Ex.: 1 ' . $unitLabelDisplay);
 ob_start(); ?>
 <h1 class="text-2xl font-bold mb-4"><?= $editing ? 'Editar' : 'Novo' ?> Ingrediente</h1>
 
@@ -20,14 +64,66 @@ ob_start(); ?>
     <input name="name" value="<?= e($ingredient['name'] ?? '') ?>" class="border rounded-xl p-2" required>
   </label>
 
+  <?php
+    $costVal = $ingredient['cost'] ?? '';
+    if ($costVal !== '' && !is_string($costVal)) {
+      $costVal = number_format((float)$costVal, 2, ',', '.');
+    }
+    $saleVal = $ingredient['sale_price'] ?? '';
+    if ($saleVal !== '' && !is_string($saleVal)) {
+      $saleVal = number_format((float)$saleVal, 2, ',', '.');
+    }
+    $unitValueVal = $ingredient['unit_value'] ?? '';
+    if ($unitValueVal !== '' && !is_string($unitValueVal)) {
+      $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ',');
+    }
+  ?>
+
   <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
     <label class="grid gap-1">
-      <span class="text-sm">Quantidade mínima</span>
-      <input type="number" min="0" name="min_qty" value="<?= (int)($ingredient['min_qty'] ?? 0) ?>" class="border rounded-xl p-2" required>
+      <span class="text-sm">Custo <span class="text-red-500">*</span></span>
+      <input type="text" name="cost" value="<?= e($costVal) ?>" class="border rounded-xl p-2" inputmode="decimal" placeholder="Ex.: 3,50" required>
     </label>
     <label class="grid gap-1">
-      <span class="text-sm">Quantidade máxima</span>
-      <input type="number" min="1" name="max_qty" value="<?= (int)($ingredient['max_qty'] ?? 1) ?>" class="border rounded-xl p-2" required>
+      <span class="text-sm">Valor de venda <span class="text-red-500">*</span></span>
+      <input type="text" name="sale_price" value="<?= e($saleVal) ?>" class="border rounded-xl p-2" inputmode="decimal" placeholder="Ex.: 5,90" required>
+    </label>
+  </div>
+
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div class="grid gap-1">
+      <span class="text-sm">Unidade de medida <span class="text-red-500">*</span></span>
+      <div class="grid gap-2">
+        <select name="unit_select" id="unit_select" class="border rounded-xl p-2" required>
+          <option value="">Selecione</option>
+          <?php foreach ($unitOptions as $opt): ?>
+            <option value="<?= e($opt['value']) ?>" <?= $unitSelectValue === $opt['value'] ? 'selected' : '' ?>><?= e($opt['label']) ?></option>
+          <?php endforeach; ?>
+          <option value="custom" <?= $unitSelectValue === 'custom' ? 'selected' : '' ?>>Outra unidade…</option>
+        </select>
+        <input
+          type="text"
+          name="unit_custom"
+          id="unit_custom"
+          value="<?= e($unitCustomValue) ?>"
+          class="border rounded-xl p-2 <?= $unitSelectValue === 'custom' ? '' : 'hidden' ?>"
+          placeholder="Informe a unidade"
+          maxlength="30"
+        >
+      </div>
+    </div>
+    <label class="grid gap-1">
+      <span class="text-sm">Valor por <span id="unit_label" data-unit-label><?= e($unitLabelDisplay) ?></span> <span class="text-red-500">*</span></span>
+      <input
+        type="text"
+        name="unit_value"
+        id="unit_value"
+        value="<?= e($unitValueVal) ?>"
+        class="border rounded-xl p-2"
+        inputmode="decimal"
+        placeholder="<?= e($unitValuePlaceholder) ?>"
+        required
+      >
     </label>
   </div>
 
@@ -51,6 +147,52 @@ ob_start(); ?>
     <button class="px-4 py-2 rounded-xl border">Salvar</button>
     <a href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
   </div>
+
+  <script>
+    (function(){
+      const select = document.getElementById('unit_select');
+      const custom = document.getElementById('unit_custom');
+      const labelEl = document.getElementById('unit_label');
+      const valueInput = document.getElementById('unit_value');
+      const labelMap = <?= json_encode($unitLabelMap, JSON_UNESCAPED_UNICODE) ?>;
+
+      function resolveLabel(){
+        const sel = select?.value || '';
+        if (sel === 'custom') {
+          const customVal = (custom?.value || '').trim();
+          return customVal !== '' ? customVal : 'unidade';
+        }
+        if (sel && Object.prototype.hasOwnProperty.call(labelMap, sel)) {
+          return labelMap[sel] || sel;
+        }
+        return sel !== '' ? sel : 'unidade';
+      }
+
+      function sync(){
+        if (custom) {
+          const isCustom = select?.value === 'custom';
+          custom.classList.toggle('hidden', !isCustom);
+          if (isCustom) {
+            custom.setAttribute('required', 'required');
+          } else {
+            custom.removeAttribute('required');
+          }
+        }
+
+        const unitText = resolveLabel();
+        if (labelEl) {
+          labelEl.textContent = unitText;
+        }
+        if (valueInput) {
+          valueInput.setAttribute('placeholder', ('Ex.: 1 ' + unitText).trim());
+        }
+      }
+
+      select?.addEventListener('change', sync);
+      custom?.addEventListener('input', sync);
+      sync();
+    })();
+  </script>
 </form>
 
 <?php
