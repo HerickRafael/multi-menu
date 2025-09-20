@@ -54,7 +54,12 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .brand .dot{width:18px;height:18px;border-radius:999px;background:#ffb703;display:grid;place-items:center;color:#7c2d12;font-weight:800;font-size:11px}
   h1{margin:2px 0 0;font-size:20px;line-height:1.25;font-weight:700}
   .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
-  .price{font-size:22px;font-weight:800}
+  .price{display:flex;flex-direction:column;gap:4px}
+  .price-single{font-size:22px;font-weight:800}
+  .price-original{font-size:15px;font-weight:600;color:#9ca3af;text-decoration:line-through}
+  .price-current-row{display:flex;align-items:baseline;gap:10px}
+  .price-current{font-size:24px;font-weight:800}
+  .price-discount{font-size:16px;font-weight:700;color:#059669}
 
   .qty{display:flex;align-items:center;gap:8px}
   .btn-circ{width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--card);display:grid;place-items:center;cursor:pointer}
@@ -124,9 +129,22 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
       <div class="price">
         <?php
           $price = (float)($product['price'] ?? 0);
-          $promo = (float)($product['promo_price'] ?? 0);
-          echo ($promo && $promo < $price) ? price_br($promo) : price_br($price);
+          $rawPromo = $product['promo_price'] ?? null;
+          $promo = ($rawPromo === null || $rawPromo === '' || !is_numeric($rawPromo)) ? null : (float)$rawPromo;
+          $hasPromo = $promo !== null && $promo > 0 && $promo < $price;
+          if ($hasPromo):
+            $discount = $price > 0 ? (int)floor((($price - $promo) / $price) * 100) : 0;
         ?>
+          <div class="price-original"><?= price_br($price) ?></div>
+          <div class="price-current-row">
+            <span class="price-current"><?= price_br($promo) ?></span>
+            <?php if ($discount > 0): ?>
+              <span class="price-discount"><?= $discount ?>% OFF</span>
+            <?php endif; ?>
+          </div>
+        <?php else: ?>
+          <div class="price-single"><?= price_br($price) ?></div>
+        <?php endif; ?>
       </div>
 
       <div class="qty" aria-label="Selecionar quantidade">
