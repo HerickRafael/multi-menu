@@ -41,6 +41,7 @@ class ProductCustomization
         $pdo = db();
         $pdo->beginTransaction();
         try {
+            // Limpa vínculos e grupos anteriores
             $pdo->prepare("DELETE pci FROM product_custom_items pci
                               INNER JOIN product_custom_groups pcg ON pcg.id = pci.group_id
                              WHERE pcg.product_id = ?")
@@ -111,21 +112,26 @@ class ProductCustomization
         foreach ($groups as &$group) {
             $items = $group['items'] ?? [];
             $isSingle = true;
+
             foreach ($items as &$item) {
-                $item['name'] = $item['label'];
+                $item['name']  = $item['label'];
                 $item['delta'] = isset($item['delta']) ? (float)$item['delta'] : 0.0;
-                $item['img'] = $item['img'] ?? ($item['image_path'] ?? null);
-                $item['min'] = isset($item['min_qty']) ? (int)$item['min_qty'] : 0;
-                $item['max'] = isset($item['max_qty']) ? (int)$item['max_qty'] : 1;
-                $item['qty'] = !empty($item['default']) ? (int)($item['default_qty'] ?? $item['min']) : $item['min'];
+                $item['img']   = $item['img'] ?? ($item['image_path'] ?? null);
+                $item['min']   = isset($item['min_qty']) ? (int)$item['min_qty'] : 0;
+                $item['max']   = isset($item['max_qty']) ? (int)$item['max_qty'] : 1;
+                $item['qty']   = !empty($item['default']) ? (int)($item['default_qty'] ?? $item['min']) : $item['min'];
+
                 if ($item['min'] !== 1 || $item['max'] !== 1) {
                     $isSingle = false;
                 }
             }
             unset($item);
+
+            // Se todos os itens do grupo são 1..1, tratamos como 'single'; caso contrário 'extra'
             $group['type'] = $isSingle ? 'single' : 'extra';
         }
         unset($group);
+
         return $groups;
     }
 
@@ -136,6 +142,7 @@ class ProductCustomization
     {
         $normalized = [];
         $gSort = 0;
+
         foreach ($groups as $group) {
             if (!is_array($group)) continue;
 
@@ -148,16 +155,23 @@ class ProductCustomization
             }
 
             $items = [];
+            $seenIngredients = [];
             $iSort = 0;
+
             foreach ($itemsRaw as $item) {
                 if (!is_array($item)) continue;
+
                 $ingredientId = isset($item['ingredient_id']) ? (int)$item['ingredient_id'] : 0;
                 if ($ingredientId <= 0) continue;
 
                 $ingredient = Ingredient::findForCompany($companyId, $ingredientId);
-                if (!$ingredient) {
+                if (!$ingredient) continue;
+
+                // Evita duplicar o mesmo ingrediente no mesmo grupo
+                if (isset($seenIngredients[$ingredientId])) {
                     continue;
                 }
+                $seenIngredients[$ingredientId] = true;
 
                 $minQty = isset($ingredient['min_qty']) ? (int)$ingredient['min_qty'] : 0;
                 $maxQty = isset($ingredient['max_qty']) ? (int)$ingredient['max_qty'] : 1;
@@ -165,19 +179,15 @@ class ProductCustomization
                     $maxQty = $minQty;
                 }
 
-                $isDefault = !empty($item['default']);
+                $isDefault  = !empty($item['default']);
                 $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : $minQty;
-                if ($defaultQty < $minQty) {
-                    $defaultQty = $minQty;
-                }
-                if ($defaultQty > $maxQty) {
-                    $defaultQty = $maxQty;
-                }
+                if ($defaultQty < $minQty) $defaultQty = $minQty;
+                if ($defaultQty > $maxQty) $defaultQty = $maxQty;
 
                 $items[] = [
                     'ingredient_id' => $ingredientId,
                     'label'         => $ingredient['name'],
-                    'delta'         => 0.0,
+                    'delta'         => 0.0, // delta vem da UI? se vier, substitua aqui
                     'default'       => $isDefault,
                     'default_qty'   => $isDefault ? $defaultQty : $minQty,
                     'min_qty'       => $minQty,
@@ -191,7 +201,7 @@ class ProductCustomization
 
             $normalized[] = [
                 'name'       => $name,
-                'type'       => 'extra',
+                'type'       => 'extra', // default; no front pode virar 'single' se 1..1
                 'min'        => 0,
                 'max'        => 99,
                 'sort_order' => $gSort++,
@@ -208,25 +218,25 @@ class ProductCustomization
     private static function fetchGroups(int $productId): array
     {
         $pdo = db();
-        $sql = "SELECT pcg.id          AS group_id,
-                       pcg.name        AS group_name,
-                       pcg.type        AS group_type,
-                       pcg.min_qty     AS group_min,
-                       pcg.max_qty     AS group_max,
-                       pcg.sort_order  AS group_sort,
-                       pci.id          AS item_id,
-                       pci.label       AS item_label,
-                       pci.delta       AS item_delta,
-                       pci.is_default  AS item_default,
-                       pci.default_qty AS item_default_qty,
-                       pci.min_qty     AS item_min_qty,
-                       pci.max_qty     AS item_max_qty,
-                       pci.sort_order  AS item_sort,
+        $sql = "SELECT pcg.id            AS group_id,
+                       pcg.name          AS group_name,
+                       pcg.type          AS group_type,
+                       pcg.min_qty       AS group_min,
+                       pcg.max_qty       AS group_max,
+                       pcg.sort_order    AS group_sort,
+                       pci.id            AS item_id,
+                       pci.label         AS item_label,
+                       pci.delta         AS item_delta,
+                       pci.is_default    AS item_default,
+                       pci.default_qty   AS item_default_qty,
+                       pci.min_qty       AS item_min_qty,
+                       pci.max_qty       AS item_max_qty,
+                       pci.sort_order    AS item_sort,
                        pci.ingredient_id AS item_ingredient_id,
-                       ing.image_path  AS ingredient_image
+                       ing.image_path    AS ingredient_image
                   FROM product_custom_groups pcg
              LEFT JOIN product_custom_items  pci ON pci.group_id = pcg.id
-             LEFT JOIN ingredients ing ON ing.id = pci.ingredient_id
+             LEFT JOIN ingredients ing          ON ing.id = pci.ingredient_id
                  WHERE pcg.product_id = ?
               ORDER BY pcg.sort_order ASC, pcg.id ASC, pci.sort_order ASC, pci.id ASC";
 
@@ -241,6 +251,7 @@ class ProductCustomization
         $groups = [];
         foreach ($rows as $row) {
             $gid = (int)$row['group_id'];
+
             if (!isset($groups[$gid])) {
                 $groups[$gid] = [
                     'id'         => $gid,
@@ -269,6 +280,7 @@ class ProductCustomization
             }
         }
 
+        // Ordena itens por sort_order (defensivo)
         foreach ($groups as &$group) {
             if (isset($group['items'])) {
                 usort($group['items'], function ($a, $b) {

@@ -89,6 +89,14 @@ class AdminIngredientController extends Controller
       exit;
     }
 
+    // Mantido do branch: checagem de duplicidade por nome
+    if (Ingredient::existsByName($companyId, $name)) {
+      $_SESSION['flash_error'] = 'Já existe um ingrediente com este nome.';
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/create'));
+      exit;
+    }
+
     if ($uploadError) {
       $_SESSION['flash_error'] = $uploadError;
       $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
@@ -148,6 +156,14 @@ class AdminIngredientController extends Controller
 
     if ($name === '') {
       $_SESSION['flash_error'] = 'Informe o nome do ingrediente.';
+      $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
+      header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
+      exit;
+    }
+
+    // Mantido do branch: checagem de duplicidade por nome (ignorando o próprio ID)
+    if (Ingredient::existsByName($companyId, $name, $ingredientId)) {
+      $_SESSION['flash_error'] = 'Já existe um ingrediente com este nome.';
       $_SESSION['flash_old_ingredient'] = ['name' => $name, 'min_qty' => $min, 'max_qty' => $max];
       header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/ingredients/' . $ingredientId . '/edit'));
       exit;

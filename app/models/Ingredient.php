@@ -8,11 +8,12 @@ class Ingredient
   {
     $pdo = db();
 
-    $sql = "SELECT i.*, GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR '||') AS product_names
+    $sql = "SELECT i.*,
+                   GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR '||') AS product_names
               FROM ingredients i
          LEFT JOIN product_custom_items  pci ON pci.ingredient_id = i.id
          LEFT JOIN product_custom_groups pcg ON pcg.id = pci.group_id
-         LEFT JOIN products p ON p.id = pcg.product_id AND p.company_id = :company
+         LEFT JOIN products p ON p.id = pcg.product_id AND p.company_id = i.company_id
              WHERE i.company_id = :company";
 
     $params = ['company' => $companyId];
@@ -39,6 +40,22 @@ class Ingredient
     $st = $pdo->prepare($sql);
     $st->execute($params);
     return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  }
+
+  public static function existsByName(int $companyId, string $name, ?int $ignoreId = null): bool
+  {
+    $pdo = db();
+    $base = 'SELECT id FROM ingredients WHERE company_id = ? AND LOWER(name) = LOWER(?)';
+    $params = [$companyId, $name];
+
+    if ($ignoreId) {
+      $base .= ' AND id <> ?';
+      $params[] = $ignoreId;
+    }
+
+    $st = $pdo->prepare($base . ' LIMIT 1');
+    $st->execute($params);
+    return (bool)$st->fetchColumn();
   }
 
   public static function listRecentByCompany(int $companyId, int $limit = 8): array
@@ -90,7 +107,9 @@ class Ingredient
   public static function create(array $data): int
   {
     $pdo = db();
-    $st = $pdo->prepare('INSERT INTO ingredients (company_id, name, min_qty, max_qty, image_path) VALUES (?,?,?,?,?)');
+    $st = $pdo->prepare(
+      'INSERT INTO ingredients (company_id, name, min_qty, max_qty, image_path) VALUES (?,?,?,?,?)'
+    );
     $st->execute([
       $data['company_id'],
       $data['name'],
@@ -104,7 +123,11 @@ class Ingredient
   public static function update(int $id, array $data): void
   {
     $pdo = db();
-    $st = $pdo->prepare('UPDATE ingredients SET name = ?, min_qty = ?, max_qty = ?, image_path = ?, updated_at = NOW() WHERE id = ?');
+    $st = $pdo->prepare(
+      'UPDATE ingredients
+          SET name = ?, min_qty = ?, max_qty = ?, image_path = ?, updated_at = NOW()
+        WHERE id = ?'
+    );
     $st->execute([
       $data['name'],
       $data['min_qty'],
@@ -119,10 +142,13 @@ class Ingredient
     $pdo = db();
     $pdo->beginTransaction();
     try {
+      // Remove vínculos primeiro
       $pdo->prepare('DELETE pci FROM product_custom_items pci WHERE pci.ingredient_id = ?')
           ->execute([$ingredientId]);
+      // Depois remove o ingrediente
       $pdo->prepare('DELETE FROM ingredients WHERE id = ? AND company_id = ?')
           ->execute([$ingredientId, $companyId]);
+
       $pdo->commit();
     } catch (Throwable $e) {
       $pdo->rollBack();
@@ -138,11 +164,11 @@ class Ingredient
               JOIN product_custom_groups pcg ON pcg.id = pci.group_id
               JOIN products p ON p.id = pcg.product_id
               JOIN ingredients i ON i.id = pci.ingredient_id
-             WHERE pci.ingredient_id = ? AND p.company_id = i.company_id
+             WHERE pci.ingredient_id = ?
+               AND p.company_id = i.company_id
           ORDER BY p.name";
     $st = $pdo->prepare($sql);
     $st->execute([$ingredientId]);
     return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
-}
 }

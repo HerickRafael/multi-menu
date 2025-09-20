@@ -143,13 +143,24 @@ ob_start(); ?>
       <?php foreach ($recentIngredients as $ing): ?>
         <li>
           <?= e($ing['name'] ?? '') ?>
-          <?php if (!empty($ing['product_names'])): ?>
-            <span class="text-xs text-gray-500">
-              (<?= e(is_array($ing['product_names']) ? implode(', ', $ing['product_names']) : (string)$ing['product_names']) ?>)
-            </span>
+          <?php
+            // Aceita tanto array quanto string com '||' de separador
+            $pnRaw = $ing['product_names'] ?? null;
+            if (is_string($pnRaw) && strpos($pnRaw, '||') !== false) {
+              $pn = array_values(array_filter(array_map('trim', explode('||', $pnRaw))));
+            } elseif (is_string($pnRaw) && $pnRaw !== '') {
+              $pn = [$pnRaw];
+            } elseif (is_array($pnRaw)) {
+              $pn = $pnRaw;
+            } else {
+              $pn = [];
+            }
+          ?>
+          <?php if (!empty($pn)): ?>
+            <span class="text-xs text-gray-500">(<?= e(implode(', ', $pn)) ?>)</span>
           <?php endif; ?>
-          <?php if (!empty($ing['product_name'])): /* fallback p/ chave singular se existir */ ?>
-            <span class="text-xs text-gray-500">(<?= e($ing['product_name']) ?>)</span>
+          <?php if (!empty($ing['product_name'])): // fallback para chave singular se existir ?>
+            <span class="text-xs text-gray-500">(<?= e((string)$ing['product_name']) ?>)</span>
           <?php endif; ?>
         </li>
       <?php endforeach; ?>
