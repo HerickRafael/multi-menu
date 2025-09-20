@@ -23,17 +23,49 @@ class AdminIngredientController extends Controller
       return null;
     }
 
-    $clean = preg_replace('/[^0-9,.-]/', '', $raw);
+    $clean = preg_replace('/[^0-9.,-]/', '', $raw);
     if ($clean === null || $clean === '') {
       return null;
     }
 
-    $normalized = str_replace(['.', ','], ['', '.'], $clean);
-    if (!is_numeric($normalized)) {
+    $isNegative = strncmp($clean, '-', 1) === 0;
+    if ($isNegative) {
+      $clean = substr($clean, 1);
+    }
+
+    // Remove any stray minus signs that might have appeared after the first one
+    $clean = str_replace('-', '', $clean);
+
+    if ($clean === '') {
       return null;
     }
 
-    return (float)$normalized;
+    $lastComma = strrpos($clean, ',');
+    $lastDot = strrpos($clean, '.');
+    if ($lastComma !== false && $lastDot !== false) {
+      $decimalSeparator = $lastComma > $lastDot ? ',' : '.';
+    } elseif ($lastComma !== false) {
+      $decimalSeparator = ',';
+    } elseif ($lastDot !== false) {
+      $decimalSeparator = '.';
+    } else {
+      $decimalSeparator = null;
+    }
+
+    if ($decimalSeparator !== null) {
+      $thousandSeparator = $decimalSeparator === ',' ? '.' : ',';
+      $clean = str_replace($thousandSeparator, '', $clean);
+      $clean = str_replace($decimalSeparator, '.', $clean);
+    } else {
+      $clean = str_replace([',', '.'], '', $clean);
+    }
+
+    if ($clean === '' || !is_numeric($clean)) {
+      return null;
+    }
+
+    $number = (float)$clean;
+    return $isNegative ? -$number : $number;
   }
 
   private function guard($slug)
