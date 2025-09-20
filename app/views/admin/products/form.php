@@ -399,30 +399,29 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             </div>
             <div class="self-start md:self-center">
               <span class="block text-xs text-slate-500 mb-1">Limites</span>
-              <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="<?= $minQ ?>" data-max="<?= $maxQ ?>">
-                <label class="flex items-center gap-1 text-xs">
-                  <span>Mín</span>
+              <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="<?= $minQ ?>" data-max="<?= $maxQ ?>">
+                <div>
+                  <label class="block text-xs text-slate-500">Quantidade mínima</label>
                   <input
                     type="number"
-                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
+                    class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-min-input"
                     name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][min_qty]"
                     value="<?= $minQ ?>"
                     min="0"
                     step="1"
                   >
-                </label>
-                <span class="text-xs text-slate-400">·</span>
-                <label class="flex items-center gap-1 text-xs">
-                  <span>Máx</span>
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-500">Quantidade máxima</label>
                   <input
                     type="number"
-                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
+                    class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-max-input"
                     name="customization[groups][<?= $gi ?>][items][<?= $ii ?>][max_qty]"
                     value="<?= $maxQ ?>"
                     min="0"
                     step="1"
                   >
-                </label>
+                </div>
               </div>
             </div>
             <div class="flex flex-col items-start gap-2">
@@ -486,34 +485,33 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 <?php endforeach; ?>
               </select>
             </div>
-            <div class="self-start md:self-center">
-              <span class="block text-xs text-slate-500 mb-1">Limites</span>
-              <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
-                <label class="flex items-center gap-1 text-xs">
-                  <span>Mín</span>
-                  <input
-                    type="number"
-                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
-                    name="customization[groups][0][items][0][min_qty]"
-                    value="0"
-                    min="0"
-                    step="1"
-                  >
-                </label>
-                <span class="text-xs text-slate-400">·</span>
-                <label class="flex items-center gap-1 text-xs">
-                  <span>Máx</span>
-                  <input
-                    type="number"
-                    class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
-                    name="customization[groups][0][items][0][max_qty]"
-                    value="1"
-                    min="0"
-                    step="1"
-                  >
-                </label>
-              </div>
+        <div class="self-start md:self-center">
+          <span class="block text-xs text-slate-500 mb-1">Limites</span>
+          <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
+            <div>
+              <label class="block text-xs text-slate-500">Quantidade mínima</label>
+              <input
+                type="number"
+                class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-min-input"
+                name="customization[groups][0][items][0][min_qty]"
+                value="0"
+                min="0"
+                step="1"
+              >
             </div>
+            <div>
+              <label class="block text-xs text-slate-500">Quantidade máxima</label>
+              <input
+                type="number"
+                class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-max-input"
+                name="customization[groups][0][items][0][max_qty]"
+                value="1"
+                min="0"
+                step="1"
+              >
+            </div>
+          </div>
+        </div>
             <div class="flex flex-col items-start gap-2">
               <input type="hidden" class="cust-default-flag" name="customization[groups][0][items][0][default]" value="0">
               <label class="inline-flex items-center gap-2 text-sm">
@@ -701,30 +699,29 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         </div>
         <div class="self-start md:self-center">
           <span class="block text-xs text-slate-500 mb-1">Limites</span>
-          <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
-            <label class="flex items-center gap-1 text-xs">
-              <span>Mín</span>
+          <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
+            <div>
+              <label class="block text-xs text-slate-500">Quantidade mínima</label>
               <input
                 type="number"
-                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
+                class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-min-input"
                 name="customization[groups][__CGI__][items][0][min_qty]"
                 value="0"
                 min="0"
                 step="1"
               >
-            </label>
-            <span class="text-xs text-slate-400">·</span>
-            <label class="flex items-center gap-1 text-xs">
-              <span>Máx</span>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500">Quantidade máxima</label>
               <input
                 type="number"
-                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
+                class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-max-input"
                 name="customization[groups][__CGI__][items][0][max_qty]"
                 value="1"
                 min="0"
                 step="1"
               >
-            </label>
+            </div>
           </div>
         </div>
         <div class="flex flex-col items-start gap-2">
@@ -779,30 +776,29 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       </div>
       <div class="self-start md:self-center">
         <span class="block text-xs text-slate-500 mb-1">Limites</span>
-        <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 cust-limits" data-min="0" data-max="1">
-          <label class="flex items-center gap-1 text-xs">
-            <span>Mín</span>
+        <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
+          <div>
+            <label class="block text-xs text-slate-500">Quantidade mínima</label>
             <input
               type="number"
-                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-min-input"
+              class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-min-input"
               name="customization[groups][__CGI__][items][__CII__][min_qty]"
               value="0"
               min="0"
               step="1"
             >
-          </label>
-          <span class="text-xs text-slate-400">·</span>
-          <label class="flex items-center gap-1 text-xs">
-            <span>Máx</span>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500">Quantidade máxima</label>
             <input
               type="number"
-                class="w-16 rounded border border-transparent bg-transparent text-sm text-center focus:outline-none cust-max-input"
+              class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-max-input"
               name="customization[groups][__CGI__][items][__CII__][max_qty]"
               value="1"
               min="0"
               step="1"
             >
-          </label>
+          </div>
         </div>
       </div>
       <div class="flex flex-col items-start gap-2">
@@ -1119,10 +1115,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const t = e.target;
       if (t.classList.contains('cust-default-qty')) {
         const min = Number(t.min || 0);
-        const max = Number(t.max || 0);
         let val = Number(t.value || min);
-        if (val < min) val = min;
-        if (val > max) val = max;
+        if (Number.isNaN(val) || val < min) val = min;
         t.value = String(val);
       } else if (t.classList.contains('cust-min-input') || t.classList.contains('cust-max-input')) {
         const itemEl = t.closest('.cust-item');
