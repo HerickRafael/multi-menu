@@ -19,6 +19,7 @@ $pId     = (int)($product['id'] ?? 0);
 // lemos qty opcional da querystring (vinda do botão Personalizar)
 $qtyGet = isset($_GET['qty']) ? max(1, min(99, (int)$_GET['qty'])) : null;
 
+// Sanitiza grupos/itens vindos de $mods
 $groups = [];
 foreach (($mods ?? []) as $gIndex => $g) {
   if (empty($g['items']) || !is_array($g['items'])) {
@@ -99,7 +100,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   .btn-confirm{background:var(--cta);color:#111;transition:background .2s}
   .btn-confirm:active{background:var(--cta-press)}
 
-  .hint{color:#6b7280;font-size:12px;margin:6px 2px 12px;display:none;} /* deixado por compat, porém oculto */
+  .hint{color:#6b7280;font-size:12px;margin:6px 2px 12px;display:none;} /* compat, oculto */
 </style>
 </head>
 <body>
@@ -166,7 +167,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
               $min   = isset($it['min']) ? (int)$it['min'] : 0;
               $max   = isset($it['max']) ? (int)$it['max'] : 5;
               $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? (int)($it['default_qty'] ?? $min) : $min);
-              $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
+              $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
             ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">
                 <div class="thumb">
@@ -212,7 +213,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
 <script>
   const clamp = (n,min,max)=> Math.max(min, Math.min(max, n));
 
-  // Stepper (linhas com data-min/max)
+  // Stepper (linhas com data-min/max) — ignora radios pois eles não têm botões
   document.querySelectorAll('.row').forEach(row=>{
     const min = parseInt(row.dataset.min || '0',10);
     const max = parseInt(row.dataset.max || '99',10);
