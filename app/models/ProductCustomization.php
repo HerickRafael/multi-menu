@@ -109,6 +109,7 @@ class ProductCustomization
     public static function loadForPublic(int $productId): array
     {
         $groups = self::fetchGroups($productId);
+
         foreach ($groups as &$group) {
             $items = $group['items'] ?? [];
             if (!is_array($items) || !$items) {
@@ -123,6 +124,8 @@ class ProductCustomization
                 $item['name']  = $item['label'];
                 $item['delta'] = isset($item['delta']) ? (float)$item['delta'] : 0.0;
                 $item['img']   = $item['img'] ?? ($item['image_path'] ?? null);
+
+                // Normalização robusta de min/max/qty
                 $min = isset($item['min_qty']) ? (int)$item['min_qty'] : 0;
                 $max = isset($item['max_qty']) ? (int)$item['max_qty'] : $min;
                 if ($max < $min) {
@@ -140,10 +143,12 @@ class ProductCustomization
                     $defaultQty = $max;
                 }
 
-                $item['min'] = $min;
-                $item['max'] = $max;
-                $item['qty'] = $defaultQty;
+                $item['min']         = $min;
+                $item['max']         = $max;
+                $item['qty']         = $defaultQty;
                 $item['default_qty'] = $defaultQty;
+
+                // Disponibiliza o preço de venda do ingrediente para a UI pública
                 $item['sale_price'] = isset($item['sale_price']) ? (float)$item['sale_price'] : 0.0;
 
                 if ($item['min'] !== 1 || $item['max'] !== 1) {
@@ -153,7 +158,6 @@ class ProductCustomization
             unset($item);
 
             $group['items'] = $items;
-
             // Se todos os itens do grupo são 1..1, tratamos como 'single'; caso contrário 'extra'
             $group['type'] = $isSingle ? 'single' : 'extra';
         }
@@ -195,16 +199,13 @@ class ProductCustomization
                 if (!$ingredient) continue;
 
                 // Evita duplicar o mesmo ingrediente no mesmo grupo
-                if (isset($seenIngredients[$ingredientId])) {
-                    continue;
-                }
+                if (isset($seenIngredients[$ingredientId])) continue;
                 $seenIngredients[$ingredientId] = true;
 
+                // Usa min/max vindos do formulário para o item (com saneamento)
                 $minQty = isset($item['min_qty']) ? max(0, (int)$item['min_qty']) : 0;
                 $maxQty = isset($item['max_qty']) ? (int)$item['max_qty'] : $minQty;
-                if ($maxQty < $minQty) {
-                    $maxQty = $minQty;
-                }
+                if ($maxQty < $minQty) $maxQty = $minQty;
 
                 $isDefault  = !empty($item['default']) && (string)$item['default'] !== '0';
                 $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : $minQty;
@@ -214,7 +215,7 @@ class ProductCustomization
                 $items[] = [
                     'ingredient_id' => $ingredientId,
                     'label'         => $ingredient['name'],
-                    'delta'         => 0.0, // delta vem da UI? se vier, substitua aqui
+                    'delta'         => 0.0, // ajuste aqui se a UI enviar delta
                     'default'       => $isDefault,
                     'default_qty'   => $isDefault ? $defaultQty : $minQty,
                     'min_qty'       => $minQty,
@@ -293,19 +294,20 @@ class ProductCustomization
             }
 
             if (!empty($row['item_id'])) {
-                    $groups[$gid]['items'][] = [
-                        'id'            => (int)$row['item_id'],
-                        'label'         => $row['item_label'],
-                        'delta'         => (float)$row['item_delta'],
-                        'default'       => (bool)$row['item_default'],
-                        'default_qty'   => (int)$row['item_default_qty'],
-                        'min_qty'       => (int)$row['item_min_qty'],
-                        'max_qty'       => (int)$row['item_max_qty'],
-                        'ingredient_id' => $row['item_ingredient_id'] ? (int)$row['item_ingredient_id'] : null,
-                        'image_path'    => $row['ingredient_image'] ?? null,
-                        'sale_price'    => isset($row['ingredient_sale_price']) ? (float)$row['ingredient_sale_price'] : 0.0,
-                        'sort_order'    => (int)$row['item_sort'],
-                    ];
+                $groups[$gid]['items'][] = [
+                    'id'            => (int)$row['item_id'],
+                    'label'         => $row['item_label'],
+                    'delta'         => (float)$row['item_delta'],
+                    'default'       => (bool)$row['item_default'],
+                    'default_qty'   => (int)$row['item_default_qty'],
+                    'min_qty'       => (int)$row['item_min_qty'],
+                    'max_qty'       => (int)$row['item_max_qty'],
+                    'ingredient_id' => $row['item_ingredient_id'] ? (int)$row['item_ingredient_id'] : null,
+                    'image_path'    => $row['ingredient_image'] ?? null,
+                    // Disponibiliza o preço de venda do ingrediente para a UI pública
+                    'sale_price'    => isset($row['ingredient_sale_price']) ? (float)$row['ingredient_sale_price'] : 0.0,
+                    'sort_order'    => (int)$row['item_sort'],
+                ];
             }
         }
 
