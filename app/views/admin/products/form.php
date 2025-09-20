@@ -1147,15 +1147,29 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         promoEl.value = rawPromo === '' ? '' : String(brToFloat(rawPromo));
       }
 
-      const price=parseFloat((priceEl?.value||'0'));
+      const price = parseFloat((priceEl?.value || '0'));
       const promoRaw = promoEl?.value ?? '';
       const promo = promoRaw === '' ? null : parseFloat(promoRaw || '0');
-      if(promo !== null && !Number.isNaN(promo) && price > 0 && promo>=price){ e.preventDefault(); alert('O preço promocional deve ser menor que o preço base.'); document.getElementById('promo_price').focus(); return; }
+
+      // Promo: se inválida (<=0) ou preço base <=0, limpa; se >= preço base, bloqueia submit
+      if (promoEl && promo !== null && !Number.isNaN(promo)) {
+        if (price <= 0 || promo <= 0) {
+          promoEl.value = '';
+        } else if (promo >= price) {
+          e.preventDefault();
+          alert('O preço promocional deve ser menor que o preço base.');
+          document.getElementById('promo_price').focus();
+          return;
+        }
+      }
 
       // COMBO
+      const groupsToggle=document.getElementById('groups-toggle');
+      const gContainer=document.getElementById('groups-container');
+
       if(groupsToggle && groupsToggle.checked){
         const gs=gContainer.querySelectorAll('.group-card');
-        if(!gs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de opções do combo.'); addGroup(); return; }
+        if(!gs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de opções do combo.'); return; }
         for(const g of gs){
           const gname=g.querySelector('input[name^="groups"][name$="[name]"]');
           const items=g.querySelectorAll('.item-row');
@@ -1169,6 +1183,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       }
 
       // PERSONALIZAÇÃO (novo layout)
+      const custToggle = document.getElementById('customization-enabled');
+      const custCont   = document.getElementById('cust-groups-container');
+
       if(custToggle && custToggle.checked){
         const cgs = custCont.querySelectorAll('.cust-group');
         if(!cgs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de personalização.'); return; }

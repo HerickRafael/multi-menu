@@ -130,8 +130,26 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
         <?php
           $price = (float)($product['price'] ?? 0);
           $rawPromo = $product['promo_price'] ?? null;
-          $promo = ($rawPromo === null || $rawPromo === '' || !is_numeric($rawPromo)) ? null : (float)$rawPromo;
-          $hasPromo = $promo !== null && $promo > 0 && $promo < $price;
+
+          // Parse robusto de preço promocional (suporta "1.234,56" e "1234.56")
+          $promo = null;
+          if ($rawPromo !== null && $rawPromo !== '') {
+            $promoStr = is_array($rawPromo) ? reset($rawPromo) : $rawPromo;
+            $promoStr = trim((string)$promoStr);
+            if ($promoStr !== '') {
+              $promoStr = str_replace(' ', '', $promoStr);
+              if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
+                $promoStr = str_replace('.', '', $promoStr);
+              }
+              $promoStr = str_replace(',', '.', $promoStr);
+              if (is_numeric($promoStr)) {
+                $promo = (float)$promoStr;
+              }
+            }
+          }
+
+          $hasPromo = $price > 0 && $promo !== null && $promo > 0 && $promo < $price;
+
           if ($hasPromo):
             $discount = $price > 0 ? (int)floor((($price - $promo) / $price) * 100) : 0;
         ?>

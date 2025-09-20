@@ -4,6 +4,43 @@ require_once __DIR__ . '/../config/db.php';
 
 class Product
 {
+  private static function normalizePromoValue($promo, $price): ?float {
+    if ($promo === null || $promo === '') {
+      return null;
+    }
+
+    if (is_array($promo)) {
+      $promo = reset($promo);
+    }
+
+    $promoStr = trim((string)$promo);
+    if ($promoStr === '') {
+      return null;
+    }
+
+    $promoStr = str_replace(' ', '', $promoStr);
+    if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
+      $promoStr = str_replace('.', '', $promoStr);
+    }
+    $promoStr = str_replace(',', '.', $promoStr);
+
+    if (!is_numeric($promoStr) && !is_numeric($promo)) {
+      return null;
+    }
+
+    $promoVal = (float)$promoStr;
+    $priceVal = (float)$price;
+
+    if ($promoVal <= 0) {
+      return null;
+    }
+
+    if ($priceVal <= 0 || $promoVal >= $priceVal) {
+      return null;
+    }
+
+    return $promoVal;
+  }
   /* ========================
    * LISTAGENS / BÁSICO
    * ======================== */
@@ -71,7 +108,7 @@ class Product
       $data['name'],
       $data['description'] ?? null,
       (float)$data['price'],
-      $data['promo_price'] !== '' ? (float)$data['promo_price'] : null,
+      self::normalizePromoValue($data['promo_price'] ?? null, $data['price'] ?? 0),
       $data['sku'] ?? null,
       $data['image'] ?? null,
       $data['type'] ?? 'simple',           // 'simple' | 'combo'
@@ -105,7 +142,7 @@ class Product
       $data['name'],
       $data['description'] ?? null,
       (float)$data['price'],
-      $data['promo_price'] !== '' ? (float)$data['promo_price'] : null,
+      self::normalizePromoValue($data['promo_price'] ?? null, $data['price'] ?? 0),
       $data['sku'] ?? null,
       $data['image'] ?? null,
       $data['type'] ?? 'simple',
