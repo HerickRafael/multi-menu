@@ -356,8 +356,25 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           $cgName = $cg['name'] ?? '';
           $cItems = $cg['items'] ?? [[]];
         ?>
-        <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="<?= $gi ?>">
-          <div class="flex items-center gap-3 p-3 border-b border-slate-200">
+        <?php
+          $gType  = $cg['type'] ?? 'extra';
+          $gMode  = in_array($gType, ['single','addon'], true) ? 'choice' : 'extra';
+          $gMin   = isset($cg['min']) ? max(0, (int)$cg['min']) : 0;
+          $gMax   = isset($cg['max']) ? max($gMin, (int)$cg['max']) : ($gMode === 'choice' ? max(1, count($cItems)) : 99);
+          if ($gType === 'single') {
+            $gMax = 1;
+          }
+        ?>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="<?= $gi ?>" data-mode="<?= e($gMode) ?>">
+          <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
+            <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+              title="Arrastar para reordenar"
+              aria-label="Arrastar para reordenar grupo"
+              draggable="true"
+            >↕</button>
             <input
               type="text"
               name="customization[groups][<?= $gi ?>][name]"
@@ -365,7 +382,45 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
               placeholder="Nome do grupo"
               value="<?= e($cgName) ?>"
             />
+            <input type="hidden" class="cust-order-input" name="customization[groups][<?= $gi ?>][sort_order]" value="<?= isset($cg['sort_order']) ? (int)$cg['sort_order'] : $gi ?>">
             <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+            </div>
+            <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+              <label class="grid gap-1 text-sm">
+                <span class="text-xs text-slate-500">Modo de seleção</span>
+                <select name="customization[groups][<?= $gi ?>][mode]" class="rounded-lg border border-slate-300 px-3 py-2 cust-mode-select">
+                  <option value="extra" <?= $gMode === 'extra' ? 'selected' : '' ?>>Adicionar ingredientes livremente</option>
+                  <option value="choice" <?= $gMode === 'choice' ? 'selected' : '' ?>>Escolher ingrediente</option>
+                </select>
+              </label>
+              <div class="cust-choice-settings <?= $gMode === 'choice' ? '' : 'hidden' ?>">
+                <div class="grid gap-2 md:grid-cols-2">
+                  <label class="grid gap-1 text-xs text-slate-500">
+                    <span>Seleções mínimas</span>
+                    <input
+                      type="number"
+                      class="rounded-lg border border-slate-300 px-3 py-2 cust-choice-min"
+                      name="customization[groups][<?= $gi ?>][choice][min]"
+                      value="<?= $gMode === 'choice' ? $gMin : 0 ?>"
+                      min="0"
+                      step="1"
+                    >
+                  </label>
+                  <label class="grid gap-1 text-xs text-slate-500">
+                    <span>Seleções máximas</span>
+                    <input
+                      type="number"
+                      class="rounded-lg border border-slate-300 px-3 py-2 cust-choice-max"
+                      name="customization[groups][<?= $gi ?>][choice][max]"
+                      value="<?= $gMode === 'choice' ? $gMax : 1 ?>"
+                      min="1"
+                      step="1"
+                    >
+                  </label>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Defina quantas opções o cliente pode marcar.</p>
+              </div>
+            </div>
           </div>
 
           <?php foreach ($cItems as $ii => $ci): $ii=(int)$ii;
@@ -397,7 +452,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 <?php endforeach; ?>
               </select>
             </div>
-            <div class="self-start md:self-center">
+            <div class="self-start md:self-center cust-limits-wrap">
               <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="<?= $minQ ?>" data-max="<?= $maxQ ?>">
                 <div>
                   <label class="block text-xs text-slate-500">Quantidade mínima</label>
@@ -448,12 +503,20 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
           <div class="flex items-center justify-between gap-3 border-t border-slate-200 p-3">
             <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Ingrediente</button>
-            <span class="text-sm text-transparent select-none">.</span>
+            <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-choice">+ Escolher ingrediente</button>
           </div>
         </div>
         <?php endforeach; else: ?>
-        <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="0">
-          <div class="flex items-center gap-3 p-3 border-b border-slate-200">
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="0" data-mode="extra">
+          <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
+            <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+              title="Arrastar para reordenar"
+              aria-label="Arrastar para reordenar grupo"
+              draggable="true"
+            >↕</button>
             <input
               type="text"
               name="customization[groups][0][name]"
@@ -461,7 +524,45 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
               placeholder="Nome do grupo"
               value=""
             />
+            <input type="hidden" class="cust-order-input" name="customization[groups][0][sort_order]" value="0">
             <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+            </div>
+            <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+              <label class="grid gap-1 text-sm">
+                <span class="text-xs text-slate-500">Modo de seleção</span>
+                <select name="customization[groups][0][mode]" class="rounded-lg border border-slate-300 px-3 py-2 cust-mode-select">
+                  <option value="extra" selected>Adicionar ingredientes livremente</option>
+                  <option value="choice">Escolher ingrediente</option>
+                </select>
+              </label>
+              <div class="cust-choice-settings hidden">
+                <div class="grid gap-2 md:grid-cols-2">
+                  <label class="grid gap-1 text-xs text-slate-500">
+                    <span>Seleções mínimas</span>
+                    <input
+                      type="number"
+                      class="rounded-lg border border-slate-300 px-3 py-2 cust-choice-min"
+                      name="customization[groups][0][choice][min]"
+                      value="0"
+                      min="0"
+                      step="1"
+                    >
+                  </label>
+                  <label class="grid gap-1 text-xs text-slate-500">
+                    <span>Seleções máximas</span>
+                    <input
+                      type="number"
+                      class="rounded-lg border border-slate-300 px-3 py-2 cust-choice-max"
+                      name="customization[groups][0][choice][max]"
+                      value="1"
+                      min="1"
+                      step="1"
+                    >
+                  </label>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Defina quantas opções o cliente pode marcar.</p>
+              </div>
+            </div>
           </div>
 
           <div class="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_40px] md:items-center cust-item" data-item-index="0">
@@ -484,7 +585,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 <?php endforeach; ?>
               </select>
             </div>
-        <div class="self-start md:self-center">
+        <div class="self-start md:self-center cust-limits-wrap">
           <span class="block text-xs text-slate-500 mb-1">Limites</span>
           <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
             <div>
@@ -535,7 +636,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
           <div class="flex items-center justify-between gap-3 border-t border-slate-200 p-3">
             <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Ingrediente</button>
-            <span class="text-sm text-transparent select-none">.</span>
+            <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-choice">+ Escolher ingrediente</button>
           </div>
         </div>
         <?php endif; ?>
@@ -664,16 +765,62 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
   <!-- ===== Templates (Personalização novo layout) ===== -->
   <template id="tpl-cust-group">
-    <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="__CGI__">
-      <div class="flex items-center gap-3 p-3 border-b border-slate-200">
-        <input
-          type="text"
-          name="customization[groups][__CGI__][name]"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2"
-          placeholder="Nome do grupo"
-          value=""
-        />
-        <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="__CGI__" data-mode="extra">
+      <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="cust-drag-handle inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-move"
+            title="Arrastar para reordenar"
+            aria-label="Arrastar para reordenar grupo"
+            draggable="true"
+          >↕</button>
+          <input
+            type="text"
+            name="customization[groups][__CGI__][name]"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2"
+            placeholder="Nome do grupo"
+            value=""
+          />
+          <input type="hidden" class="cust-order-input" name="customization[groups][__CGI__][sort_order]" value="0">
+          <button type="button" class="rounded-full p-2 text-slate-400 hover:text-red-600 cust-remove-group" title="Remover grupo">✕</button>
+        </div>
+        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+          <label class="grid gap-1 text-sm">
+            <span class="text-xs text-slate-500">Modo de seleção</span>
+            <select name="customization[groups][__CGI__][mode]" class="rounded-lg border border-slate-300 px-3 py-2 cust-mode-select">
+              <option value="extra" selected>Adicionar ingredientes livremente</option>
+              <option value="choice">Escolher ingrediente</option>
+            </select>
+          </label>
+          <div class="cust-choice-settings hidden">
+            <div class="grid gap-2 md:grid-cols-2">
+              <label class="grid gap-1 text-xs text-slate-500">
+                <span>Seleções mínimas</span>
+                <input
+                  type="number"
+                  class="rounded-lg border border-slate-300 px-3 py-2 cust-choice-min"
+                  name="customization[groups][__CGI__][choice][min]"
+                  value="0"
+                  min="0"
+                  step="1"
+                >
+              </label>
+              <label class="grid gap-1 text-xs text-slate-500">
+                <span>Seleções máximas</span>
+                <input
+                  type="number"
+                  class="rounded-lg border border-slate-300 px-3 py-2 cust-choice-max"
+                  name="customization[groups][__CGI__][choice][max]"
+                  value="1"
+                  min="1"
+                  step="1"
+                >
+              </label>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">Defina quantas opções o cliente pode marcar.</p>
+          </div>
+        </div>
       </div>
 
       <div class="grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_40px] md:items-center cust-item" data-item-index="0">
@@ -696,7 +843,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             <?php endforeach; ?>
           </select>
         </div>
-        <div class="self-start md:self-center">
+        <div class="self-start md:self-center cust-limits-wrap">
           <span class="block text-xs text-slate-500 mb-1">Limites</span>
           <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
             <div>
@@ -747,7 +894,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
       <div class="flex items-center justify-between gap-3 border-t border-slate-200 p-3">
         <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-item">+ Ingrediente</button>
-        <span class="text-sm text-transparent select-none">.</span>
+        <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 cust-add-choice">+ Escolher ingrediente</button>
       </div>
     </div>
   </template>
@@ -773,7 +920,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="self-start md:self-center">
+      <div class="self-start md:self-center cust-limits-wrap">
         <span class="block text-xs text-slate-500 mb-1">Limites</span>
         <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
           <div>
@@ -985,6 +1132,32 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     const custAddGrp = document.getElementById('cust-add-group');
     const tplCustGrp = document.getElementById('tpl-cust-group');
     const tplCustItm = document.getElementById('tpl-cust-item');
+    let   custDragging = null;
+
+    function refreshCustGroupOrder() {
+      if (!custCont) return;
+      const groups = Array.from(custCont.querySelectorAll('.cust-group'));
+      groups.forEach((group, index) => {
+        const orderInput = group.querySelector('.cust-order-input');
+        if (orderInput) {
+          orderInput.value = String(index);
+        }
+      });
+    }
+
+    function getCustDragAfterElement(container, y) {
+      const siblings = Array.from(container.querySelectorAll('.cust-group'))
+        .filter((el) => el !== custDragging);
+      let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+      for (const child of siblings) {
+        const box = child.getBoundingClientRect();
+        const offset = y - (box.top + box.height / 2);
+        if (offset < 0 && offset > closest.offset) {
+          closest = { offset, element: child };
+        }
+      }
+      return closest.element;
+    }
 
     function syncCust(){
       const on = !!custToggle?.checked;
@@ -1004,6 +1177,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
     function updateCustItem(itemEl) {
       if (!itemEl) return;
+      const groupEl = itemEl.closest('.cust-group');
+      const mode = groupEl?.dataset.mode === 'choice' ? 'choice' : 'extra';
       const limits = itemEl.querySelector('.cust-limits');
       const minInput = itemEl.querySelector('.cust-min-input');
       const maxInput = itemEl.querySelector('.cust-max-input');
@@ -1013,12 +1188,31 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const flag = itemEl.querySelector('.cust-default-flag');
 
       let min = Number(minInput?.value ?? 0);
-      if (Number.isNaN(min) || min < 0) min = 0;
-      if (minInput) minInput.value = String(min);
-
       let max = Number(maxInput?.value ?? min);
-      if (Number.isNaN(max) || max < min) max = min;
-      if (maxInput) maxInput.value = String(max);
+
+      if (mode === 'choice') {
+        min = 0;
+        max = 1;
+        if (minInput) {
+          minInput.value = '0';
+          minInput.readOnly = true;
+        }
+        if (maxInput) {
+          maxInput.value = '1';
+          maxInput.readOnly = true;
+        }
+      } else {
+        if (Number.isNaN(min) || min < 0) min = 0;
+        if (minInput) {
+          minInput.value = String(min);
+          minInput.readOnly = false;
+        }
+        if (Number.isNaN(max) || max < min) max = min;
+        if (maxInput) {
+          maxInput.value = String(max);
+          maxInput.readOnly = false;
+        }
+      }
 
       if (limits) {
         limits.dataset.min = String(min);
@@ -1041,8 +1235,26 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       }
 
       if (qtyWrap) {
-        qtyWrap.classList.toggle('hidden', !isActive);
+        const hideQty = mode === 'choice' || !isActive;
+        qtyWrap.classList.toggle('hidden', hideQty);
       }
+    }
+
+    function applyCustMode(groupEl) {
+      if (!groupEl) return;
+      const select = groupEl.querySelector('.cust-mode-select');
+      const choiceWrap = groupEl.querySelector('.cust-choice-settings');
+      const addItemBtn = groupEl.querySelector('.cust-add-item');
+      const addChoiceBtn = groupEl.querySelector('.cust-add-choice');
+      const mode = select?.value === 'choice' ? 'choice' : 'extra';
+      groupEl.dataset.mode = mode;
+      toggleBlock(choiceWrap, mode === 'choice');
+      if (addItemBtn) addItemBtn.textContent = mode === 'choice' ? '+ Opção' : '+ Ingrediente';
+      if (addChoiceBtn) addChoiceBtn.classList.toggle('hidden', mode === 'choice');
+      groupEl.querySelectorAll('.cust-limits-wrap').forEach(wrap => {
+        wrap.classList.toggle('hidden', mode === 'choice');
+      });
+      groupEl.querySelectorAll('.cust-item').forEach(updateCustItem);
     }
 
     function wireCustItem(itemEl) {
@@ -1057,7 +1269,14 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
     function wireCustGroup(groupEl) {
       if (!groupEl) return;
+      const select = groupEl.querySelector('.cust-mode-select');
+      if (select && !groupEl.dataset.mode) {
+        groupEl.dataset.mode = select.value === 'choice' ? 'choice' : 'extra';
+      } else if (select) {
+        select.value = groupEl.dataset.mode === 'choice' ? 'choice' : 'extra';
+      }
       groupEl.querySelectorAll('.cust-item').forEach(wireCustItem);
+      applyCustMode(groupEl);
     }
 
     function addCustGroup(){
@@ -1068,6 +1287,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const node = wrap.firstElementChild;
       custCont.appendChild(node);
       wireCustGroup(node);
+      refreshCustGroupOrder();
       return node;
     }
 
@@ -1082,6 +1302,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const footerBar = Array.from(groupEl.children).find(el => el.matches('.flex.border-t, .border-t'));
       if (footerBar) groupEl.insertBefore(row, footerBar); else groupEl.appendChild(row);
       wireCustItem(row);
+      applyCustMode(groupEl);
       return row;
     }
 
@@ -1092,11 +1313,62 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       if (t.classList.contains('cust-add-item')) {
         const groupEl = t.closest('.cust-group');
         addCustItem(groupEl);
+      } else if (t.classList.contains('cust-add-choice')) {
+        const groupEl = t.closest('.cust-group');
+        const sel = groupEl?.querySelector('.cust-mode-select');
+        if (sel) sel.value = 'choice';
+        applyCustMode(groupEl);
+        addCustItem(groupEl);
       } else if (t.classList.contains('cust-remove-group')) {
         t.closest('.cust-group')?.remove();
+        refreshCustGroupOrder();
       } else if (t.classList.contains('cust-remove-item')) {
         t.closest('.cust-item')?.remove();
       }
+    });
+
+    custCont?.addEventListener('dragstart', (e) => {
+      const handle = e.target.closest('.cust-drag-handle');
+      if (!handle) {
+        e.preventDefault();
+        return;
+      }
+      const group = handle.closest('.cust-group');
+      if (!group) {
+        e.preventDefault();
+        return;
+      }
+      custDragging = group;
+      group.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', '');
+      }
+    });
+
+    custCont?.addEventListener('dragend', () => {
+      if (custDragging) {
+        custDragging.classList.remove('dragging');
+        custDragging = null;
+        refreshCustGroupOrder();
+      }
+    });
+
+    custCont?.addEventListener('dragover', (e) => {
+      if (!custDragging) return;
+      e.preventDefault();
+      const afterEl = getCustDragAfterElement(custCont, e.clientY);
+      if (!afterEl) {
+        custCont.appendChild(custDragging);
+      } else if (afterEl !== custDragging) {
+        custCont.insertBefore(custDragging, afterEl);
+      }
+    });
+
+    custCont?.addEventListener('drop', (e) => {
+      if (!custDragging) return;
+      e.preventDefault();
+      refreshCustGroupOrder();
     });
 
     custCont?.addEventListener('change', (e) => {
@@ -1104,6 +1376,20 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       if (t.classList.contains('cust-ingredient-select')) {
         const itemEl = t.closest('.cust-item');
         updateCustItem(itemEl);
+      } else if (t.classList.contains('cust-mode-select')) {
+        const groupEl = t.closest('.cust-group');
+        applyCustMode(groupEl);
+      } else if (t.classList.contains('cust-choice-min') || t.classList.contains('cust-choice-max')) {
+        const groupEl = t.closest('.cust-group');
+        const minInput = groupEl?.querySelector('.cust-choice-min');
+        const maxInput = groupEl?.querySelector('.cust-choice-max');
+        let min = Number(minInput?.value || 0);
+        let max = Number(maxInput?.value || 1);
+        if (Number.isNaN(min) || min < 0) min = 0;
+        if (Number.isNaN(max) || max < 1) max = 1;
+        if (max < min) max = min;
+        if (minInput) minInput.value = String(min);
+        if (maxInput) maxInput.value = String(max);
       } else if (t.classList.contains('cust-default-toggle')) {
         const itemEl = t.closest('.cust-item');
         updateCustItem(itemEl);
@@ -1117,6 +1403,17 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         let val = Number(t.value || min);
         if (Number.isNaN(val) || val < min) val = min;
         t.value = String(val);
+      } else if (t.classList.contains('cust-choice-min') || t.classList.contains('cust-choice-max')) {
+        const groupEl = t.closest('.cust-group');
+        const minInput = groupEl?.querySelector('.cust-choice-min');
+        const maxInput = groupEl?.querySelector('.cust-choice-max');
+        let min = Number(minInput?.value || 0);
+        let max = Number(maxInput?.value || 1);
+        if (Number.isNaN(min) || min < 0) min = 0;
+        if (Number.isNaN(max) || max < 1) max = 1;
+        if (max < min) max = min;
+        if (minInput) minInput.value = String(min);
+        if (maxInput) maxInput.value = String(max);
       } else if (t.classList.contains('cust-min-input') || t.classList.contains('cust-max-input')) {
         const itemEl = t.closest('.cust-item');
         updateCustItem(itemEl);
@@ -1124,6 +1421,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     });
 
     custCont?.querySelectorAll('.cust-group').forEach(wireCustGroup);
+    refreshCustGroupOrder();
 
     // ===== Validação + normalização =====
     document.getElementById('product-form')?.addEventListener('submit', (e)=>{
