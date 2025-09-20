@@ -130,6 +130,8 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
         <?php
           $price = (float)($product['price'] ?? 0);
           $rawPromo = $product['promo_price'] ?? null;
+
+          // Parse robusto de preço promocional (suporta "1.234,56" e "1234.56")
           $promo = null;
           if ($rawPromo !== null && $rawPromo !== '') {
             $promoStr = is_array($rawPromo) ? reset($rawPromo) : $rawPromo;
@@ -145,7 +147,9 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
               }
             }
           }
+
           $hasPromo = $price > 0 && $promo !== null && $promo > 0 && $promo < $price;
+
           if ($hasPromo):
             $discount = $price > 0 ? (int)floor((($price - $promo) / $price) * 100) : 0;
         ?>
