@@ -1,8 +1,11 @@
 <?php
-$title = "Ingrediente - " . ($company['name'] ?? '');
+$title   = "Ingrediente - " . ($company['name'] ?? '');
 $editing = !empty($ingredient['id']);
-$slug = rawurlencode($company['slug']);
-$action = $editing ? 'admin/' . $slug . '/ingredients/' . (int)$ingredient['id'] : 'admin/' . $slug . '/ingredients';
+$slug    = rawurlencode($company['slug'] ?? '');
+$action  = $editing
+  ? 'admin/' . $slug . '/ingredients/' . (int)($ingredient['id'] ?? 0)
+  : 'admin/' . $slug . '/ingredients';
+
 $image = $ingredient['image_path'] ?? null;
 ob_start(); ?>
 <h1 class="text-2xl font-bold mb-4"><?= $editing ? 'Editar' : 'Novo' ?> Ingrediente</h1>
@@ -46,8 +49,10 @@ ob_start(); ?>
 
   <div class="flex gap-2">
     <button class="px-4 py-2 rounded-xl border">Salvar</button>
-      <a href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
   </div>
 </form>
+
 <?php
-$content = ob_get_clean(); include __DIR__ . '/../layout.php';
+$content = ob_get_clean();
+include __DIR__ . '/../layout.php';
