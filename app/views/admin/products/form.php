@@ -333,6 +333,21 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
   </fieldset>
 
   <!-- ===== Personalização (NOVO LAYOUT) ===== -->
+  <style>
+    #cust-groups-container .cust-group {
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    }
+    #cust-groups-container .cust-group.dragging {
+      opacity: 0.75;
+      transform: scale(0.98);
+      box-shadow: 0 18px 35px -20px rgba(15, 23, 42, 0.45);
+    }
+    .cust-drag-ghost {
+      box-sizing: border-box;
+      border-radius: 0.75rem;
+      box-shadow: 0 18px 35px -20px rgba(15, 23, 42, 0.45);
+    }
+  </style>
   <fieldset class="grid gap-3" aria-labelledby="legend-custom">
     <legend id="legend-custom" class="text-base font-medium">Personalização</legend>
 
@@ -355,15 +370,11 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <?php if (!empty($custGroups)): foreach ($custGroups as $gi => $cg): $gi=(int)$gi;
           $cgName = $cg['name'] ?? '';
           $cItems = $cg['items'] ?? [[]];
-        ?>
-        <?php
           $gType  = $cg['type'] ?? 'extra';
           $gMode  = in_array($gType, ['single','addon'], true) ? 'choice' : 'extra';
           $gMin   = isset($cg['min']) ? max(0, (int)$cg['min']) : 0;
           $gMax   = isset($cg['max']) ? max($gMin, (int)$cg['max']) : ($gMode === 'choice' ? max(1, count($cItems)) : 99);
-          if ($gType === 'single') {
-            $gMax = 1;
-          }
+          if ($gType === 'single') { $gMax = 1; }
         ?>
         <div class="rounded-xl border border-slate-200 bg-white shadow-sm cust-group" data-index="<?= $gi ?>" data-mode="<?= e($gMode) ?>">
           <div class="flex flex-col gap-3 p-3 border-b border-slate-200">
@@ -585,33 +596,33 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                 <?php endforeach; ?>
               </select>
             </div>
-        <div class="self-start md:self-center cust-limits-wrap">
-          <span class="block text-xs text-slate-500 mb-1">Limites</span>
-          <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
-            <div>
-              <label class="block text-xs text-slate-500">Quantidade mínima</label>
-              <input
-                type="number"
-                class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-min-input"
-                name="customization[groups][0][items][0][min_qty]"
-                value="0"
-                min="0"
-                step="1"
-              >
+            <div class="self-start md:self-center cust-limits-wrap">
+              <span class="block text-xs text-slate-500 mb-1">Limites</span>
+              <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="0" data-max="1">
+                <div>
+                  <label class="block text-xs text-slate-500">Quantidade mínima</label>
+                  <input
+                    type="number"
+                    class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-min-input"
+                    name="customization[groups][0][items][0][min_qty]"
+                    value="0"
+                    min="0"
+                    step="1"
+                  >
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-500">Quantidade máxima</label>
+                  <input
+                    type="number"
+                    class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-max-input"
+                    name="customization[groups][0][items][0][max_qty]"
+                    value="1"
+                    min="0"
+                    step="1"
+                  >
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="block text-xs text-slate-500">Quantidade máxima</label>
-              <input
-                type="number"
-                class="w-24 rounded-lg border border-slate-300 px-3 py-2 cust-max-input"
-                name="customization[groups][0][items][0][max_qty]"
-                value="1"
-                min="0"
-                step="1"
-              >
-            </div>
-          </div>
-        </div>
             <div class="flex flex-col items-start gap-2">
               <input type="hidden" class="cust-default-flag" name="customization[groups][0][items][0][default]" value="0">
               <label class="inline-flex items-center gap-2 text-sm">
@@ -1133,6 +1144,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     const tplCustGrp = document.getElementById('tpl-cust-group');
     const tplCustItm = document.getElementById('tpl-cust-item');
     let   custDragging = null;
+    let   custDragGhost = null;
 
     function refreshCustGroupOrder() {
       if (!custCont) return;
@@ -1327,22 +1339,37 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       }
     });
 
+    // Drag & drop (com ghost)
     custCont?.addEventListener('dragstart', (e) => {
       const handle = e.target.closest('.cust-drag-handle');
-      if (!handle) {
-        e.preventDefault();
-        return;
-      }
+      if (!handle) { e.preventDefault(); return; }
       const group = handle.closest('.cust-group');
-      if (!group) {
-        e.preventDefault();
-        return;
-      }
+      if (!group) { e.preventDefault(); return; }
       custDragging = group;
       group.classList.add('dragging');
       if (e.dataTransfer) {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', '');
+        if (custDragGhost) { custDragGhost.remove(); custDragGhost = null; }
+        const rect = group.getBoundingClientRect();
+        const ghost = group.cloneNode(true);
+        ghost.classList.add('cust-drag-ghost');
+        ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
+        ghost.style.position = 'fixed';
+        ghost.style.top = '-9999px';
+        ghost.style.left = '-9999px';
+        ghost.style.opacity = '0.85';
+        ghost.style.pointerEvents = 'none';
+        document.body.appendChild(ghost);
+        custDragGhost = ghost;
+        let offsetX = e.clientX - rect.left;
+        let offsetY = e.clientY - rect.top;
+        if (!Number.isFinite(offsetX)) offsetX = rect.width / 2;
+        if (!Number.isFinite(offsetY)) offsetY = rect.height / 2;
+        offsetX = Math.max(0, Math.min(rect.width, offsetX));
+        offsetY = Math.max(0, Math.min(rect.height, offsetY));
+        e.dataTransfer.setDragImage(ghost, offsetX, offsetY);
       }
     });
 
@@ -1352,6 +1379,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         custDragging = null;
         refreshCustGroupOrder();
       }
+      if (custDragGhost) { custDragGhost.remove(); custDragGhost = null; }
     });
 
     custCont?.addEventListener('dragover', (e) => {
