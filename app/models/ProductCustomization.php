@@ -118,6 +118,32 @@ class ProductCustomization
                 continue;
             }
 
+            $gType = $group['type'] ?? 'extra';
+
+            if ($gType === 'single' || $gType === 'addon') {
+                $minSel = isset($group['min']) ? max(0, (int)$group['min']) : 0;
+                $maxSel = isset($group['max']) ? (int)$group['max'] : ($gType === 'single' ? 1 : count($items));
+                if ($gType === 'single' || $maxSel < 1) {
+                    $maxSel = 1;
+                }
+                if ($maxSel < $minSel) {
+                    $maxSel = $minSel;
+                }
+                $group['min'] = $minSel;
+                $group['max'] = $maxSel;
+
+                foreach ($items as &$item) {
+                    $item['name']       = $item['label'];
+                    $item['img']        = $item['img'] ?? ($item['image_path'] ?? null);
+                    $item['sale_price'] = isset($item['sale_price']) ? (float)$item['sale_price'] : 0.0;
+                    $item['selected']   = !empty($item['default']);
+                }
+                unset($item);
+
+                $group['items'] = $items;
+                continue;
+            }
+
             $isSingle = true;
 
             foreach ($items as &$item) {
@@ -158,7 +184,7 @@ class ProductCustomization
             unset($item);
 
             $group['items'] = $items;
-            // Se todos os itens do grupo são 1..1, tratamos como 'single'; caso contrário 'extra'
+            // Se todos os itens do grupo são 1..1, tratamos como 'single'; caso contrário preserva tipo original
             $group['type'] = $isSingle ? 'single' : 'extra';
         }
         unset($group);
@@ -174,8 +200,22 @@ class ProductCustomization
         $normalized = [];
         $gSort = 0;
 
+        $orderedGroups = [];
         foreach ($groups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $group['_order'] = isset($group['sort_order']) ? (int)$group['sort_order'] : count($orderedGroups);
+            $orderedGroups[] = $group;
+        }
+
+        usort($orderedGroups, function ($a, $b) {
+            return ($a['_order'] ?? 0) <=> ($b['_order'] ?? 0);
+        });
+
+        foreach ($orderedGroups as $group) {
             if (!is_array($group)) continue;
+            unset($group['_order']);
 
             $name = trim((string)($group['name'] ?? ''));
             if ($name === '') continue;
@@ -188,6 +228,18 @@ class ProductCustomization
             $items = [];
             $seenIngredients = [];
             $iSort = 0;
+
+            $modeRaw = $group['mode'] ?? 'extra';
+            $mode = $modeRaw === 'choice' ? 'choice' : 'extra';
+            $choiceCfg = is_array($group['choice'] ?? null) ? $group['choice'] : [];
+            $choiceMin = isset($choiceCfg['min']) ? max(0, (int)$choiceCfg['min']) : 0;
+            $choiceMax = isset($choiceCfg['max']) ? (int)$choiceCfg['max'] : 1;
+            if ($choiceMax < 1) {
+                $choiceMax = 1;
+            }
+            if ($choiceMax < $choiceMin) {
+                $choiceMax = $choiceMin;
+            }
 
             foreach ($itemsRaw as $item) {
                 if (!is_array($item)) continue;
@@ -205,10 +257,17 @@ class ProductCustomization
                 // Usa min/max vindos do formulário para o item (com saneamento)
                 $minQty = isset($item['min_qty']) ? max(0, (int)$item['min_qty']) : 0;
                 $maxQty = isset($item['max_qty']) ? (int)$item['max_qty'] : $minQty;
+                if ($mode === 'choice') {
+                    $minQty = 0;
+                    $maxQty = 1;
+                }
                 if ($maxQty < $minQty) $maxQty = $minQty;
 
                 $isDefault  = !empty($item['default']) && (string)$item['default'] !== '0';
                 $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : $minQty;
+                if ($mode === 'choice') {
+                    $defaultQty = $isDefault ? 1 : 0;
+                }
                 if ($defaultQty < $minQty) $defaultQty = $minQty;
                 if ($defaultQty > $maxQty) $defaultQty = $maxQty;
 
@@ -227,11 +286,26 @@ class ProductCustomization
 
             if (!$items) continue;
 
+            $groupType = 'extra';
+            $groupMin  = 0;
+            $groupMax  = 99;
+            if ($mode === 'choice') {
+                if ($choiceMax <= 1) {
+                    $groupType = 'single';
+                    $groupMin  = min($choiceMin, 1);
+                    $groupMax  = 1;
+                } else {
+                    $groupType = 'addon';
+                    $groupMin  = min($choiceMin, $choiceMax);
+                    $groupMax  = $choiceMax;
+                }
+            }
+
             $normalized[] = [
                 'name'       => $name,
-                'type'       => 'extra', // default; no front pode virar 'single' se 1..1
-                'min'        => 0,
-                'max'        => 99,
+                'type'       => $groupType,
+                'min'        => $groupMin,
+                'max'        => $groupMax,
                 'sort_order' => $gSort++,
                 'items'      => $items,
             ];

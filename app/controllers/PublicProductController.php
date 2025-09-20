@@ -123,7 +123,11 @@ class PublicProductController extends Controller
             foreach ($_POST['custom_qty'] as $g => $items) {
                 if (!is_array($items)) continue;
                 $gi = (int)$g;
-                if (!isset($mods[$gi]) || ($mods[$gi]['type'] ?? 'extra') === 'single') {
+                if (!isset($mods[$gi])) {
+                    continue;
+                }
+                $gType = $mods[$gi]['type'] ?? 'extra';
+                if ($gType === 'single' || $gType === 'addon') {
                     continue;
                 }
 
@@ -153,11 +157,73 @@ class PublicProductController extends Controller
             }
         }
 
+        $customChoice = [];
+        if (isset($_POST['custom_choice']) && is_array($_POST['custom_choice'])) {
+            foreach ($_POST['custom_choice'] as $g => $vals) {
+                $gi = (int)$g;
+                if (!isset($mods[$gi]) || ($mods[$gi]['type'] ?? '') !== 'addon') {
+                    continue;
+                }
+                $items = $mods[$gi]['items'] ?? [];
+                if (!$items) {
+                    continue;
+                }
+                $maxIdx = count($items) - 1;
+                $minSel = isset($mods[$gi]['min']) ? max(0, (int)$mods[$gi]['min']) : 0;
+                $maxSel = isset($mods[$gi]['max']) ? (int)$mods[$gi]['max'] : count($items);
+                if ($maxSel < 1) {
+                    $maxSel = count($items);
+                }
+                if ($maxSel < $minSel) {
+                    $maxSel = $minSel;
+                }
+
+                $selected = [];
+                foreach ((array)$vals as $val) {
+                    $ii = (int)$val;
+                    if ($ii < 0 || $ii > $maxIdx) {
+                        continue;
+                    }
+                    if (!in_array($ii, $selected, true)) {
+                        $selected[] = $ii;
+                    }
+                    if ($maxSel > 0 && count($selected) >= $maxSel) {
+                        // não permite exceder o máximo
+                        continue;
+                    }
+                }
+
+                if ($maxSel > 0 && count($selected) > $maxSel) {
+                    $selected = array_slice($selected, 0, $maxSel);
+                }
+
+                if ($minSel > 0 && count($selected) < $minSel) {
+                    // garante o mínimo preenchendo com defaults e depois com os primeiros itens disponíveis
+                    foreach ($items as $ii => $item) {
+                        if (!empty($item['selected']) && !in_array($ii, $selected, true)) {
+                            $selected[] = $ii;
+                            if (count($selected) >= $minSel) {
+                                break;
+                            }
+                        }
+                    }
+                    for ($ii = 0; $ii <= $maxIdx && count($selected) < $minSel; $ii++) {
+                        if (!in_array($ii, $selected, true)) {
+                            $selected[] = $ii;
+                        }
+                    }
+                }
+
+                $customChoice[$gi] = array_slice($selected, 0, max(0, $maxSel));
+            }
+        }
+
         $quantity = isset($_POST['qty']) ? max(1, (int)$_POST['qty']) : null;
 
         $_SESSION['customizations'][$id] = [
             'single'   => $customSingle,
             'qty'      => $customQty,
+            'choice'   => $customChoice,
             'quantity' => $quantity,
         ];
 
@@ -213,6 +279,22 @@ class PublicProductController extends Controller
                         }
                         unset($item);
                     }
+                } elseif ($gType === 'addon') {
+                    $selected = isset($saved['choice'][$gi]) && is_array($saved['choice'][$gi]) ? $saved['choice'][$gi] : [];
+                    $valid = [];
+                    $maxIdx = count($group['items']) - 1;
+                    foreach ($selected as $idx) {
+                        $ii = (int)$idx;
+                        if ($ii >= 0 && $ii <= $maxIdx && !in_array($ii, $valid, true)) {
+                            $valid[] = $ii;
+                        }
+                    }
+                    foreach ($group['items'] as $ii => &$item) {
+                        $isSel = in_array($ii, $valid, true);
+                        $item['selected'] = $isSel;
+                        $item['default']  = $isSel;
+                    }
+                    unset($item);
                 } elseif (isset($saved['qty'][$gi]) && is_array($saved['qty'][$gi])) {
                     foreach ($group['items'] as $ii => &$item) {
                         if (!isset($saved['qty'][$gi][$ii])) {
