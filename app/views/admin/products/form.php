@@ -53,7 +53,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
   <?php endif; ?>
 
   <!-- Toolbar fixa -->
-  <div class="sticky top-0 z-10 -m-4 md:-m-6 mb-2 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b px-4 md:px-6 py-2 flex items-center justify-between">
+  <div class="sticky top-0 z-10 -m-4 mb-2 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b px-4  py-2 flex items-center justify-between">
     <span class="text-sm text-gray-600">Empresa: <strong><?= e($company['name'] ?? '—') ?></strong></span>
     <div class="flex gap-2">
       <a href="<?= e(base_url("admin/{$slug}/products")) ?>" class="px-3 py-1.5 rounded-xl border text-sm">Cancelar</a>
