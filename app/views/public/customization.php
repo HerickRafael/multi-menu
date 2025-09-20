@@ -77,6 +77,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
 
   .row{display:flex;align-items:center;gap:12px;padding:14px 12px;border-top:1px solid var(--border)}
   .row:first-of-type{border-top:0}
+  .row.checkbox{cursor:pointer}
   .thumb{width:52px;height:52px;border-radius:999px;background:var(--chip);display:grid;place-items:center;overflow:hidden}
   .thumb img{width:100%;height:100%;object-fit:contain}
   .info{flex:1 1 auto}
@@ -93,6 +94,13 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   .radio-btn.sel{background:var(--ring);border-color:var(--ring)}
   .radio-btn svg{width:16px;height:16px;color:#111;display:none}
   .radio-btn.sel svg{display:block}
+
+  .checkbox-wrap{margin-left:auto;position:relative;display:flex;align-items:center}
+  .check-btn{width:28px;height:28px;border-radius:999px;border:2px solid var(--ring);display:grid;place-items:center;background:#fff;cursor:pointer}
+  .check-btn.sel{background:var(--ring);border-color:var(--ring)}
+  .check-btn svg{width:16px;height:16px;color:#111;display:none}
+  .check-btn.sel svg{display:block}
+  .choice-input{position:absolute;opacity:0;pointer-events:none}
 
   .footer{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;height:64px;border-top:1px solid var(--border);background:#fff;}
   .btn-cancel,.btn-confirm{flex:1 1 50%;font-size:17px;font-weight:600;border:none;cursor:pointer}
@@ -159,6 +167,40 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
             </div>
           <?php endforeach; ?>
           <input type="hidden" name="custom_single[<?= (int)$gi ?>]" id="f_single_<?= (int)$gi ?>" value="<?= (int)$selectedIndex ?>">
+
+        <?php elseif ($gType === 'addon'): ?>
+          <?php
+            $maxSel = $gMax > 0 ? $gMax : count($items);
+            if ($maxSel <= 0) { $maxSel = count($items); }
+            $minSel = max(0, $gMin);
+            if ($maxSel < $minSel) { $maxSel = $minSel; }
+          ?>
+          <div class="list choice" data-group="g<?= (int)$gi ?>" data-min="<?= (int)$minSel ?>" data-max="<?= (int)$maxSel ?>">
+            <?php foreach ($items as $ii => $it):
+              $img   = $it['img'] ?? null;
+              $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
+              $isSel = !empty($it['selected']) || !empty($it['default']);
+            ?>
+              <div class="row checkbox" data-group="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
+                <div class="thumb">
+                  <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
+                </div>
+                <div class="info">
+                  <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
+                  <div class="name"><?= e($optName) ?></div>
+                  <?php if ($sale > 0): ?>
+                    <div class="price"><?= price_br($sale) ?></div>
+                  <?php endif; ?>
+                </div>
+                <div class="checkbox-wrap">
+                  <div class="check-btn <?= $isSel?'sel':'' ?>" role="checkbox" aria-checked="<?= $isSel?'true':'false' ?>" tabindex="0">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
+                  <input type="checkbox" class="choice-input" name="custom_choice[<?= (int)$gi ?>][]" value="<?= (int)$ii ?>" <?= $isSel?'checked':'' ?>>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
 
         <?php else: ?>
           <div class="list" aria-label="<?= e($gName) ?>">
@@ -249,6 +291,49 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
     };
     row.addEventListener('click', mark);
     btn.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); mark(); }});
+  });
+
+  // Grupos 'addon' (checkbox)
+  document.querySelectorAll('.list.choice').forEach(list => {
+    const max = parseInt(list.dataset.max || '0', 10);
+    const min = parseInt(list.dataset.min || '0', 10);
+    list.querySelectorAll('.row.checkbox').forEach(row => {
+      const btn = row.querySelector('.check-btn');
+      const input = row.querySelector('.choice-input');
+      if (!btn || !input) return;
+      const sync = () => {
+        const on = input.checked;
+        btn.classList.toggle('sel', on);
+        btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      };
+      const toggle = () => {
+        const checkedCount = list.querySelectorAll('.choice-input:checked').length;
+        if (input.checked) {
+          if (checkedCount <= Math.max(0, min)) {
+            return;
+          }
+          input.checked = false;
+        } else {
+          if (max > 0 && checkedCount >= max) {
+            return;
+          }
+          input.checked = true;
+        }
+        sync();
+      };
+      sync();
+      row.addEventListener('click', (ev) => {
+        if (ev.target instanceof HTMLInputElement) return;
+        toggle();
+      });
+      btn.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          toggle();
+        }
+      });
+      input.addEventListener('change', sync);
+    });
   });
 </script>
 </body>
