@@ -115,13 +115,36 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
     </a>
     <div class="hero">
       <?php
-      $img = (string)($product['image'] ?? '');
-      $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
-      if ($img && @is_file($docRoot . '/' . ltrim($img,'/'))): ?>
-        <img src="<?= e($img) ?>" alt="<?= e($product['name'] ?? 'Produto') ?>">
-      <?php else: ?>
-        <img src="<?= e(base_url('assets/logo-placeholder.png')) ?>" alt="Imagem do produto">
-      <?php endif; ?>
+      $rawImg = trim((string)($product['image'] ?? ''));
+      $placeholder = base_url('assets/logo-placeholder.png');
+      $imgSrc = '';
+
+      if ($rawImg !== '') {
+        if (preg_match('#^https?://#i', $rawImg)) {
+          $imgSrc = $rawImg;
+        } else {
+          $relative = ltrim($rawImg, '/');
+          if (strpos($relative, 'public/') === 0) {
+            $relative = substr($relative, strlen('public/'));
+          }
+
+          $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+          $fsPath = $docRoot !== '' ? $docRoot . '/' . $relative : '';
+
+          if ($fsPath === '' || @is_file($fsPath)) {
+            $imgSrc = base_url($relative);
+          }
+        }
+      }
+
+      if ($imgSrc === '') {
+        $imgSrc = $placeholder;
+        $imgAlt = 'Imagem do produto';
+      } else {
+        $imgAlt = $product['name'] ?? 'Produto';
+      }
+      ?>
+        <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
     </div>
   </div>
 
