@@ -1,4 +1,7 @@
 <?php
+
+require_once __DIR__ . '/../config/db.php';
+
 class Order
 {
   public static function listByCompany(PDO $db, int $companyId, ?string $status=null, int $limit=50, int $offset=0): array {
@@ -63,5 +66,14 @@ class Order
     if (!in_array($status, $allowed, true)) return false;
     $st = $db->prepare("UPDATE orders SET status=? WHERE id=? AND company_id=?");
     return $st->execute([$status, $orderId, $companyId]);
+  }
+
+  public static function countByCompany(int $companyId): int
+  {
+    $pdo = db();
+    $st = $pdo->prepare('SELECT COUNT(*) AS total FROM orders WHERE company_id = ?');
+    $st->execute([$companyId]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    return (int)($row['total'] ?? 0);
   }
 }
