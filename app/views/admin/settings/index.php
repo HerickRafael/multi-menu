@@ -2,6 +2,41 @@
 $title = "Configurações - " . ($company['name'] ?? '');
 $days = [1=>'Segunda',2=>'Terça',3=>'Quarta',4=>'Quinta',5=>'Sexta',6=>'Sábado',7=>'Domingo'];
 $slug = rawurlencode($company['slug']);
+
+if (!function_exists('settings_color_value')) {
+  function settings_color_value($value, $default) {
+    $value = trim((string)$value);
+    if ($value === '') {
+      return strtoupper($default);
+    }
+    if ($value[0] !== '#') {
+      $value = '#' . $value;
+    }
+    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
+      return strtoupper($default);
+    }
+    if (strlen($value) === 4) {
+      $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
+    }
+    return strtoupper($value);
+  }
+}
+
+$colorDefaults = [
+  'menu_header_text_color'       => '#FFFFFF',
+  'menu_header_button_color'     => '#FACC15',
+  'menu_header_bg_color'         => '#5B21B6',
+  'menu_logo_border_color'       => '#7C3AED',
+  'menu_group_title_bg_color'    => '#FACC15',
+  'menu_group_title_text_color'  => '#000000',
+  'menu_welcome_bg_color'        => '#6B21A8',
+  'menu_welcome_text_color'      => '#FFFFFF',
+];
+
+$colorValues = [];
+foreach ($colorDefaults as $key => $default) {
+  $colorValues[$key] = settings_color_value($company[$key] ?? '', $default);
+}
 ob_start(); ?>
 <h1 class="text-2xl font-bold mb-4">Configurações gerais</h1>
 
@@ -54,6 +89,53 @@ ob_start(); ?>
     <span class="text-sm">Texto de destaque (boas-vindas)</span>
     <textarea name="highlight_text" rows="3" class="border rounded-xl p-2"><?= e($company['highlight_text']) ?></textarea>
   </label>
+
+  <hr class="my-2">
+
+  <h2 class="text-lg font-semibold">Aparência do cardápio</h2>
+  <p class="text-sm text-gray-600">Personalize as cores exibidas no cardápio on-line.</p>
+
+  <div class="grid md:grid-cols-2 gap-3">
+    <label class="grid gap-1">
+      <span class="text-sm">Cor dos textos no cabeçalho do cardápio</span>
+      <input type="color" name="menu_header_text_color" value="<?= e($colorValues['menu_header_text_color']) ?>" class="border rounded-xl h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor dos botões e ícones do cabeçalho</span>
+      <input type="color" name="menu_header_button_color" value="<?= e($colorValues['menu_header_button_color']) ?>" class="border rounded-xl h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor de fundo do cabeçalho do cardápio</span>
+      <input type="color" name="menu_header_bg_color" value="<?= e($colorValues['menu_header_bg_color']) ?>" class="border rounded-xl h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor da borda da logo</span>
+      <input type="color" name="menu_logo_border_color" value="<?= e($colorValues['menu_logo_border_color']) ?>" class="border rounded-xl h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor de fundo do título dos grupos do cardápio</span>
+      <input type="color" name="menu_group_title_bg_color" value="<?= e($colorValues['menu_group_title_bg_color']) ?>" class="border rounded-xl h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor do título dos grupos do cardápio</span>
+      <input type="color" name="menu_group_title_text_color" value="<?= e($colorValues['menu_group_title_text_color']) ?>" class="border rounded-xl h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor de fundo da mensagem de boas-vindas</span>
+      <input type="color" name="menu_welcome_bg_color" value="<?= e($colorValues['menu_welcome_bg_color']) ?>" class="border rounded-xl h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor do texto da mensagem de boas-vindas</span>
+      <input type="color" name="menu_welcome_text_color" value="<?= e($colorValues['menu_welcome_text_color']) ?>" class="border rounded-xl h-12">
+    </label>
+  </div>
 
   <div class="grid md:grid-cols-2 gap-4">
     <div>

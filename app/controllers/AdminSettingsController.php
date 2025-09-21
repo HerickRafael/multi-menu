@@ -116,6 +116,26 @@ class AdminSettingsController extends Controller {
     return null;
   }
 
+  private function normalizeColor(?string $value, ?string $fallback = null): ?string {
+    $value = trim((string)($value ?? ''));
+    if ($value === '') {
+      return null;
+    }
+    if ($value[0] !== '#') {
+      $value = '#' . $value;
+    }
+    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
+      if ($fallback === null) {
+        return null;
+      }
+      return $this->normalizeColor($fallback, null);
+    }
+    if (strlen($value) === 4) {
+      $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
+    }
+    return strtoupper($value);
+  }
+
   public function save($params){
     [$u,$company] = $this->guard($params['slug']);
 
@@ -125,6 +145,15 @@ class AdminSettingsController extends Controller {
     $address   = trim($_POST['address'] ?? $company['address']);
     $highlight = trim($_POST['highlight_text'] ?? $company['highlight_text']);
     $min_order = ($_POST['min_order'] === '' ? null : (float)$_POST['min_order']);
+
+    $headerTextColor   = $this->normalizeColor($_POST['menu_header_text_color']      ?? null, $company['menu_header_text_color']      ?? null);
+    $headerButtonColor = $this->normalizeColor($_POST['menu_header_button_color']   ?? null, $company['menu_header_button_color']   ?? null);
+    $headerBgColor     = $this->normalizeColor($_POST['menu_header_bg_color']       ?? null, $company['menu_header_bg_color']       ?? ($company['menu_logo_bg_color'] ?? null));
+    $logoBorderColor   = $this->normalizeColor($_POST['menu_logo_border_color']     ?? null, $company['menu_logo_border_color']     ?? ($company['menu_logo_bg_color'] ?? null));
+    $groupBgColor      = $this->normalizeColor($_POST['menu_group_title_bg_color']  ?? null, $company['menu_group_title_bg_color']  ?? null);
+    $groupTextColor    = $this->normalizeColor($_POST['menu_group_title_text_color']?? null, $company['menu_group_title_text_color']?? null);
+    $welcomeBgColor    = $this->normalizeColor($_POST['menu_welcome_bg_color']      ?? null, $company['menu_welcome_bg_color']      ?? null);
+    $welcomeTextColor  = $this->normalizeColor($_POST['menu_welcome_text_color']    ?? null, $company['menu_welcome_text_color']    ?? null);
 
     // Tempo médio (inteiros ou NULL)
     $avg_from = (isset($_POST['avg_delivery_min_from']) && $_POST['avg_delivery_min_from'] !== '')
@@ -142,8 +171,8 @@ class AdminSettingsController extends Controller {
     if ($errMsgs)     $_SESSION['flash_error'] = implode(' ', $errMsgs);
 
     // ----- UPDATE companies
-    $set  = "name=?, whatsapp=?, address=?, highlight_text=?, min_order=?, avg_delivery_min_from=?, avg_delivery_min_to=?";
-    $vals = [$name, $whatsapp, $address, $highlight, $min_order, $avg_from, $avg_to];
+    $set  = "name=?, whatsapp=?, address=?, highlight_text=?, min_order=?, avg_delivery_min_from=?, avg_delivery_min_to=?, menu_header_text_color=?, menu_header_button_color=?, menu_header_bg_color=?, menu_logo_border_color=?, menu_group_title_bg_color=?, menu_group_title_text_color=?, menu_welcome_bg_color=?, menu_welcome_text_color=?";
+    $vals = [$name, $whatsapp, $address, $highlight, $min_order, $avg_from, $avg_to, $headerTextColor, $headerButtonColor, $headerBgColor, $logoBorderColor, $groupBgColor, $groupTextColor, $welcomeBgColor, $welcomeTextColor];
 
     if ($newLogoPath)   { $set .= ", logo=?";   $vals[] = $newLogoPath; }
     if ($newBannerPath) { $set .= ", banner=?"; $vals[] = $newBannerPath; }
