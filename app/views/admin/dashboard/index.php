@@ -14,6 +14,7 @@ $categories         = is_array($categories ?? null) ? $categories : [];
 $products           = is_array($products ?? null) ? $products : [];
 $recentIngredients  = is_array($recentIngredients ?? null) ? $recentIngredients : [];
 $ingredientsCount   = (int)($ingredientsCount ?? 0);
+$ordersCount        = (int)($ordersCount ?? 0);
 
 // Slugs/título com fallback
 $activeSlug = (string)($activeSlug ?? ($company['slug'] ?? ''));
@@ -112,15 +113,11 @@ ob_start(); ?>
 
   <div class="rounded-2xl bg-white border p-4">
     <div class="text-sm text-gray-500 mb-1">Pedidos</div>
-    <div class="mb-3">
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-box-seam w-12 h-12 text-gray-800" viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2z"/>
-        <path d="M11.75 2.539 5.596 5 8 5.961 14.154 3.5z"/>
-        <path d="M14.5 4.24 8 6.838v7.924l6.5-2.599zM7.5 14.762V6.838L1 4.239v7.923z"/>
-        <path d="M7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09A1 1 0 0 1 0 12.162V3.5a.5.5 0 0 1 .314-.464z"/>
-      </svg>
+    <div class="text-3xl font-bold mb-3"><?= (int)$ordersCount ?></div>
+    <div class="flex gap-2">
+      <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/orders')) ?>">Ver pedidos</a>
+      <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . $slug . '/orders/create')) ?>">+ Novo</a>
     </div>
-    <a class="px-3 py-2 rounded-xl border inline-block" href="<?= e(base_url('admin/' . $slug . '/orders')) ?>">Ver pedidos</a>
   </div>
 </div>
 
