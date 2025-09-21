@@ -45,6 +45,12 @@ class Order
     ]);
   }
 
+  public static function countByCompany(PDO $db, int $companyId): int {
+    $st = $db->prepare('SELECT COUNT(*) FROM orders WHERE company_id = :cid');
+    $st->execute([':cid' => $companyId]);
+    return (int)$st->fetchColumn();
+  }
+
   public static function findWithItems(PDO $db, int $orderId, int $companyId): ?array {
     $st = $db->prepare("SELECT * FROM orders WHERE id = ? AND company_id = ?");
     $st->execute([$orderId, $companyId]);

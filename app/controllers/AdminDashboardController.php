@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Category.php';
 require_once __DIR__ . '/../models/Product.php';
 require_once __DIR__ . '/../models/Ingredient.php';
+require_once __DIR__ . '/../models/Order.php';
 
 class AdminDashboardController extends Controller
 {
@@ -62,6 +63,8 @@ class AdminDashboardController extends Controller
     $categories = Category::listByCompany($companyId);
     $products   = Product::listByCompany($companyId);
     $ingredientsCount = Ingredient::countByCompany($companyId);
+    $db = $this->db();
+    $ordersCount = Order::countByCompany($db, $companyId);
     $recentIngredients = Ingredient::listRecentByCompany($companyId, 8);
     foreach ($recentIngredients as &$ing) {
       $assigned = Ingredient::assignedProducts((int)$ing['id']);
@@ -79,6 +82,7 @@ class AdminDashboardController extends Controller
       'products',
       'ingredientsCount',
       'recentIngredients',
+      'ordersCount',
       'activeSlug'
     ));
   }
