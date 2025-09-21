@@ -116,6 +116,17 @@ class AdminSettingsController extends Controller {
     return null;
   }
 
+  private function normalizeColor($value, ?string $current = null): ?string {
+    $value = trim((string)$value);
+    if ($value === '') {
+      return null;
+    }
+    if (preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
+      return strtolower($value);
+    }
+    return $current ? strtolower((string)$current) : null;
+  }
+
   public function save($params){
     [$u,$company] = $this->guard($params['slug']);
 
@@ -125,6 +136,13 @@ class AdminSettingsController extends Controller {
     $address   = trim($_POST['address'] ?? $company['address']);
     $highlight = trim($_POST['highlight_text'] ?? $company['highlight_text']);
     $min_order = ($_POST['min_order'] === '' ? null : (float)$_POST['min_order']);
+
+    $headerTextColor      = $this->normalizeColor($_POST['header_text_color']      ?? '', $company['header_text_color']      ?? null);
+    $logoBgColor          = $this->normalizeColor($_POST['header_logo_bg_color']  ?? '', $company['header_logo_bg_color']  ?? null);
+    $groupTitleBgColor    = $this->normalizeColor($_POST['group_title_bg_color']  ?? '', $company['group_title_bg_color']  ?? null);
+    $groupTitleTextColor  = $this->normalizeColor($_POST['group_title_text_color']?? '', $company['group_title_text_color']?? null);
+    $welcomeBgColor       = $this->normalizeColor($_POST['welcome_bg_color']      ?? '', $company['welcome_bg_color']      ?? null);
+    $welcomeTextColor     = $this->normalizeColor($_POST['welcome_text_color']    ?? '', $company['welcome_text_color']    ?? null);
 
     // Tempo médio (inteiros ou NULL)
     $avg_from = (isset($_POST['avg_delivery_min_from']) && $_POST['avg_delivery_min_from'] !== '')
@@ -142,8 +160,22 @@ class AdminSettingsController extends Controller {
     if ($errMsgs)     $_SESSION['flash_error'] = implode(' ', $errMsgs);
 
     // ----- UPDATE companies
-    $set  = "name=?, whatsapp=?, address=?, highlight_text=?, min_order=?, avg_delivery_min_from=?, avg_delivery_min_to=?";
-    $vals = [$name, $whatsapp, $address, $highlight, $min_order, $avg_from, $avg_to];
+    $set  = "name=?, whatsapp=?, address=?, highlight_text=?, min_order=?, avg_delivery_min_from=?, avg_delivery_min_to=?, header_text_color=?, header_logo_bg_color=?, group_title_bg_color=?, group_title_text_color=?, welcome_bg_color=?, welcome_text_color=?";
+    $vals = [
+      $name,
+      $whatsapp,
+      $address,
+      $highlight,
+      $min_order,
+      $avg_from,
+      $avg_to,
+      $headerTextColor,
+      $logoBgColor,
+      $groupTitleBgColor,
+      $groupTitleTextColor,
+      $welcomeBgColor,
+      $welcomeTextColor,
+    ];
 
     if ($newLogoPath)   { $set .= ", logo=?";   $vals[] = $newLogoPath; }
     if ($newBannerPath) { $set .= ", banner=?"; $vals[] = $newBannerPath; }

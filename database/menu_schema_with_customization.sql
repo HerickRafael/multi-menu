@@ -33,6 +33,12 @@ CREATE TABLE `companies` (
   `whatsapp` varchar(20) DEFAULT NULL,
   `address` varchar(255) DEFAULT NULL,
   `highlight_text` text DEFAULT NULL,
+  `header_text_color` varchar(9) DEFAULT NULL,
+  `header_logo_bg_color` varchar(9) DEFAULT NULL,
+  `group_title_bg_color` varchar(9) DEFAULT NULL,
+  `group_title_text_color` varchar(9) DEFAULT NULL,
+  `welcome_bg_color` varchar(9) DEFAULT NULL,
+  `welcome_text_color` varchar(9) DEFAULT NULL,
   `min_order` decimal(10,2) DEFAULT NULL,
   `avg_delivery_min_from` int(11) DEFAULT NULL,
   `avg_delivery_min_to` int(11) DEFAULT NULL,
@@ -42,8 +48,8 @@ CREATE TABLE `companies` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `companies` (`id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `min_order`, `avg_delivery_min_from`, `avg_delivery_min_to`, `logo`, `banner`, `active`, `created_at`) VALUES
-(1, 'wollburger', 'Wollburger', '55', '', '', NULL, NULL, NULL, NULL, NULL, 1, '2025-09-11 01:38:16');
+INSERT INTO `companies` (`id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `header_text_color`, `header_logo_bg_color`, `group_title_bg_color`, `group_title_text_color`, `welcome_bg_color`, `welcome_text_color`, `min_order`, `avg_delivery_min_from`, `avg_delivery_min_to`, `logo`, `banner`, `active`, `created_at`) VALUES
+(1, 'wollburger', 'Wollburger', '55', '', '', '#ffffff', '#ffffff', '#facc15', '#000000', '#6d28d9', '#ffffff', NULL, NULL, NULL, NULL, NULL, 1, '2025-09-11 01:38:16');
 
 -- --------------------------------------------------------
 -- Estrutura da tabela `categories`

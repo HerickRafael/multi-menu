@@ -55,6 +55,43 @@ ob_start(); ?>
     <textarea name="highlight_text" rows="3" class="border rounded-xl p-2"><?= e($company['highlight_text']) ?></textarea>
   </label>
 
+  <hr class="my-2">
+
+  <h2 class="text-lg font-semibold">Cores do cardápio</h2>
+  <p class="text-sm text-gray-600 mb-2">Personalize as cores principais do cabeçalho e das seções do cardápio.</p>
+
+  <div class="grid md:grid-cols-2 gap-3">
+    <label class="grid gap-1">
+      <span class="text-sm">Cor dos textos e botões do cabeçalho</span>
+      <input type="color" name="header_text_color" value="<?= e($company['header_text_color'] ?? '#ffffff') ?>" class="border rounded-xl p-2 h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor de fundo ao redor do logo</span>
+      <input type="color" name="header_logo_bg_color" value="<?= e($company['header_logo_bg_color'] ?? '#ffffff') ?>" class="border rounded-xl p-2 h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor de fundo do título dos grupos</span>
+      <input type="color" name="group_title_bg_color" value="<?= e($company['group_title_bg_color'] ?? '#facc15') ?>" class="border rounded-xl p-2 h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor do título dos grupos</span>
+      <input type="color" name="group_title_text_color" value="<?= e($company['group_title_text_color'] ?? '#000000') ?>" class="border rounded-xl p-2 h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor de fundo da mensagem de boas-vindas</span>
+      <input type="color" name="welcome_bg_color" value="<?= e($company['welcome_bg_color'] ?? '#6d28d9') ?>" class="border rounded-xl p-2 h-12">
+    </label>
+
+    <label class="grid gap-1">
+      <span class="text-sm">Cor do texto da mensagem de boas-vindas</span>
+      <input type="color" name="welcome_text_color" value="<?= e($company['welcome_text_color'] ?? '#ffffff') ?>" class="border rounded-xl p-2 h-12">
+    </label>
+  </div>
+
   <div class="grid md:grid-cols-2 gap-4">
     <div>
       <span class="text-sm block mb-1">Logo (quadrado) – jpg/png/webp</span>

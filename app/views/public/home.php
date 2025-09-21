@@ -38,6 +38,17 @@ if (!function_exists('badgeNew')) {
   function badgeNew($p){ return is_new_product($p); }
 }
 
+function menu_color(array $company, string $key, string $default): string {
+  $val = $company[$key] ?? null;
+  if (is_string($val)) {
+    $val = trim($val);
+    if ($val !== '' && preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', $val)) {
+      return strtolower($val);
+    }
+  }
+  return $default;
+}
+
 /* Variáveis vindas do controller (com fallbacks para evitar notices) */
 $q              = $q              ?? '';
 $novidades      = $novidades      ?? [];
@@ -58,6 +69,13 @@ $bannerUrl = !empty($company['banner']) ? base_url($company['banner']) : null;
 if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
 $customer = $_SESSION['customer'] ?? null;
 $showFooterMenu = true;
+
+$headerTextColor     = menu_color($company, 'header_text_color', '#ffffff');
+$logoBgColor         = menu_color($company, 'header_logo_bg_color', '#ffffff');
+$groupTitleBgColor   = menu_color($company, 'group_title_bg_color', '#facc15');
+$groupTitleTextColor = menu_color($company, 'group_title_text_color', '#000000');
+$welcomeBgColor      = menu_color($company, 'welcome_bg_color', '#6d28d9');
+$welcomeTextColor    = menu_color($company, 'welcome_text_color', '#ffffff');
 ?>
 <header>
   <style>
@@ -67,6 +85,17 @@ $showFooterMenu = true;
     .no-focus-ring:focus-within,
     .no-focus-ring:target { outline: none !important; box-shadow: none !important; }
     .no-focus-ring { -webkit-tap-highlight-color: transparent; }
+    .menu-header { color: <?= e($headerTextColor) ?>; }
+    .menu-header a,
+    .menu-header button { color: inherit; }
+    .menu-header .menu-header-btn {
+      color: <?= e($headerTextColor) ?>;
+      border-color: <?= e($headerTextColor) ?>;
+      background-color: transparent;
+    }
+    .menu-logo-ring { background-color: <?= e($logoBgColor) ?>; }
+    .group-title { background: <?= e($groupTitleBgColor) ?>; color: <?= e($groupTitleTextColor) ?>; }
+    .welcome-banner { background: <?= e($welcomeBgColor) ?>; color: <?= e($welcomeTextColor) ?>; }
   </style>
   <div class="rounded-2xl overflow-hidden">
     <?php if ($bannerUrl): ?>
@@ -78,9 +107,9 @@ $showFooterMenu = true;
       <div class="bg-purple-900 h-24"></div>
     <?php endif; ?>
 
-    <div class="bg-purple-900 text-white p-5 relative -mt-10 rounded-t-2xl no-focus-ring">
+    <div class="bg-purple-900 p-5 relative -mt-10 rounded-t-2xl no-focus-ring menu-header">
       <img src="<?= base_url($company['logo'] ?? 'assets/logo-placeholder.png') ?>"
-           class="w-24 h-24 rounded-full object-cover border-4 border-purple-700 bg-white absolute -top-10 right-6 pointer-events-none"
+           class="w-24 h-24 rounded-full object-cover border-4 border-purple-700 absolute -top-10 right-6 pointer-events-none menu-logo-ring"
            alt="<?= e($company['name'] ?? 'Logo') ?>">
       <div class="min-w-0 pr-28">
         <h1 class="text-2xl font-bold"><?= e($company['name'] ?? 'Empresa') ?></h1>
@@ -115,12 +144,12 @@ $showFooterMenu = true;
             <!-- Login ou saudação do cliente -->
             <?php if (!empty($customer) && isset($company['id']) && isset($customer['company_id']) && (int)$customer['company_id'] === (int)$company['id']): ?>
               <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 self-center">
-                <span class="px-2 py-0.5 rounded-lg bg-white text-purple-900 font-semibold">
+                <span class="px-2 py-0.5 rounded-lg border menu-header-btn font-semibold">
                   Olá, <?= e($customer['name'] ?? 'Cliente') ?>
                 </span>
                 <form method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-logout') ?>" onsubmit="return confirm('Sair?')">
                   <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
-                  <button class="px-2 py-0.5 rounded-lg border bg-white text-purple-900 font-semibold hover:bg-slate-50">Sair</button>
+                  <button class="px-2 py-0.5 rounded-lg border menu-header-btn font-semibold">Sair</button>
                 </form>
               </div>
             <?php else: ?>
@@ -128,7 +157,7 @@ $showFooterMenu = true;
                 <button
                   type="button"
                   id="btn-open-login"
-                  class="px-2 py-0.5 rounded-lg border bg-white text-purple-900 hover:bg-slate-50 font-semibold">
+                  class="px-2 py-0.5 rounded-lg border font-semibold menu-header-btn">
                   Entrar
                 </button>
               </div>
@@ -143,8 +172,8 @@ $showFooterMenu = true;
     </div>
 
     <?php if (!empty($company['highlight_text'])): ?>
-      <div class="bg-purple-100 p-4">
-        <p class="bg-purple-700 text-white p-3 rounded-xl text-sm">
+      <div class="p-4">
+        <p class="welcome-banner p-3 rounded-xl text-sm">
           <?= nl2br(e($company['highlight_text'])) ?>
         </p>
       </div>
@@ -344,7 +373,7 @@ $showFooterMenu = true;
 <!-- ======== BLOCOS NO TOPO ======== -->
 <?php if ($mostraNovidade): ?>
   <a id="novidades"></a>
-  <h2 class="text-xl font-bold bg-yellow-400 text-black inline-block px-3 py-1 rounded-lg mb-2">Novidades</h2>
+  <h2 class="text-xl font-bold group-title inline-block px-3 py-1 rounded-lg mb-2">Novidades</h2>
   <div class="grid gap-3 mb-6">
     <?php foreach ($novidades as $p): ?>
       <?php include __DIR__ . '/partials_card.php'; ?>
@@ -358,7 +387,7 @@ $showFooterMenu = true;
 
 <?php foreach ($categories as $c): ?>
   <a id="cat-<?= (int)$c['id'] ?>"></a>
-  <h2 class="text-xl font-bold bg-yellow-400 inline-block px-3 py-1 rounded-lg mb-2"><?= e($c['name'] ?? 'Categoria') ?></h2>
+  <h2 class="text-xl font-bold group-title inline-block px-3 py-1 rounded-lg mb-2"><?= e($c['name'] ?? 'Categoria') ?></h2>
   <?php $items = array_values(array_filter($products, fn($p)=> (int)($p['category_id'] ?? 0) === (int)$c['id'])); ?>
   <div class="grid gap-3 mb-6">
     <?php foreach ($items as $p): include __DIR__ . '/partials_card.php'; endforeach; ?>
