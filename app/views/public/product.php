@@ -105,34 +105,54 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   <div class="hero-wrap">
     <a class="nav-btn" href="<?= e($homeUrl) ?>" aria-label="Voltar">
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-  <path d="M15 19l-7-7 7-7"
-        stroke="#111827"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        transform="scale(0.7) translate(5 5)"></path>
-</svg>
+        <path d="M15 19l-7-7 7-7"
+              stroke="#111827"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              transform="scale(0.7) translate(5 5)"></path>
+      </svg>
     </a>
     <div class="hero">
       <?php
-      $img = trim((string)($product['image'] ?? ''));
-      $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
-      $imgPath = '';
-      if ($img !== '') {
-        $img = ltrim($img, '/');
-        $imgPath = $docRoot !== '' ? $docRoot . '/' . $img : '';
-      }
-      if ($img !== '' && ($imgPath === '' || @is_file($imgPath))): ?>
-        <img src="<?= e(base_url($img)) ?>" alt="<?= e($product['name'] ?? 'Produto') ?>">
-      <?php else: ?>
-        <img src="<?= e(base_url('assets/logo-placeholder.png')) ?>" alt="Imagem do produto">
-      <?php endif; ?>
+        // Resolução robusta do caminho da imagem (URL absoluta, caminho relativo, removendo "public/" se vier do painel)
+        $rawImg = trim((string)($product['image'] ?? ''));
+        $placeholder = base_url('assets/logo-placeholder.png');
+        $imgSrc = '';
+
+        if ($rawImg !== '') {
+          if (preg_match('#^https?://#i', $rawImg)) {
+            // URL completa
+            $imgSrc = $rawImg;
+          } else {
+            // Caminho relativo no /public
+            $relative = ltrim($rawImg, '/');
+            if (strpos($relative, 'public/') === 0) {
+              $relative = substr($relative, strlen('public/'));
+            }
+
+            $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+            $fsPath = $docRoot !== '' ? $docRoot . '/' . $relative : '';
+
+            // Se não conseguimos validar o arquivo por falta de docRoot, ainda assim tentamos servir via base_url
+            if ($fsPath === '' || @is_file($fsPath)) {
+              $imgSrc = base_url($relative);
+            }
+          }
+        }
+
+        $imgAlt = $imgSrc === '' ? 'Imagem do produto' : ($product['name'] ?? 'Produto');
+        if ($imgSrc === '') {
+          $imgSrc = $placeholder;
+        }
+      ?>
+      <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
     </div>
   </div>
 
   <main class="card" role="main">
     <div class="brand">
-         <h1><?= e($product['name'] ?? '') ?></h1>
+      <h1><?= e($product['name'] ?? '') ?></h1>
     </div>
 
     <div class="price-row">
