@@ -398,7 +398,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
               </select>
             </div>
             <div class="self-start md:self-center">
-              <span class="block text-xs text-slate-500 mb-1">Limites</span>
               <div class="grid gap-2 cust-limits md:grid-cols-2" data-min="<?= $minQ ?>" data-max="<?= $maxQ ?>">
                 <div>
                   <label class="block text-xs text-slate-500">Quantidade mínima</label>
