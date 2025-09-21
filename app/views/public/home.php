@@ -164,7 +164,7 @@ $showFooterMenu = true;
       <div class="h-24" style="background-color: <?= e($headerBgColor) ?>;"></div>
     <?php endif; ?>
 
-    <div class="p-5 relative -mt-10 rounded-t-2xl no-focus-ring menu-header">
+    <div class="p-5 relative -mt-10 rounded-2xl no-focus-ring menu-header">
       <img src="<?= base_url($company['logo'] ?? 'assets/logo-placeholder.png') ?>"
            class="w-24 h-24 rounded-full object-cover border-4 absolute -top-10 right-6 pointer-events-none"
            style="background-color: <?= e($logoBorderColor) ?>; border-color: <?= e($logoBorderColor) ?>;"
@@ -233,7 +233,7 @@ $showFooterMenu = true;
     </div>
 
     <?php if (!empty($company['highlight_text'])): ?>
-      <div class="p-4 rounded-xl" style="background-color: <?= e($welcomeBgColor) ?>20;">
+      <div class="pt-4 rounded-xl">
         <p class="p-3 rounded-xl text-sm" style="background-color: <?= e($welcomeBgColor) ?>; color: <?= e($welcomeText) ?>;">
           <?= nl2br(e($company['highlight_text'])) ?>
         </p>
