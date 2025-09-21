@@ -115,36 +115,9 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
     </a>
     <div class="hero">
       <?php
-        // Resolução robusta do caminho da imagem (URL absoluta, caminho relativo, removendo "public/" se vier do painel)
-        $rawImg = trim((string)($product['image'] ?? ''));
-        $placeholder = base_url('assets/logo-placeholder.png');
-        $imgSrc = '';
-
-        if ($rawImg !== '') {
-          if (preg_match('#^https?://#i', $rawImg)) {
-            // URL completa
-            $imgSrc = $rawImg;
-          } else {
-            // Caminho relativo no /public
-            $relative = ltrim($rawImg, '/');
-            if (strpos($relative, 'public/') === 0) {
-              $relative = substr($relative, strlen('public/'));
-            }
-
-            $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
-            $fsPath = $docRoot !== '' ? $docRoot . '/' . $relative : '';
-
-            // Se não conseguimos validar o arquivo por falta de docRoot, ainda assim tentamos servir via base_url
-            if ($fsPath === '' || @is_file($fsPath)) {
-              $imgSrc = base_url($relative);
-            }
-          }
-        }
-
-        $imgAlt = $imgSrc === '' ? 'Imagem do produto' : ($product['name'] ?? 'Produto');
-        if ($imgSrc === '') {
-          $imgSrc = $placeholder;
-        }
+        $imagePath = trim((string)($product['image'] ?? ''));
+        $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
+        $imgAlt = $imagePath !== '' ? ($product['name'] ?? 'Produto') : 'Imagem do produto';
       ?>
       <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
     </div>
