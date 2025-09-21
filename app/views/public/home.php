@@ -170,8 +170,6 @@ $showFooterMenu = true;
            style="background-color: <?= e($logoBorderColor) ?>; border-color: <?= e($logoBorderColor) ?>;"
            alt="<?= e($company['name'] ?? 'Logo') ?>">
 
-      <div class="min-w-0 pr-28 menu-header-text">
-        <h1 class="menu-header-title text-2xl font-bold"><?= e($company['name'] ?? 'Empresa') ?></h1>
 
         <!-- Linha de status + horário de hoje + info -->
         <div class="flex flex-wrap items-center gap-2 text-sm mt-1">
@@ -219,7 +217,7 @@ $showFooterMenu = true;
               <button
                 type="button"
                 id="btn-open-login"
-                class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">
+                                class="px-2 py-0.5 rounded-lg menu-header-btn font-semibold">
                 Entrar
               </button>
             </div>
@@ -234,7 +232,7 @@ $showFooterMenu = true;
 
     <?php if (!empty($company['highlight_text'])): ?>
       <div class="pt-4 rounded-xl">
-        <p class="p-3 rounded-xl text-sm" style="background-color: <?= e($welcomeBgColor) ?>; color: <?= e($welcomeText) ?>;">
+        <p class="p-5 rounded-xl text-sm" style="background-color: <?= e($welcomeBgColor) ?>; color: <?= e($welcomeText) ?>;">
           <?= nl2br(e($company['highlight_text'])) ?>
         </p>
       </div>

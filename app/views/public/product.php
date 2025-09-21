@@ -105,52 +105,54 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   <div class="hero-wrap">
     <a class="nav-btn" href="<?= e($homeUrl) ?>" aria-label="Voltar">
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-  <path d="M15 19l-7-7 7-7"
-        stroke="#111827"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        transform="scale(0.7) translate(5 5)"></path>
-</svg>
+        <path d="M15 19l-7-7 7-7"
+              stroke="#111827"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              transform="scale(0.7) translate(5 5)"></path>
+      </svg>
     </a>
     <div class="hero">
       <?php
-      $rawImg = trim((string)($product['image'] ?? ''));
-      $placeholder = base_url('assets/logo-placeholder.png');
-      $imgSrc = '';
+        // Resolução robusta do caminho da imagem (URL absoluta, caminho relativo, removendo "public/" se vier do painel)
+        $rawImg = trim((string)($product['image'] ?? ''));
+        $placeholder = base_url('assets/logo-placeholder.png');
+        $imgSrc = '';
 
-      if ($rawImg !== '') {
-        if (preg_match('#^https?://#i', $rawImg)) {
-          $imgSrc = $rawImg;
-        } else {
-          $relative = ltrim($rawImg, '/');
-          if (strpos($relative, 'public/') === 0) {
-            $relative = substr($relative, strlen('public/'));
-          }
+        if ($rawImg !== '') {
+          if (preg_match('#^https?://#i', $rawImg)) {
+            // URL completa
+            $imgSrc = $rawImg;
+          } else {
+            // Caminho relativo no /public
+            $relative = ltrim($rawImg, '/');
+            if (strpos($relative, 'public/') === 0) {
+              $relative = substr($relative, strlen('public/'));
+            }
 
-          $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
-          $fsPath = $docRoot !== '' ? $docRoot . '/' . $relative : '';
+            $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+            $fsPath = $docRoot !== '' ? $docRoot . '/' . $relative : '';
 
-          if ($fsPath === '' || @is_file($fsPath)) {
-            $imgSrc = base_url($relative);
+            // Se não conseguimos validar o arquivo por falta de docRoot, ainda assim tentamos servir via base_url
+            if ($fsPath === '' || @is_file($fsPath)) {
+              $imgSrc = base_url($relative);
+            }
           }
         }
-      }
 
-      if ($imgSrc === '') {
-        $imgSrc = $placeholder;
-        $imgAlt = 'Imagem do produto';
-      } else {
-        $imgAlt = $product['name'] ?? 'Produto';
-      }
+        $imgAlt = $imgSrc === '' ? 'Imagem do produto' : ($product['name'] ?? 'Produto');
+        if ($imgSrc === '') {
+          $imgSrc = $placeholder;
+        }
       ?>
-        <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
+      <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
     </div>
   </div>
 
   <main class="card" role="main">
     <div class="brand">
-         <h1><?= e($product['name'] ?? '') ?></h1>
+      <h1><?= e($product['name'] ?? '') ?></h1>
     </div>
 
     <div class="price-row">
@@ -251,7 +253,8 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
             ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
-                <img src="<?= e($img ?: base_url('assets/logo-placeholder.png')) ?>" alt="<?= e($opt['name'] ?? '') ?>">
+                <?php $comboImg = $img !== '' ? base_url($img) : base_url('assets/logo-placeholder.png'); ?>
+                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
