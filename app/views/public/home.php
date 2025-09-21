@@ -143,8 +143,8 @@ $showFooterMenu = true;
     </div>
 
     <?php if (!empty($company['highlight_text'])): ?>
-      <div class="bg-purple-100 p-4">
-        <p class="bg-purple-700 text-white p-3 rounded-xl text-sm">
+      <div class="pt-3 px-0 ">
+        <p class="bg-purple-700 text-white p-5 rounded-xl text-sm">
           <?= nl2br(e($company['highlight_text'])) ?>
         </p>
       </div>

@@ -117,7 +117,14 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
   <header>
     <div class="top">
       <a class="back" href="<?= e($backUrl) ?>" aria-label="Voltar">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+  <path d="M15 19l-7-7 7-7"
+        stroke="#111827"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        transform="scale(0.7) translate(5 5)"></path>
+</svg>
       </a>
       <div class="title"><?= e($pName) ?></div>
     </div>
