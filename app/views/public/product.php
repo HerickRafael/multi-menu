@@ -47,10 +47,10 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .hero-wrap{position:relative}
   .nav-btn{position:absolute;top:12px;left:12px;z-index:2;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
     background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer}
-  .hero{width:100%;height:360px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);display:grid;place-items:center}
-  .hero img{width:100%;height:100%;object-fit:contain;filter: drop-shadow(0 18px 34px rgba(0,0,0,.25))}
+  .hero{position:relative;width:100%;height:360px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .hero img{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(360px,90%);max-height:82%;object-fit:contain;filter:drop-shadow(0 18px 34px rgba(0,0,0,.25));z-index:0;pointer-events:none}
 
-  .card{background:var(--card);border-radius:26px 26px 0 0;margin-top:-8px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px}
+  .card{position:relative;background:var(--card);border-radius:26px 26px 0 0;margin-top:-8px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px;z-index:1}
   .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:13px}
   .brand .dot{width:18px;height:18px;border-radius:999px;background:#ffb703;display:grid;place-items:center;color:#7c2d12;font-weight:800;font-size:11px}
   h1{margin:2px 0 0;font-size:20px;line-height:1.25;font-weight:700}
@@ -115,36 +115,9 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
     </a>
     <div class="hero">
       <?php
-        // Resolução robusta do caminho da imagem (URL absoluta, caminho relativo, removendo "public/" se vier do painel)
-        $rawImg = trim((string)($product['image'] ?? ''));
-        $placeholder = base_url('assets/logo-placeholder.png');
-        $imgSrc = '';
-
-        if ($rawImg !== '') {
-          if (preg_match('#^https?://#i', $rawImg)) {
-            // URL completa
-            $imgSrc = $rawImg;
-          } else {
-            // Caminho relativo no /public
-            $relative = ltrim($rawImg, '/');
-            if (strpos($relative, 'public/') === 0) {
-              $relative = substr($relative, strlen('public/'));
-            }
-
-            $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
-            $fsPath = $docRoot !== '' ? $docRoot . '/' . $relative : '';
-
-            // Se não conseguimos validar o arquivo por falta de docRoot, ainda assim tentamos servir via base_url
-            if ($fsPath === '' || @is_file($fsPath)) {
-              $imgSrc = base_url($relative);
-            }
-          }
-        }
-
-        $imgAlt = $imgSrc === '' ? 'Imagem do produto' : ($product['name'] ?? 'Produto');
-        if ($imgSrc === '') {
-          $imgSrc = $placeholder;
-        }
+        $imagePath = trim((string)($product['image'] ?? ''));
+        $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
+        $imgAlt = $imagePath !== '' ? ($product['name'] ?? 'Produto') : 'Imagem do produto';
       ?>
       <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
     </div>
