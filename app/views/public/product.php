@@ -115,10 +115,15 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
     </a>
     <div class="hero">
       <?php
-      $img = (string)($product['image'] ?? '');
+      $img = trim((string)($product['image'] ?? ''));
       $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
-      if ($img && @is_file($docRoot . '/' . ltrim($img,'/'))): ?>
-        <img src="<?= e($img) ?>" alt="<?= e($product['name'] ?? 'Produto') ?>">
+      $imgPath = '';
+      if ($img !== '') {
+        $img = ltrim($img, '/');
+        $imgPath = $docRoot !== '' ? $docRoot . '/' . $img : '';
+      }
+      if ($img !== '' && ($imgPath === '' || @is_file($imgPath))): ?>
+        <img src="<?= e(base_url($img)) ?>" alt="<?= e($product['name'] ?? 'Produto') ?>">
       <?php else: ?>
         <img src="<?= e(base_url('assets/logo-placeholder.png')) ?>" alt="Imagem do produto">
       <?php endif; ?>
@@ -228,7 +233,8 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
             ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
-                <img src="<?= e($img ?: base_url('assets/logo-placeholder.png')) ?>" alt="<?= e($opt['name'] ?? '') ?>">
+                <?php $comboImg = $img !== '' ? base_url($img) : base_url('assets/logo-placeholder.png'); ?>
+                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
