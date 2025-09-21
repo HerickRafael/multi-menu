@@ -1,7 +1,7 @@
 <?php
 $title = "Configurações - " . ($company['name'] ?? '');
 $days = [1=>'Segunda',2=>'Terça',3=>'Quarta',4=>'Quinta',5=>'Sexta',6=>'Sábado',7=>'Domingo'];
-$slug = rawurlencode($company['slug']);
+$slug = rawurlencode((string)($company['slug'] ?? ''));
 
 if (!function_exists('settings_color_value')) {
   function settings_color_value($value, $default) {
@@ -141,7 +141,7 @@ ob_start(); ?>
     <div>
       <span class="text-sm block mb-1">Logo (quadrado) – jpg/png/webp</span>
       <?php if (!empty($company['logo'])): ?>
-        <img src="<?= base_url($company['logo']) ?>" class="w-20 h-20 object-cover rounded-xl mb-2">
+        <img src="<?= base_url($company['logo']) ?>" class="w-20 h-20 object-cover rounded-xl mb-2" alt="Logo atual">
       <?php endif; ?>
       <input type="file" name="logo" accept=".jpg,.jpeg,.png,.webp" class="border rounded-xl p-2 w-full">
     </div>
@@ -149,7 +149,7 @@ ob_start(); ?>
     <div>
       <span class="text-sm block mb-1">Banner (largura) – jpg/png/webp</span>
       <?php if (!empty($company['banner'])): ?>
-        <img src="<?= base_url($company['banner']) ?>" class="w-full max-w-md h-24 object-cover rounded-xl mb-2">
+        <img src="<?= base_url($company['banner']) ?>" class="w-full max-w-md h-24 object-cover rounded-xl mb-2" alt="Banner atual">
       <?php endif; ?>
       <input type="file" name="banner" accept=".jpg,.jpeg,.png,.webp" class="border rounded-xl p-2 w-full">
     </div>
@@ -198,7 +198,7 @@ ob_start(); ?>
 
   <div class="flex gap-2 mt-3">
     <button class="px-4 py-2 rounded-xl border">Salvar</button>
-      <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="px-4 py-2 rounded-xl border">Voltar</a>
+    <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="px-4 py-2 rounded-xl border">Voltar</a>
   </div>
 </form>
 

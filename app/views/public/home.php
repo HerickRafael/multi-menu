@@ -12,24 +12,16 @@ function badgePromo($p){
   if (!is_array($p)) return false;
   $price = isset($p['price']) ? (float)$p['price'] : 0;
   $promoRaw = $p['promo_price'] ?? null;
-  if ($price <= 0 || $promoRaw === null || $promoRaw === '') {
-    return false;
-  }
-  if (is_array($promoRaw)) {
-    $promoRaw = reset($promoRaw);
-  }
+  if ($price <= 0 || $promoRaw === null || $promoRaw === '') return false;
+  if (is_array($promoRaw)) $promoRaw = reset($promoRaw);
   $promoStr = trim((string)$promoRaw);
-  if ($promoStr === '') {
-    return false;
-  }
+  if ($promoStr === '') return false;
   $promoStr = str_replace(' ', '', $promoStr);
   if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
     $promoStr = str_replace('.', '', $promoStr);
   }
   $promoStr = str_replace(',', '.', $promoStr);
-  if (!is_numeric($promoStr)) {
-    return false;
-  }
+  if (!is_numeric($promoStr)) return false;
   $promo = (float)$promoStr;
   return $promo > 0 && $promo < $price;
 }
@@ -41,15 +33,9 @@ if (!function_exists('badgeNew')) {
 if (!function_exists('normalize_color_hex')) {
   function normalize_color_hex($value, $default) {
     $value = trim((string)$value);
-    if ($value === '') {
-      return strtoupper($default);
-    }
-    if ($value[0] !== '#') {
-      $value = '#' . $value;
-    }
-    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
-      return strtoupper($default);
-    }
+    if ($value === '') return strtoupper($default);
+    if ($value[0] !== '#') $value = '#' . $value;
+    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) return strtoupper($default);
     if (strlen($value) === 4) {
       $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
     }
@@ -57,14 +43,15 @@ if (!function_exists('normalize_color_hex')) {
   }
 }
 
+/* ===== Cores do cardápio (NOVO MODELO) ===== */
 $headerTextColor   = normalize_color_hex($company['menu_header_text_color']       ?? '', '#FFFFFF');
-$headerButtonColor = normalize_color_hex($company['menu_header_button_color']    ?? '', '#FACC15');
-$headerBgColor     = normalize_color_hex($company['menu_header_bg_color']        ?? ($company['menu_logo_bg_color'] ?? ''), '#5B21B6');
-$logoBorderColor   = normalize_color_hex($company['menu_logo_border_color']      ?? ($company['menu_logo_bg_color'] ?? ''), '#7C3AED');
-$groupBgColor      = normalize_color_hex($company['menu_group_title_bg_color']   ?? '', '#FACC15');
-$groupTextColor    = normalize_color_hex($company['menu_group_title_text_color'] ?? '', '#000000');
-$welcomeBgColor    = normalize_color_hex($company['menu_welcome_bg_color']       ?? '', '#6B21A8');
-$welcomeText       = normalize_color_hex($company['menu_welcome_text_color']     ?? '', '#FFFFFF');
+$headerButtonColor = normalize_color_hex($company['menu_header_button_color']     ?? '', '#FACC15');
+$headerBgColor     = normalize_color_hex($company['menu_header_bg_color']         ?? ($company['menu_logo_bg_color'] ?? ''), '#5B21B6');
+$logoBorderColor   = normalize_color_hex($company['menu_logo_border_color']       ?? ($company['menu_logo_bg_color'] ?? ''), '#7C3AED');
+$groupBgColor      = normalize_color_hex($company['menu_group_title_bg_color']    ?? '', '#FACC15');
+$groupTextColor    = normalize_color_hex($company['menu_group_title_text_color']  ?? '', '#000000');
+$welcomeBgColor    = normalize_color_hex($company['menu_welcome_bg_color']        ?? '', '#6B21A8');
+$welcomeText       = normalize_color_hex($company['menu_welcome_text_color']      ?? '', '#FFFFFF');
 
 /* Variáveis vindas do controller (com fallbacks para evitar notices) */
 $q              = $q              ?? '';
@@ -95,15 +82,14 @@ $showFooterMenu = true;
     .no-focus-ring:focus-within,
     .no-focus-ring:target { outline: none !important; box-shadow: none !important; }
     .no-focus-ring { -webkit-tap-highlight-color: transparent; }
+
     .menu-header {
       color: <?= e($headerTextColor) ?>;
       --menu-header-text: <?= e($headerTextColor) ?>;
       --menu-header-button: <?= e($headerButtonColor) ?>;
       --menu-header-bg: <?= e($headerBgColor) ?>;
     }
-    .menu-header {
-      background-color: var(--menu-header-bg);
-    }
+    .menu-header { background-color: var(--menu-header-bg); }
     .menu-header .menu-header-title,
     .menu-header .menu-header-text,
     .menu-header .menu-header-link,
@@ -126,9 +112,8 @@ $showFooterMenu = true;
       align-items: center;
       justify-content: center;
     }
-    .menu-header .menu-header-meta strong {
-      color: var(--menu-header-button);
-    }
+    .menu-header .menu-header-meta strong { color: var(--menu-header-button); }
+
     .menu-header .menu-header-btn,
     .menu-header .menu-header-icon,
     .menu-header .status-badge {
@@ -136,6 +121,7 @@ $showFooterMenu = true;
       color: #ffffff;
     }
     .menu-header .status-badge.closed { opacity: 0.75; }
+
     .menu-header .menu-header-btn-outline {
       border: 1px solid var(--menu-header-button);
       color: var(--menu-header-button);
@@ -147,6 +133,7 @@ $showFooterMenu = true;
       background-color: var(--menu-header-button);
       color: #ffffff;
     }
+
     .category-tab {
       border: 1px solid #d1d5db;
       background-color: #ffffff;
@@ -166,6 +153,7 @@ $showFooterMenu = true;
       color: <?= e($groupTextColor) ?>;
     }
   </style>
+
   <div class="rounded-2xl overflow-hidden">
     <?php if ($bannerUrl): ?>
       <div class="relative">
@@ -181,65 +169,66 @@ $showFooterMenu = true;
            class="w-24 h-24 rounded-full object-cover border-4 absolute -top-10 right-6 pointer-events-none"
            style="background-color: <?= e($logoBorderColor) ?>; border-color: <?= e($logoBorderColor) ?>;"
            alt="<?= e($company['name'] ?? 'Logo') ?>">
+
       <div class="min-w-0 pr-28 menu-header-text">
         <h1 class="menu-header-title text-2xl font-bold"><?= e($company['name'] ?? 'Empresa') ?></h1>
 
         <!-- Linha de status + horário de hoje + info -->
         <div class="flex flex-wrap items-center gap-2 text-sm mt-1">
-            <?php $statusClass = !empty($isOpenNow) ? 'open' : 'closed'; ?>
-            <span class="status-badge menu-header-btn inline-flex items-center px-2 py-0.5 rounded-lg font-semibold <?= $statusClass ?>">
-              <?= !empty($isOpenNow) ? 'Aberto!' : 'Fechado' ?>
+          <?php $statusClass = !empty($isOpenNow) ? 'open' : 'closed'; ?>
+          <span class="status-badge menu-header-btn inline-flex items-center px-2 py-0.5 rounded-lg font-semibold <?= $statusClass ?>">
+            <?= !empty($isOpenNow) ? 'Aberto!' : 'Fechado' ?>
+          </span>
+
+          <?php if (!empty($todayLabel)): ?>
+            <button type="button" id="btn-hours" class="font-semibold menu-header-link"><?= e($todayLabel) ?></button>
+            <span id="btn-hours-ico" class="menu-header-icon inline-flex items-center justify-center w-5 h-5 rounded-full cursor-pointer" aria-hidden="true">i</span>
+          <?php endif; ?>
+
+          <?php if (!empty($company['min_order'])): ?>
+            <span class="menu-header-meta text-sm mt-1">
+              Pedido mínimo: <strong>R$ <?= number_format((float)$company['min_order'], 2, ',', '.') ?></strong>
             </span>
+          <?php endif; ?>
 
-            <?php if (!empty($todayLabel)): ?>
-              <button type="button" id="btn-hours" class="font-semibold menu-header-link"><?= e($todayLabel) ?></button>
-              <span id="btn-hours-ico" class="menu-header-icon inline-flex items-center justify-center w-5 h-5 rounded-full cursor-pointer" aria-hidden="true">i</span>
-            <?php endif; ?>
-
-            <?php if (!empty($company['min_order'])): ?>
-              <span class="menu-header-meta text-sm mt-1">
-                Pedido mínimo: <strong>R$ <?= number_format((float)$company['min_order'], 2, ',', '.') ?></strong>
+          <?php if (!empty($company['whatsapp'])): ?>
+            <a class="inline-flex items-center gap-1 underline menu-header-link" href="https://wa.me/<?= e(preg_replace('/\D+/', '', (string)$company['whatsapp'])) ?>" target="_blank" aria-label="WhatsApp">
+              <span class="menu-header-link-icon" aria-hidden="true">
+                <!-- Ícone WhatsApp -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-whatsapp" viewBox="0 0 16 16">
+                  <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                </svg>
               </span>
-            <?php endif; ?>
+              <span class="menu-header-link-text">WhatsApp</span>
+            </a>
+          <?php endif; ?>
 
-            <?php if (!empty($company['whatsapp'])): ?>
-              <a class="inline-flex items-center gap-1 underline menu-header-link" href="https://wa.me/<?= e(preg_replace('/\D+/', '', (string)$company['whatsapp'])) ?>" target="_blank" aria-label="WhatsApp">
-                <span class="menu-header-link-icon" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-whatsapp" viewBox="0 0 16 16">
-                    <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
-                  </svg>
-                </span>
-                <span class="menu-header-link-text">WhatsApp</span>
-              </a>
-            <?php endif; ?>
-
-            <!-- Login ou saudação do cliente -->
-            <?php if (!empty($customer) && isset($company['id']) && isset($customer['company_id']) && (int)$customer['company_id'] === (int)$company['id']): ?>
-              <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 self-center">
-                <span class="px-2 py-0.5 rounded-lg menu-header-btn font-semibold">
-                  Olá, <?= e($customer['name'] ?? 'Cliente') ?>
-                </span>
-                <form method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-logout') ?>" onsubmit="return confirm('Sair?')">
-                  <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
-                  <button class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">Sair</button>
-                </form>
-              </div>
-            <?php else: ?>
-              <div class="w-full sm:w-auto mt-2 sm:mt-0 self-center">
-                <button
-                  type="button"
-                  id="btn-open-login"
-                  class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">
-                  Entrar
-                </button>
-              </div>
-            <?php endif; ?>
-          </div>
-
-          <?php if (!empty($company['address'])): ?>
-            <div class="menu-header-text text-xs mt-1"><?= e($company['address']) ?></div>
+          <!-- Login ou saudação do cliente -->
+          <?php if (!empty($customer) && isset($company['id']) && isset($customer['company_id']) && (int)$customer['company_id'] === (int)$company['id']): ?>
+            <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 self-center">
+              <span class="px-2 py-0.5 rounded-lg menu-header-btn font-semibold">
+                Olá, <?= e($customer['name'] ?? 'Cliente') ?>
+              </span>
+              <form method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-logout') ?>" onsubmit="return confirm('Sair?')">
+                <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
+                <button class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">Sair</button>
+              </form>
+            </div>
+          <?php else: ?>
+            <div class="w-full sm:w-auto mt-2 sm:mt-0 self-center">
+              <button
+                type="button"
+                id="btn-open-login"
+                class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">
+                Entrar
+              </button>
+            </div>
           <?php endif; ?>
         </div>
+
+        <?php if (!empty($company['address'])): ?>
+          <div class="menu-header-text text-xs mt-1"><?= e($company['address']) ?></div>
+        <?php endif; ?>
       </div>
     </div>
 
