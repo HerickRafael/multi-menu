@@ -16,6 +16,7 @@ $hasCustomization = isset($hasCustomization) ? (bool)$hasCustomization : (!empty
 
 $slug  = (string)($company['slug'] ?? '');
 $pId   = (int)($product['id'] ?? 0);
+$homeUrl = base_url($slug !== '' ? $slug : '');
 
 /** É combo? */
 $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
@@ -102,9 +103,9 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
 <div class="app">
 
   <div class="hero-wrap">
-    <button class="nav-btn" onclick="history.back()" aria-label="Voltar">
+    <a class="nav-btn" href="<?= e($homeUrl) ?>" aria-label="Voltar">
       <svg viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+    </a>
     <div class="hero">
       <?php
       $img = (string)($product['image'] ?? '');
