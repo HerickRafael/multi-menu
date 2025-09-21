@@ -12,24 +12,16 @@ function badgePromo($p){
   if (!is_array($p)) return false;
   $price = isset($p['price']) ? (float)$p['price'] : 0;
   $promoRaw = $p['promo_price'] ?? null;
-  if ($price <= 0 || $promoRaw === null || $promoRaw === '') {
-    return false;
-  }
-  if (is_array($promoRaw)) {
-    $promoRaw = reset($promoRaw);
-  }
+  if ($price <= 0 || $promoRaw === null || $promoRaw === '') return false;
+  if (is_array($promoRaw)) $promoRaw = reset($promoRaw);
   $promoStr = trim((string)$promoRaw);
-  if ($promoStr === '') {
-    return false;
-  }
+  if ($promoStr === '') return false;
   $promoStr = str_replace(' ', '', $promoStr);
   if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
     $promoStr = str_replace('.', '', $promoStr);
   }
   $promoStr = str_replace(',', '.', $promoStr);
-  if (!is_numeric($promoStr)) {
-    return false;
-  }
+  if (!is_numeric($promoStr)) return false;
   $promo = (float)$promoStr;
   return $promo > 0 && $promo < $price;
 }
@@ -41,15 +33,9 @@ if (!function_exists('badgeNew')) {
 if (!function_exists('normalize_color_hex')) {
   function normalize_color_hex($value, $default) {
     $value = trim((string)$value);
-    if ($value === '') {
-      return strtoupper($default);
-    }
-    if ($value[0] !== '#') {
-      $value = '#' . $value;
-    }
-    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
-      return strtoupper($default);
-    }
+    if ($value === '') return strtoupper($default);
+    if ($value[0] !== '#') $value = '#' . $value;
+    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) return strtoupper($default);
     if (strlen($value) === 4) {
       $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
     }
@@ -57,12 +43,15 @@ if (!function_exists('normalize_color_hex')) {
   }
 }
 
-$headerColor    = normalize_color_hex($company['menu_header_text_color']      ?? '', '#FFFFFF');
-$logoBgColor    = normalize_color_hex($company['menu_logo_bg_color']          ?? '', '#FFFFFF');
-$groupBgColor   = normalize_color_hex($company['menu_group_title_bg_color']   ?? '', '#FACC15');
-$groupTextColor = normalize_color_hex($company['menu_group_title_text_color'] ?? '', '#000000');
-$welcomeBgColor = normalize_color_hex($company['menu_welcome_bg_color']       ?? '', '#6B21A8');
-$welcomeText    = normalize_color_hex($company['menu_welcome_text_color']     ?? '', '#FFFFFF');
+/* ===== Cores do cardápio (NOVO MODELO) ===== */
+$headerTextColor   = normalize_color_hex($company['menu_header_text_color']       ?? '', '#FFFFFF');
+$headerButtonColor = normalize_color_hex($company['menu_header_button_color']     ?? '', '#FACC15');
+$headerBgColor     = normalize_color_hex($company['menu_header_bg_color']         ?? ($company['menu_logo_bg_color'] ?? ''), '#5B21B6');
+$logoBorderColor   = normalize_color_hex($company['menu_logo_border_color']       ?? ($company['menu_logo_bg_color'] ?? ''), '#7C3AED');
+$groupBgColor      = normalize_color_hex($company['menu_group_title_bg_color']    ?? '', '#FACC15');
+$groupTextColor    = normalize_color_hex($company['menu_group_title_text_color']  ?? '', '#000000');
+$welcomeBgColor    = normalize_color_hex($company['menu_welcome_bg_color']        ?? '', '#6B21A8');
+$welcomeText       = normalize_color_hex($company['menu_welcome_text_color']      ?? '', '#FFFFFF');
 
 /* Variáveis vindas do controller (com fallbacks para evitar notices) */
 $q              = $q              ?? '';
@@ -93,37 +82,78 @@ $showFooterMenu = true;
     .no-focus-ring:focus-within,
     .no-focus-ring:target { outline: none !important; box-shadow: none !important; }
     .no-focus-ring { -webkit-tap-highlight-color: transparent; }
+
     .menu-header {
-      color: <?= e($headerColor) ?>;
-      --menu-header-color: <?= e($headerColor) ?>;
+      color: <?= e($headerTextColor) ?>;
+      --menu-header-text: <?= e($headerTextColor) ?>;
+      --menu-header-button: <?= e($headerButtonColor) ?>;
+      --menu-header-bg: <?= e($headerBgColor) ?>;
     }
-    .menu-header .status-badge,
+    .menu-header { background-color: var(--menu-header-bg); }
+    .menu-header .menu-header-title,
+    .menu-header .menu-header-text,
+    .menu-header .menu-header-link,
+    .menu-header .menu-header-link-text,
+    .menu-header .menu-header-meta {
+      color: var(--menu-header-text);
+    }
+    .menu-header .menu-header-link {
+      text-decoration-color: var(--menu-header-text);
+      transition: color .2s ease, text-decoration-color .2s ease;
+    }
+    .menu-header .menu-header-link:hover,
+    .menu-header .menu-header-link:focus-visible {
+      color: var(--menu-header-button);
+      text-decoration-color: var(--menu-header-button);
+    }
+    .menu-header .menu-header-link-icon {
+      color: var(--menu-header-button);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .menu-header .menu-header-meta strong { color: var(--menu-header-button); }
+
     .menu-header .menu-header-btn,
-    .menu-header .menu-header-icon {
-      background-color: var(--menu-header-color);
+    .menu-header .menu-header-icon,
+    .menu-header .status-badge {
+      background-color: var(--menu-header-button);
       color: #ffffff;
     }
-    .menu-header .status-badge.closed {
-      opacity: 0.65;
-    }
+    .menu-header .status-badge.closed { opacity: 0.75; }
+
     .menu-header .menu-header-btn-outline {
-      border: 1px solid var(--menu-header-color);
-      color: var(--menu-header-color);
+      border: 1px solid var(--menu-header-button);
+      color: var(--menu-header-button);
       background-color: transparent;
       transition: background-color .2s ease, color .2s ease;
     }
     .menu-header .menu-header-btn-outline:hover,
     .menu-header .menu-header-btn-outline:focus-visible {
-      background-color: var(--menu-header-color);
+      background-color: var(--menu-header-button);
       color: #ffffff;
     }
-    .menu-header .menu-header-link {
-      color: var(--menu-header-color);
+
+    .category-tab {
+      border: 1px solid #d1d5db;
+      background-color: #ffffff;
+      color: #4b5563;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color .2s ease, color .2s ease, border-color .2s ease;
     }
-    .menu-header .menu-header-link:hover {
-      opacity: .9;
+    .category-tab.active {
+      background-color: <?= e($groupBgColor) ?>;
+      border-color: <?= e($groupBgColor) ?>;
+      color: <?= e($groupTextColor) ?>;
+      font-weight: 600;
+    }
+    .menu-group-title {
+      background-color: <?= e($groupBgColor) ?>;
+      color: <?= e($groupTextColor) ?>;
     }
   </style>
+
   <div class="rounded-2xl overflow-hidden">
     <?php if ($bannerUrl): ?>
       <div class="relative">
@@ -131,78 +161,80 @@ $showFooterMenu = true;
         <div class="absolute inset-0 bg-black/30"></div>
       </div>
     <?php else: ?>
-      <div class="bg-purple-900 h-24"></div>
+      <div class="h-24" style="background-color: <?= e($headerBgColor) ?>;"></div>
     <?php endif; ?>
 
-    <div class="bg-purple-900 p-5 relative -mt-10 rounded-t-2xl no-focus-ring menu-header">
+    <div class="p-5 relative -mt-10 rounded-t-2xl no-focus-ring menu-header">
       <img src="<?= base_url($company['logo'] ?? 'assets/logo-placeholder.png') ?>"
-           class="w-24 h-24 rounded-full object-cover border-4 border-purple-700 absolute -top-10 right-6 pointer-events-none"
-           style="background-color: <?= e($logoBgColor) ?>;"
+           class="w-24 h-24 rounded-full object-cover border-4 absolute -top-10 right-6 pointer-events-none"
+           style="background-color: <?= e($logoBorderColor) ?>; border-color: <?= e($logoBorderColor) ?>;"
            alt="<?= e($company['name'] ?? 'Logo') ?>">
-      <div class="min-w-0 pr-28">
-        <h1 class="text-2xl font-bold"><?= e($company['name'] ?? 'Empresa') ?></h1>
+
+      <div class="min-w-0 pr-28 menu-header-text">
+        <h1 class="menu-header-title text-2xl font-bold"><?= e($company['name'] ?? 'Empresa') ?></h1>
 
         <!-- Linha de status + horário de hoje + info -->
         <div class="flex flex-wrap items-center gap-2 text-sm mt-1">
-            <?php $statusClass = !empty($isOpenNow) ? 'open' : 'closed'; ?>
-            <span class="status-badge inline-flex items-center px-2 py-0.5 rounded-lg font-semibold <?= $statusClass ?>">
-              <?= !empty($isOpenNow) ? 'Aberto!' : 'Fechado' ?>
+          <?php $statusClass = !empty($isOpenNow) ? 'open' : 'closed'; ?>
+          <span class="status-badge menu-header-btn inline-flex items-center px-2 py-0.5 rounded-lg font-semibold <?= $statusClass ?>">
+            <?= !empty($isOpenNow) ? 'Aberto!' : 'Fechado' ?>
+          </span>
+
+          <?php if (!empty($todayLabel)): ?>
+            <button type="button" id="btn-hours" class="font-semibold menu-header-link"><?= e($todayLabel) ?></button>
+            <span id="btn-hours-ico" class="menu-header-icon inline-flex items-center justify-center w-5 h-5 rounded-full cursor-pointer" aria-hidden="true">i</span>
+          <?php endif; ?>
+
+          <?php if (!empty($company['min_order'])): ?>
+            <span class="menu-header-meta text-sm mt-1">
+              Pedido mínimo: <strong>R$ <?= number_format((float)$company['min_order'], 2, ',', '.') ?></strong>
             </span>
+          <?php endif; ?>
 
-            <?php if (!empty($todayLabel)): ?>
-              <button type="button" id="btn-hours" class="font-semibold menu-header-link"><?= e($todayLabel) ?></button>
-              <span id="btn-hours-ico" class="menu-header-icon inline-flex items-center justify-center w-5 h-5 rounded-full cursor-pointer" aria-hidden="true">i</span>
-            <?php endif; ?>
-
-            <?php if (!empty($company['min_order'])): ?>
-              <span class="text-sm opacity-90 mt-1">
-                Pedido mínimo: <strong>R$ <?= number_format((float)$company['min_order'], 2, ',', '.') ?></strong>
-              </span>
-            <?php endif; ?>
-
-            <?php if (!empty($company['whatsapp'])): ?>
-              <a class="inline-flex items-center gap-1 underline menu-header-link" href="https://wa.me/<?= e(preg_replace('/\D+/', '', (string)$company['whatsapp'])) ?>" target="_blank" aria-label="WhatsApp">
-                <!-- ícone WhatsApp (SVG) -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#FACC14" class="bi bi-whatsapp" viewBox="0 0 16 16" aria-hidden="true">
+          <?php if (!empty($company['whatsapp'])): ?>
+            <a class="inline-flex items-center gap-1 underline menu-header-link" href="https://wa.me/<?= e(preg_replace('/\D+/', '', (string)$company['whatsapp'])) ?>" target="_blank" aria-label="WhatsApp">
+              <span class="menu-header-link-icon" aria-hidden="true">
+                <!-- Ícone WhatsApp -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-whatsapp" viewBox="0 0 16 16">
                   <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
                 </svg>
-                WhatsApp
-              </a>
-            <?php endif; ?>
+              </span>
+              <span class="menu-header-link-text">WhatsApp</span>
+            </a>
+          <?php endif; ?>
 
-            <!-- Login ou saudação do cliente -->
-            <?php if (!empty($customer) && isset($company['id']) && isset($customer['company_id']) && (int)$customer['company_id'] === (int)$company['id']): ?>
-              <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 self-center">
-                <span class="px-2 py-0.5 rounded-lg menu-header-btn font-semibold">
-                  Olá, <?= e($customer['name'] ?? 'Cliente') ?>
-                </span>
-                <form method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-logout') ?>" onsubmit="return confirm('Sair?')">
-                  <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
-                  <button class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">Sair</button>
-                </form>
-              </div>
-            <?php else: ?>
-              <div class="w-full sm:w-auto mt-2 sm:mt-0 self-center">
-                <button
-                  type="button"
-                  id="btn-open-login"
-                  class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">
-                  Entrar
-                </button>
-              </div>
-            <?php endif; ?>
-          </div>
-
-          <?php if (!empty($company['address'])): ?>
-            <div class="text-xs opacity-90 mt-1"><?= e($company['address']) ?></div>
+          <!-- Login ou saudação do cliente -->
+          <?php if (!empty($customer) && isset($company['id']) && isset($customer['company_id']) && (int)$customer['company_id'] === (int)$company['id']): ?>
+            <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 self-center">
+              <span class="px-2 py-0.5 rounded-lg menu-header-btn font-semibold">
+                Olá, <?= e($customer['name'] ?? 'Cliente') ?>
+              </span>
+              <form method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-logout') ?>" onsubmit="return confirm('Sair?')">
+                <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
+                <button class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">Sair</button>
+              </form>
+            </div>
+          <?php else: ?>
+            <div class="w-full sm:w-auto mt-2 sm:mt-0 self-center">
+              <button
+                type="button"
+                id="btn-open-login"
+                class="px-2 py-0.5 rounded-lg menu-header-btn-outline font-semibold">
+                Entrar
+              </button>
+            </div>
           <?php endif; ?>
         </div>
+
+        <?php if (!empty($company['address'])): ?>
+          <div class="menu-header-text text-xs mt-1"><?= e($company['address']) ?></div>
+        <?php endif; ?>
       </div>
     </div>
 
     <?php if (!empty($company['highlight_text'])): ?>
-      <div class="pt-3 px-0 ">
-        <p class="bg-purple-700 text-white p-5 rounded-xl text-sm">
+      <div class="p-4 rounded-xl" style="background-color: <?= e($welcomeBgColor) ?>20;">
+        <p class="p-3 rounded-xl text-sm" style="background-color: <?= e($welcomeBgColor) ?>; color: <?= e($welcomeText) ?>;">
           <?= nl2br(e($company['highlight_text'])) ?>
         </p>
       </div>
@@ -311,12 +343,15 @@ $showFooterMenu = true;
 </script>
 
 <!-- Abas (categorias) -->
+<?php $firstActiveAssigned = false; ?>
 <div class="flex gap-2 overflow-x-auto flex-nowrap mb-3 pb-1">
 <?php if ($mostraNovidade): ?>
-    <a href="#novidades" class="category-tab shrink-0 px-4 py-1.5 rounded-full bg-orange-400 text-white font-semibold">Novidades</a>
+  <?php $isActive = !$firstActiveAssigned; if ($isActive) { $firstActiveAssigned = true; } ?>
+    <a href="#novidades" class="category-tab shrink-0 px-4 py-1.5 rounded-full font-medium border<?= $isActive ? ' active' : '' ?>">Novidades</a>
 <?php endif; ?>
 <?php foreach ($categories as $c): ?>
-    <a href="#cat-<?= (int)$c['id'] ?>" class="category-tab shrink-0 px-4 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600"><?= e($c['name'] ?? 'Categoria') ?></a>
+  <?php $isActive = !$firstActiveAssigned; if ($isActive) { $firstActiveAssigned = true; } ?>
+    <a href="#cat-<?= (int)$c['id'] ?>" class="category-tab shrink-0 px-4 py-1.5 rounded-full font-medium border<?= $isActive ? ' active' : '' ?>"><?= e($c['name'] ?? 'Categoria') ?></a>
 <?php endforeach; ?>
 </div>
 
@@ -327,12 +362,9 @@ $showFooterMenu = true;
     if (!tabs.length) return;
 
     function activate(tab){
-      tabs.forEach(t => {
-        t.classList.remove('bg-orange-400','text-white','font-semibold');
-        t.classList.add('border','border-gray-300','bg-white','text-gray-600');
-      });
-      tab.classList.add('bg-orange-400','text-white','font-semibold');
-      tab.classList.remove('border','border-gray-300','bg-white','text-gray-600');
+      if (!tab) return;
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
     }
 
     tabs.forEach(t => t.addEventListener('click', () => activate(t)));
@@ -351,6 +383,8 @@ $showFooterMenu = true;
       activate(chosen);
     }
 
+    const initial = document.querySelector('.category-tab.active') || tabs[0];
+    activate(initial);
     window.addEventListener('scroll', onScroll);
     onScroll();
   })();
@@ -402,7 +436,7 @@ $showFooterMenu = true;
 <!-- ======== BLOCOS NO TOPO ======== -->
 <?php if ($mostraNovidade): ?>
   <a id="novidades"></a>
-  <h2 class="text-xl font-bold inline-block px-3 py-1 rounded-lg mb-2" style="background-color: <?= e($groupBgColor) ?>; color: <?= e($groupTextColor) ?>;">Novidades</h2>
+  <h2 class="menu-group-title text-xl font-bold inline-block px-3 py-1 rounded-lg mb-2">Novidades</h2>
   <div class="grid gap-3 mb-6">
     <?php foreach ($novidades as $p): ?>
       <?php include __DIR__ . '/partials_card.php'; ?>
@@ -416,7 +450,7 @@ $showFooterMenu = true;
 
 <?php foreach ($categories as $c): ?>
   <a id="cat-<?= (int)$c['id'] ?>"></a>
-  <h2 class="text-xl font-bold inline-block px-3 py-1 rounded-lg mb-2" style="background-color: <?= e($groupBgColor) ?>; color: <?= e($groupTextColor) ?>;">
+  <h2 class="menu-group-title text-xl font-bold inline-block px-3 py-1 rounded-lg mb-2">
     <?= e($c['name'] ?? 'Categoria') ?>
   </h2>
   <?php $items = array_values(array_filter($products, fn($p)=> (int)($p['category_id'] ?? 0) === (int)$c['id'])); ?>

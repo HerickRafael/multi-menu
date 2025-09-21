@@ -12,11 +12,8 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
--- noinspection SqlResolve
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
--- noinspection SqlResolve
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
--- noinspection SqlResolve
 /*!40101 SET NAMES utf8mb4 */;
 
 --
@@ -39,7 +36,9 @@ CREATE TABLE `companies` (
   `logo` varchar(255) DEFAULT NULL,
   `banner` varchar(255) DEFAULT NULL,
   `menu_header_text_color` varchar(20) DEFAULT NULL,
-  `menu_logo_bg_color` varchar(20) DEFAULT NULL,
+  `menu_header_button_color` varchar(20) DEFAULT NULL,
+  `menu_header_bg_color` varchar(20) DEFAULT NULL,
+  `menu_logo_border_color` varchar(20) DEFAULT NULL,
   `menu_group_title_bg_color` varchar(20) DEFAULT NULL,
   `menu_group_title_text_color` varchar(20) DEFAULT NULL,
   `menu_welcome_bg_color` varchar(20) DEFAULT NULL,
@@ -48,8 +47,15 @@ CREATE TABLE `companies` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `companies` (`id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `min_order`, `avg_delivery_min_from`, `avg_delivery_min_to`, `logo`, `banner`, `menu_header_text_color`, `menu_logo_bg_color`, `menu_group_title_bg_color`, `menu_group_title_text_color`, `menu_welcome_bg_color`, `menu_welcome_text_color`, `active`, `created_at`) VALUES
-(1, 'wollburger', 'Wollburger', '55', '', '', NULL, NULL, NULL, NULL, NULL, '#FFFFFF', '#FFFFFF', '#FACC15', '#000000', '#6B21A8', '#FFFFFF', 1, '2025-09-11 01:38:16');
+INSERT INTO `companies` (
+  `id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `min_order`,
+  `avg_delivery_min_from`, `avg_delivery_min_to`, `logo`, `banner`,
+  `menu_header_text_color`, `menu_header_button_color`, `menu_header_bg_color`,
+  `menu_logo_border_color`, `menu_group_title_bg_color`, `menu_group_title_text_color`,
+  `menu_welcome_bg_color`, `menu_welcome_text_color`, `active`, `created_at`
+) VALUES
+(1, 'wollburger', 'Wollburger', '55', '', '', NULL, NULL, NULL, NULL, NULL,
+ '#FFFFFF', '#FACC15', '#5B21B6', '#7C3AED', '#FACC15', '#000000', '#6B21A8', '#FFFFFF', 1, '2025-09-11 01:38:16');
 
 -- --------------------------------------------------------
 -- Estrutura da tabela `categories`
@@ -400,7 +406,5 @@ ALTER TABLE `users`
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
--- noinspection SqlResolve
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
--- noinspection SqlResolve
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
