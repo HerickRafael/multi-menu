@@ -74,7 +74,7 @@ class AdminProductController extends Controller {
     unset($_SESSION['flash_error']);
 
     $cats  = Category::allByCompany((int)$company['id']);
-    $items = Product::listByCompany((int)$company['id'], $_GET['q'] ?? null);
+    $items = Product::listByCompany((int)$company['id'], $_GET['q'] ?? null, false);
 
     return $this->view('admin/products/index', compact('company','cats','items','error'));
   }
