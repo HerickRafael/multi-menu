@@ -21,9 +21,26 @@ $homeUrl = base_url($slug !== '' ? $slug : '');
 /** É combo? */
 $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
 
-/** URLs (ajuste às suas rotas reais) */
-$customizeBase = base_url($slug . '/produto/' . $pId . '/customizar');          // GET (tela de customização)
-$addToCartUrl  = base_url($slug . '/orders/add');                                // POST (adiciona ao carrinho)
+/** URLs */
+$customizeBase = base_url($slug . '/produto/' . $pId . '/customizar');
+$addToCartUrl  = base_url($slug . '/orders/add');
+
+/** Helper para forçar caminho local em /uploads a partir de URL ou nome */
+if (!function_exists('local_upload_src')) {
+  function local_upload_src(?string $maybeUrlOrName, string $fallback = 'assets/logo-placeholder.png'): string {
+    $raw = trim((string)($maybeUrlOrName ?? ''));
+    if ($raw === '') {
+      return base_url($fallback);
+    }
+    // extrai apenas o caminho/arquivo (ignora domínio e querystring)
+    $path = parse_url($raw, PHP_URL_PATH);
+    $base = basename($path ?: $raw);
+    if ($base === '' || $base === '/' ) {
+      return base_url($fallback);
+    }
+    return base_url('uploads/' . $base);
+  }
+}
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -38,32 +55,55 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
     --bg:#f3f4f6; --card:#fff; --txt:#0f172a; --muted:#6b7280;
     --border:#e5e7eb; --accent:#ef4444; --ring:#fbbf24;
     --cta:#f59e0b; --cta-press:#d97706;
+    --hero-h: 360px; /* altura do hero (ajuste se quiser mais/menos corte) */
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
   @media (min-width:768px){ .app{max-width:375px} }
 
-  .hero-wrap{position:relative;padding:56px 0 120px;display:flex;align-items:flex-end;justify-content:center;min-height:360px}
-  .nav-btn{position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
-    background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer}
-  .hero-visual{position:absolute;top:72px;left:50%;transform:translateX(-50%);width:min(90%,390px);height:360px;
-    border-radius:28px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);
-    overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 38px rgba(15,23,42,0.08);z-index:0;
-    pointer-events:none}
-  .hero-visual img{width:100%;height:100%;object-position:center;object-fit:var(--hero-fit, contain);
-    filter:drop-shadow(0 18px 34px rgba(0,0,0,.22))}
-  .hero-visual[data-fit="cover"] img{object-fit:cover}
-  .hero-toggle{position:absolute;top:20px;right:16px;z-index:2;display:flex;gap:6px;background:rgba(255,255,255,0.82);
-    border:1px solid rgba(15,23,42,0.08);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:600;color:#1f2937;
-    backdrop-filter:blur(8px)}
-  .hero-toggle button{appearance:none;border:none;background:transparent;padding:4px 10px;border-radius:999px;cursor:pointer;
-    color:inherit;font:inherit}
-  .hero-toggle button[aria-pressed="true"]{background:#111827;color:#fff}
+  /* ===== HERO ===== */
+  .hero-wrap{
+    position: relative;
+    height: var(--hero-h); /* área visível do topo */
+    overflow: hidden;      /* o excedente da imagem fica “por trás” */
+  }
+  .nav-btn{
+    position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
+    background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer
+  }
+  .hero{ /* fundo/gradiente por trás da imagem */
+    position:absolute;inset:0;
+    background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);
+    z-index:0;
+  }
+  /* Imagem: largura total, centralizada (X e Y) e recortada pelos limites do hero */
+  .hero-product{
+    position:absolute;
+    left:50%; top:50%;
+    transform: translate(-50%, -50%); /* centraliza nos dois eixos */
+    width:100%;
+    height:auto;         /* mantém proporção */
+    max-height:none;
+    display:block;
+    z-index:1;
+    filter: drop-shadow(0 18px 34px rgba(0,0,0,.25));
+    pointer-events:none;
+    user-select:none;
+  }
 
-  .card{position:relative;background:var(--card);border-radius:26px 26px 0 0;margin-top:-8px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px;z-index:1}
+  /* ===== CARD ===== */
+  .card{
+    position: relative;
+    z-index: 4;                   /* garante ficar sobre o hero */
+    background:var(--card);
+    border-radius:26px 26px 0 0;
+    margin-top:-18px;             /* sobrepõe um pouco a imagem, estilo “app delivery” */
+    padding:16px 16px 8px;
+    box-shadow:0 -1px 0 var(--border);
+    display:flex;flex-direction:column;gap:16px
+  }
   .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:13px}
-  .brand .dot{width:18px;height:18px;border-radius:999px;background:#ffb703;display:grid;place-items:center;color:#7c2d12;font-weight:800;font-size:11px}
   h1{margin:2px 0 0;font-size:20px;line-height:1.25;font-weight:700}
   .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
   .price{display:flex;flex-direction:column;gap:4px}
@@ -81,6 +121,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .section h3{margin:8px 0 6px;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
   .body{font-size:14px;color:#374151;line-height:1.5}
 
+  /* ===== PERSONALIZAR ===== */
   .customize-wrap{background:var(--card)}
   .customize{padding:24px 16px}
   .btn-outline{width:100%;background:#fff;color:#111;border:1px solid #d8d8d8;border-radius:12px;padding:18px;font-size:18px;font-weight:500;
@@ -89,6 +130,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .btn-outline .chev{display:grid;place-items:center}
   .btn-outline .chev svg{width:22px;height:22px}
 
+  /* ===== COMBO ===== */
   .combo{background:var(--card);padding:8px 0 8px}
   .combo .group{padding:10px 16px 0}
   .combo h2{font-size:32px;line-height:1.1;margin:12px 0 8px;font-weight:800;letter-spacing:-0.5px}
@@ -104,6 +146,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
 
+  /* ===== FOOTER/CTA ===== */
   .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
   .cta{width:100%;border:none;border-radius:16px;padding:14px 16px;background:var(--cta);color:#1f2937;font-weight:800;font-size:16px;cursor:pointer}
   .cta:active{background:var(--cta-press)}
@@ -124,18 +167,15 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
       </svg>
     </a>
 
+    <!-- Fundo/gradiente -->
+    <div class="hero" aria-hidden="true"></div>
+
+    <!-- Imagem do produto (sempre do /uploads) -->
     <?php
-      $imagePath = trim((string)($product['image'] ?? ''));
-      $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
-      $imgAlt = $imagePath !== '' ? ($product['name'] ?? 'Produto') : 'Imagem do produto';
+      $imgSrc = local_upload_src($product['image'] ?? null);
+      $imgAlt = !empty($product['name']) ? $product['name'] : 'Imagem do produto';
     ?>
-    <div class="hero-toggle" role="group" aria-label="Modo de exibição da imagem">
-      <button type="button" data-fit="contain" aria-pressed="true">Contain</button>
-      <button type="button" data-fit="cover" aria-pressed="false">Cover</button>
-    </div>
-    <div class="hero-visual" data-fit="contain">
-      <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
-    </div>
+    <img class="hero-product" src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
   </div>
 
   <main class="card" role="main">
@@ -207,10 +247,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   <?php if ($hasCustomization): ?>
   <div class="customize-wrap">
     <div class="customize">
-      <?php
-        // Construímos a URL com qty atual via JS; deixamos href “limpo” como fallback
-        $customizeUrl = $customizeBase;
-      ?>
+      <?php $customizeUrl = $customizeBase; ?>
       <a class="btn-outline" id="btn-customize" href="<?= e($customizeUrl) ?>">
         <span>
           <strong>Personalizar</strong>
@@ -235,14 +272,15 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
           <?php foreach ($items as $ii => $opt): ?>
             <?php
               $isDefault = !empty($opt['default']);
-              $img = (string)($opt['image'] ?? '');
               $optPrice = (isset($opt['delta']) ? (float)$opt['delta'] : 0.0);
               $priceLabel = $optPrice != 0.0 ? price_br($optPrice) : 'Incluído';
+
+              // Força imagem do item do combo vir de /uploads
+              $comboImg = local_upload_src($opt['image'] ?? null);
             ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
-                <?php $comboImg = $img !== '' ? base_url($img) : base_url('assets/logo-placeholder.png'); ?>
-                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
+               <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
@@ -277,21 +315,6 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
 </div>
 
 <script>
-  // ===== Hero fit toggle =====
-  const hero = document.querySelector('.hero-visual');
-  const toggleButtons = document.querySelectorAll('.hero-toggle button');
-  if (hero && toggleButtons.length) {
-    toggleButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const fit = btn.getAttribute('data-fit') === 'cover' ? 'cover' : 'contain';
-        hero.setAttribute('data-fit', fit);
-        toggleButtons.forEach(control => {
-          control.setAttribute('aria-pressed', control === btn ? 'true' : 'false');
-        });
-      });
-    });
-  }
-
   // ===== Qty stepper =====
   const stepper = document.querySelector('.stepper');
   const qval   = document.getElementById('qval');
@@ -307,7 +330,6 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   // Botão Personalizar: acrescenta qty atual na URL (opcional)
   const btnCust = document.getElementById('btn-customize');
   btnCust?.addEventListener('click', (ev)=>{
-    // deixa o link normal funcionar; apenas ajusta o href antes
     const base = btnCust.getAttribute('href') || '<?= e($customizeBase) ?>';
     const qty  = parseInt(qval?.textContent||'1',10) || 1;
     const url  = new URL(base, window.location.origin);
