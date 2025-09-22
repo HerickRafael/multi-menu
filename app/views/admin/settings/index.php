@@ -37,6 +37,22 @@ $colorValues = [];
 foreach ($colorDefaults as $key => $default) {
   $colorValues[$key] = settings_color_value($company[$key] ?? '', $default);
 }
+
+$logoSrc = null;
+if (!empty($company['logo'])) {
+  $logoFile = basename((string)$company['logo']);
+  if ($logoFile !== '' && $logoFile !== '.' && $logoFile !== '..') {
+    $logoSrc = base_url('uploads/' . $logoFile);
+  }
+}
+
+$bannerSrc = null;
+if (!empty($company['banner'])) {
+  $bannerFile = basename((string)$company['banner']);
+  if ($bannerFile !== '' && $bannerFile !== '.' && $bannerFile !== '..') {
+    $bannerSrc = base_url('uploads/' . $bannerFile);
+  }
+}
 ob_start(); ?>
 <h1 class="text-2xl font-bold mb-4">Configurações gerais</h1>
 
@@ -140,16 +156,16 @@ ob_start(); ?>
   <div class="grid md:grid-cols-2 gap-4">
     <div>
       <span class="text-sm block mb-1">Logo (quadrado) – jpg/png/webp</span>
-      <?php if (!empty($company['logo'])): ?>
-        <img src="<?= base_url($company['logo']) ?>" class="w-20 h-20 object-cover rounded-xl mb-2" alt="Logo atual">
+      <?php if ($logoSrc): ?>
+        <img src="<?= e($logoSrc) ?>" class="w-20 h-20 object-cover rounded-xl mb-2" alt="Logo atual">
       <?php endif; ?>
       <input type="file" name="logo" accept=".jpg,.jpeg,.png,.webp" class="border rounded-xl p-2 w-full">
     </div>
 
     <div>
       <span class="text-sm block mb-1">Banner (largura) – jpg/png/webp</span>
-      <?php if (!empty($company['banner'])): ?>
-        <img src="<?= base_url($company['banner']) ?>" class="w-full max-w-md h-24 object-cover rounded-xl mb-2" alt="Banner atual">
+      <?php if ($bannerSrc): ?>
+        <img src="<?= e($bannerSrc) ?>" class="w-full max-w-md h-24 object-cover rounded-xl mb-2" alt="Banner atual">
       <?php endif; ?>
       <input type="file" name="banner" accept=".jpg,.jpeg,.png,.webp" class="border rounded-xl p-2 w-full">
     </div>

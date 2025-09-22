@@ -151,8 +151,16 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       </label>
       <div class="flex flex-col items-center gap-2">
         <span class="text-xs text-gray-500">Pré-visualização</span>
+        <?php
+          $previewRaw = $p['image'] ?? '';
+          $previewFile = basename((string)$previewRaw);
+          if ($previewFile === '' || $previewFile === '.' || $previewFile === '..') {
+            $previewFile = 'logo-placeholder.png';
+          }
+          $previewSrc = base_url('uploads/' . $previewFile);
+        ?>
         <img id="image-preview"
-             src="<?= !empty($p['image']) ? e(base_url($p['image'])) : e(base_url('assets/logo-placeholder.png')) ?>"
+             src="<?= e($previewSrc) ?>"
              alt="Pré-visualização"
              class="w-32 h-32 object-cover rounded-lg border">
       </div>

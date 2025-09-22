@@ -23,7 +23,12 @@ $publicSlug = rawurlencode((string)($company['slug'] ?? ''));
 $title      = "Dashboard - " . ($company['name'] ?? 'Empresa');
 
 // Logo com fallback
-$companyLogo = $company['logo'] ?? 'assets/logo-placeholder.png';
+$companyLogoRaw = $company['logo'] ?? '';
+$companyLogoFile = basename((string)$companyLogoRaw);
+if ($companyLogoFile === '' || $companyLogoFile === '.' || $companyLogoFile === '..') {
+  $companyLogoFile = 'logo-placeholder.png';
+}
+$companyLogo = 'uploads/' . $companyLogoFile;
 
 ob_start(); ?>
 
@@ -143,9 +148,20 @@ ob_start(); ?>
       <?php $show = array_slice($products, 0, 8); ?>
       <?php foreach ($show as $p): ?>
         <li class="py-2 flex items-center gap-3">
-          <?php if (!empty($p['image'])): ?>
-            <img src="<?= e(base_url($p['image'])) ?>" class="w-10 h-10 object-cover rounded-lg" alt="">
-          <?php else: ?>
+          <?php
+            $dashImageShown = false;
+            if (!empty($p['image'])) {
+              $dashImgFile = basename((string)$p['image']);
+              if ($dashImgFile !== '' && $dashImgFile !== '.' && $dashImgFile !== '..') {
+                $dashImgSrc = base_url('uploads/' . $dashImgFile);
+                $dashImageShown = true;
+          ?>
+            <img src="<?= e($dashImgSrc) ?>" class="w-10 h-10 object-cover rounded-lg" alt="<?= e($p['name'] ?? '') ?>">
+          <?php
+              }
+            }
+            if (!$dashImageShown):
+          ?>
             <div class="w-10 h-10 rounded-lg bg-slate-200"></div>
           <?php endif; ?>
           <div class="flex-1">

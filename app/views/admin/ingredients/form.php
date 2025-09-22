@@ -7,6 +7,13 @@ $action  = $editing
   : 'admin/' . $slug . '/ingredients';
 
 $image = $ingredient['image_path'] ?? null;
+$imageSrc = null;
+if (!empty($image)) {
+  $imageFile = basename((string)$image);
+  if ($imageFile !== '' && $imageFile !== '.' && $imageFile !== '..') {
+    $imageSrc = base_url('uploads/' . $imageFile);
+  }
+}
 
 $unitOptions = [
   ['value' => 'un', 'label' => 'Unidade (un)'],
@@ -134,8 +141,8 @@ ob_start(); ?>
         <input type="file" name="image" accept="image/*" class="hidden">
         <span>Enviar imagem</span>
       </label>
-      <?php if ($image): ?>
-        <img src="<?= e(base_url($image)) ?>" alt="" class="w-14 h-14 rounded-full object-cover border">
+      <?php if ($imageSrc): ?>
+        <img src="<?= e($imageSrc) ?>" alt="" class="w-14 h-14 rounded-full object-cover border">
       <?php else: ?>
         <span class="text-xs text-slate-500">Sem imagem</span>
       <?php endif; ?>

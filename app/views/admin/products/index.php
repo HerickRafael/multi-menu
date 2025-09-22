@@ -35,8 +35,17 @@ ob_start(); ?>
     foreach ($items as $p): ?>
     <tr class="border-t">
       <td class="p-3">
-        <?php if ($p['image']): ?>
-          <img src="<?= base_url($p['image']) ?>" class="w-12 h-12 object-cover rounded-lg">
+        <?php
+          $prodImgSrc = null;
+          if (!empty($p['image'])) {
+            $prodImgFile = basename((string)$p['image']);
+            if ($prodImgFile !== '' && $prodImgFile !== '.' && $prodImgFile !== '..') {
+              $prodImgSrc = base_url('uploads/' . $prodImgFile);
+            }
+          }
+          if ($prodImgSrc):
+        ?>
+          <img src="<?= e($prodImgSrc) ?>" class="w-12 h-12 object-cover rounded-lg" alt="<?= e($p['name']) ?>">
         <?php endif; ?>
       </td>
       <td class="p-3"><?= e($p['name']) ?></td>

@@ -57,9 +57,20 @@ ob_start(); ?>
     <tr class="border-t">
       <td class="p-3">
         <div class="flex items-center gap-3">
-          <?php if (!empty($item['image_path'])): ?>
-            <img src="<?= e(base_url($item['image_path'])) ?>" alt="" class="w-10 h-10 rounded-full object-cover">
-          <?php else: ?>
+          <?php
+            $ingredientImageShown = false;
+            if (!empty($item['image_path'])) {
+              $ingredientImgFile = basename((string)$item['image_path']);
+              if ($ingredientImgFile !== '' && $ingredientImgFile !== '.' && $ingredientImgFile !== '..') {
+                $ingredientImgSrc = base_url('uploads/' . $ingredientImgFile);
+                $ingredientImageShown = true;
+          ?>
+            <img src="<?= e($ingredientImgSrc) ?>" alt="" class="w-10 h-10 rounded-full object-cover">
+          <?php
+              }
+            }
+            if (!$ingredientImageShown):
+          ?>
             <div class="w-10 h-10 rounded-full bg-slate-200 grid place-items-center text-slate-500 text-xs">IMG</div>
           <?php endif; ?>
           <div>

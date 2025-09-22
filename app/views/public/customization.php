@@ -45,6 +45,7 @@ foreach (($mods ?? []) as $gIndex => $g) {
 // URLs
 $backUrl = base_url($slug . '/produto/' . $pId);
 $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
+$uploadPlaceholder = base_url('uploads/logo-placeholder.png');
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -156,7 +157,14 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
             $img   = $it['img'] ?? null; ?>
             <div class="row radio" data-radio="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
               <div class="thumb">
-                <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
+                <?php
+                  $optImgRaw = $img ?? '';
+                  $optImgFile = basename((string)$optImgRaw);
+                  $optImgSrc = ($optImgFile !== '' && $optImgFile !== '.' && $optImgFile !== '..')
+                    ? base_url('uploads/' . $optImgFile)
+                    : $uploadPlaceholder;
+                ?>
+                <img src="<?= e($optImgSrc) ?>" alt="" onerror="this.src='<?= e($uploadPlaceholder) ?>'">
               </div>
               <div class="info">
                 <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
@@ -190,7 +198,14 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
             ?>
               <div class="row checkbox" data-group="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
                 <div class="thumb">
-                  <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
+                  <?php
+                    $choiceImgRaw = $img ?? '';
+                    $choiceImgFile = basename((string)$choiceImgRaw);
+                    $choiceImgSrc = ($choiceImgFile !== '' && $choiceImgFile !== '.' && $choiceImgFile !== '..')
+                      ? base_url('uploads/' . $choiceImgFile)
+                      : $uploadPlaceholder;
+                  ?>
+                  <img src="<?= e($choiceImgSrc) ?>" alt="" onerror="this.src='<?= e($uploadPlaceholder) ?>'">
                 </div>
                 <div class="info">
                   <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
@@ -220,7 +235,14 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
             ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">
                 <div class="thumb">
-                  <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
+                  <?php
+                    $rowImgRaw = $img ?? '';
+                    $rowImgFile = basename((string)$rowImgRaw);
+                    $rowImgSrc = ($rowImgFile !== '' && $rowImgFile !== '.' && $rowImgFile !== '..')
+                      ? base_url('uploads/' . $rowImgFile)
+                      : $uploadPlaceholder;
+                  ?>
+                  <img src="<?= e($rowImgSrc) ?>" alt="" onerror="this.src='<?= e($uploadPlaceholder) ?>'">
                 </div>
                 <div class="info">
                   <?php $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii+1)); ?>

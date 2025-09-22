@@ -1,6 +1,14 @@
 <a href="<?= base_url(rawurlencode((string)($company['slug'] ?? '')) . '/produto/' . (int)$p['id']) ?>" class="block">
   <div class="rounded-2xl shadow p-4 bg-white border flex gap-3 hover:bg-gray-50">
-    <img src="<?= base_url($p['image'] ?: 'assets/logo-placeholder.png') ?>"
+    <?php
+      $productImgRaw = $p['image'] ?? '';
+      $productImgFile = basename((string)$productImgRaw);
+      if ($productImgFile === '' || $productImgFile === '.' || $productImgFile === '..') {
+        $productImgFile = 'logo-placeholder.png';
+      }
+      $productImgSrc = base_url('uploads/' . $productImgFile);
+    ?>
+    <img src="<?= e($productImgSrc) ?>"
          alt="<?= e($p['name']) ?>"
          class="w-24 h-24 object-cover rounded-xl">
 

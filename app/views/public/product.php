@@ -24,6 +24,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
 /** URLs (ajuste às suas rotas reais) */
 $customizeBase = base_url($slug . '/produto/' . $pId . '/customizar');          // GET (tela de customização)
 $addToCartUrl  = base_url($slug . '/orders/add');                                // POST (adiciona ao carrinho)
+$uploadPlaceholder = base_url('uploads/logo-placeholder.png');
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -127,7 +128,12 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
 
     <?php
       $imagePath = trim((string)($product['image'] ?? ''));
-      $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
+      $imageFile = basename($imagePath);
+      if ($imageFile === '' || $imageFile === '.' || $imageFile === '..') {
+        $imgSrc = $uploadPlaceholder;
+      } else {
+        $imgSrc = base_url('uploads/' . $imageFile);
+      }
       $imgAlt = $imagePath !== '' ? ($product['name'] ?? 'Produto') : 'Imagem do produto';
     ?>
     <div class="hero-toggle" role="group" aria-label="Modo de exibição da imagem">
@@ -242,8 +248,15 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
             ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
-                <?php $comboImg = $img !== '' ? base_url($img) : base_url('assets/logo-placeholder.png'); ?>
-                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name] ?? '') ?>">
+                <?php
+                  $comboImgFile = basename($img);
+                  if ($comboImgFile === '' || $comboImgFile === '.' || $comboImgFile === '..') {
+                    $comboImg = $uploadPlaceholder;
+                  } else {
+                    $comboImg = base_url('uploads/' . $comboImgFile);
+                  }
+                ?>
+                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
