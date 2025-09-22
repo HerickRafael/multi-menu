@@ -117,6 +117,10 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
           </button>
         </div>
+        <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
+               readonly
+               class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+        <small class="text-xs text-slate-500">Definido automaticamente em ordem crescente e sem repetições.</small>
       </label>
     </div>
 
