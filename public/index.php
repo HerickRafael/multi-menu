@@ -1,37 +1,36 @@
 <?php
 // public/index.php
 
-<<<<<<< Updated upstream
+// ===============================================================
+// 1) Define APP_WEBROOT corretamente (sem o "/public" no final)
+//    - Se a app estiver na raiz, APP_WEBROOT = ''
+//    - Se estiver em subpasta (ex.: /multi-menu/public), APP_WEBROOT = '/multi-menu'
+// ===============================================================
 if (!defined('APP_WEBROOT')) {
-  $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-  $webroot = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
-  if ($webroot === '/' || $webroot === '.') {
-    $webroot = '';
+  $sn  = $_SERVER['SCRIPT_NAME'] ?? '/index.php';                 // ex.: "/index.php" ou "/multi-menu/public/index.php"
+  $dir = rtrim(str_replace('\\', '/', dirname($sn)), '/');        // ex.: "" ou "/multi-menu/public"
+  // remove o sufixo "/public" se existir
+  if ($dir !== '' && $dir !== '/' && substr($dir, -7) === '/public') {
+    $dir = substr($dir, 0, -7);                                   // ex.: "/multi-menu"
   }
-  define('APP_WEBROOT', $webroot);
+  if ($dir === '/' || $dir === '.' ) $dir = '';
+  define('APP_WEBROOT', $dir);                                    // '' ou '/multi-menu'
 }
 
-=======
-// ===== Boot básico / includes =====
->>>>>>> Stashed changes
+// ===============================================================
+// 2) Bootstrap básico / includes
+//    (Helpers podem usar APP_WEBROOT se precisarem)
+// ===============================================================
 require_once __DIR__ . '/../app/core/Helpers.php';
 require_once __DIR__ . '/../app/core/Router.php';
 require_once __DIR__ . '/../app/core/Controller.php';
 require_once __DIR__ . '/../app/config/db.php';
 
-// ===== Detecta automaticamente o webroot (raiz ou subpasta) =====
-if (!defined('APP_WEBROOT')) {
-  $sn   = $_SERVER['SCRIPT_NAME'] ?? '/index.php';         // ex.: "/index.php" ou "/multi-menu/public/index.php"
-  $base = rtrim(str_replace('\\', '/', dirname($sn)), '/'); // ex.: "" ou "/multi-menu/public"
-  define('APP_WEBROOT', ($base === '' || $base === '/') ? '' : $base);
-}
-
-// (opcional) se seus helpers dependem de APP_WEBROOT, eles já podem usá-la agora
-
-// ===== Instancia o Router =====
+// ===============================================================
+// 3) Instancia o Router e (opcional) handlers de erro
+// ===============================================================
 $router = new Router();
 
-// (Opcional) Handlers de erro/404 se o Router suportar
 if (method_exists($router, 'setNotFoundHandler')) {
   $router->setNotFoundHandler(function ($uri) {
     http_response_code(404);
@@ -46,54 +45,52 @@ if (method_exists($router, 'setErrorHandler')) {
   });
 }
 
-// ===== Carrega as rotas da aplicação =====
+// ===============================================================
+// 4) Carrega as rotas da aplicação
+// ===============================================================
 require_once __DIR__ . '/../routes/web.php';
 
-<<<<<<< Updated upstream
-// --- Normalização robusta da URI/base path ---
-$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
-$basePath = defined('APP_WEBROOT') ? (string)APP_WEBROOT : '';
-if ($basePath === '/' || $basePath === '.') {
-  $basePath = '';
-}
-
-if ($basePath !== '' && strpos($uri, $basePath) === 0) {
-  // Remove /multi-menu/public (ou pasta equivalente) da URI
-  $uri = substr($uri, strlen($basePath));
-=======
-// ===== Normaliza a URI da requisição =====
+// ===============================================================
+// 5) Normaliza a URI da requisição para extrair o path de roteamento
+//    - Remove prefixos do diretório onde está o index.php (ex.: "/multi-menu/public")
+//    - Também remove APP_WEBROOT do início, se presente
+//    - Aceita fallback via ?route=/algo
+// ===============================================================
 $reqUri = $_SERVER['REQUEST_URI'] ?? '/';
 $path   = parse_url($reqUri, PHP_URL_PATH) ?? '/';
 
-// Remove o prefixo do diretório onde está o index.php (ex.: "/multi-menu/public")
+// Remove diretório do script (ex.: "/multi-menu/public")
 $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
 if ($scriptDir && $scriptDir !== '/' && strpos($path, $scriptDir) === 0) {
-  $path = substr($path, strlen($scriptDir)); // agora vira "/wollburger" em vez de "/multi-menu/public/wollburger"
->>>>>>> Stashed changes
+  $path = substr($path, strlen($scriptDir));
 }
 
-// Fallback: algumas apps passam rota em ?route=...
+// Remove APP_WEBROOT do início (ex.: "/multi-menu")
+$basePath = (string) APP_WEBROOT;
+if ($basePath === '/' || $basePath === '.') $basePath = '';
+if ($basePath !== '' && strpos($path, $basePath) === 0) {
+  $path = substr($path, strlen($basePath));
+}
+
+// Fallback: rota em ?route=/...
 if (isset($_GET['route']) && $_GET['route'] !== '') {
   $path = '/' . ltrim((string)$_GET['route'], '/');
 }
 
 // Limpezas finais
 $path = rawurldecode($path);
-$path = '/' . ltrim($path, '/');              // sempre começa com "/"
-$path = preg_replace('~/{2,}~', '/', $path);  // remove barras duplas
+$path = '/' . ltrim($path, '/');             // garante início com "/"
+$path = preg_replace('~/{2,}~', '/', $path); // remove barras duplas
 if ($path === '//') $path = '/';
 
-// ===== Despacha =====
+// ===============================================================
+// 6) Despacha
+// ===============================================================
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// Garanta que a home "/" exista nas suas rotas.
-// Se sua app não tiver uma rota explícita para "/", você pode:
-// - Renderizar a home aqui, OU
-// - Redirecionar para uma página inicial (ex.: "/wollburger").
-//
-// Exemplo de redirecionamento opcional (descomente se quiser):
+// Exemplo de redirecionamento opcional da home para outra página:
 // if ($path === '/') {
-//   header('Location: /wollburger', true, 302);
+//   header('Location: ' . (APP_WEBROOT ? APP_WEBROOT : '') . '/wollburger', true, 302);
 //   exit;
 // }
 
