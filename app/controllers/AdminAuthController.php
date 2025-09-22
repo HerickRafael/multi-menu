@@ -7,6 +7,21 @@ require_once __DIR__ . '/../models/Company.php';
 
 class AdminAuthController extends Controller
 {
+  /** GET /admin */
+  public function landing(): void
+  {
+    Auth::start();
+
+    $defaultSlug = Company::defaultSlug();
+    if ($defaultSlug) {
+      header('Location: ' . base_url('admin/' . rawurlencode($defaultSlug) . '/login'));
+      exit;
+    }
+
+    http_response_code(404);
+    echo "Nenhuma empresa ativa configurada.";
+  }
+
   /** GET /admin/{slug}/login */
   public function loginForm(array $params)
   {

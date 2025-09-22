@@ -3,6 +3,9 @@
  * app/views/public/product.php
  * Página pública do produto
  * ============================================================================ */
+// sua app está servindo em /multi-menu/public
+define('APP_WEBROOT', '/multi-menu/public');
+
 
 if (!function_exists('e')) {
   function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }

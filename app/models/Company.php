@@ -40,6 +40,28 @@ class Company
         return $row ?: null;
     }
 
+    /** Slug padrão configurado (ou primeira empresa ativa) */
+    public static function defaultSlug(): ?string {
+        $configured = null;
+        if (function_exists('config')) {
+            $configured = config('default_company_slug');
+        }
+        if (is_string($configured)) {
+            $configured = trim($configured);
+        }
+        if (!empty($configured)) {
+            return $configured;
+        }
+
+        $st = db()->prepare("SELECT slug FROM companies WHERE active = 1 ORDER BY id ASC LIMIT 1");
+        $st->execute();
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$row || empty($row['slug'])) {
+            return null;
+        }
+        return $row['slug'];
+    }
+
     /** Busca empresa pelo ID */
     public static function find(int $id): ?array {
         $st = db()->prepare("SELECT * FROM companies WHERE id = ? LIMIT 1");
