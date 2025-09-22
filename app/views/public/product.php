@@ -73,11 +73,10 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .price-current{font-size:24px;font-weight:800}
   .price-discount{font-size:16px;font-weight:700;color:#059669}
 
-  .qty{display:flex;align-items:center;gap:8px}
-  .btn-circ{width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--card);display:grid;place-items:center;cursor:pointer}
-  .btn-circ svg{width:18px;height:18px}
-  .btn-red{background:var(--accent);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(239,68,68,.28)}
-  .qty-badge{min-width:32px;height:32px;border-radius:999px;border:1px solid var(--border);display:grid;place-items:center;font-weight:700}
+  .stepper{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:999px;padding:6px 10px;min-width:104px;justify-content:space-between}
+  .st-btn{width:32px;height:32px;border-radius:999px;background:#fff;border:none;display:grid;place-items:center;cursor:pointer}
+  .st-btn svg{width:18px;height:18px}
+  .st-val{min-width:20px;text-align:center;font-weight:700}
 
   .section h3{margin:8px 0 6px;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
   .body{font-size:14px;color:#374151;line-height:1.5}
@@ -184,13 +183,13 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
         <?php endif; ?>
       </div>
 
-      <div class="qty" aria-label="Selecionar quantidade">
-        <button type="button" class="btn-circ" id="qminus" aria-label="Diminuir">
-          <svg viewBox="0 0 24 24"><path d="M5 12h14" stroke="#111827" stroke-width="2" stroke-linecap="round"/></svg>
+      <div class="stepper" aria-label="Selecionar quantidade">
+        <button class="st-btn" type="button" data-act="dec" aria-label="Diminuir">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14" stroke="#111" stroke-width="2" stroke-linecap="round"></path></svg>
         </button>
-        <div class="qty-badge" id="qval">1</div>
-        <button type="button" class="btn-circ btn-red" id="qplus" aria-label="Aumentar">
-          <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="st-val" id="qval" data-role="val">1</div>
+        <button class="st-btn" type="button" data-act="inc" aria-label="Aumentar">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#111" stroke-width="2" stroke-linecap="round"></path></svg>
         </button>
       </div>
     </div>
@@ -243,7 +242,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
                 <?php $comboImg = $img !== '' ? base_url($img) : base_url('assets/logo-placeholder.png'); ?>
-                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name] ?? '') ?>">
+                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
@@ -294,15 +293,16 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   }
 
   // ===== Qty stepper =====
+  const stepper = document.querySelector('.stepper');
   const qval   = document.getElementById('qval');
   const qfield = document.getElementById('qtyField');
-  const minus  = document.getElementById('qminus');
-  const plus   = document.getElementById('qplus');
+  const minus  = stepper?.querySelector('[data-act="dec"]');
+  const plus   = stepper?.querySelector('[data-act="inc"]');
   const clamp  = n => Math.max(1, Math.min(99, n|0));
-  function setQty(n){ const v = clamp(n); qval.textContent = String(v); qfield.value = String(v); }
-  minus?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)-1));
-  plus?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)+1));
-  function attach(e){ setQty(parseInt(qval.textContent,10)||1); return true; }
+  function setQty(n){ const v = clamp(n); if(qval) qval.textContent = String(v); if(qfield) qfield.value = String(v); }
+  minus?.addEventListener('click', ()=> setQty(parseInt(qval?.textContent||'1',10)-1));
+  plus?.addEventListener('click', ()=> setQty(parseInt(qval?.textContent||'1',10)+1));
+  function attach(e){ setQty(parseInt(qval?.textContent||'1',10)||1); return true; }
 
   // Botão Personalizar: acrescenta qty atual na URL (opcional)
   const btnCust = document.getElementById('btn-customize');
