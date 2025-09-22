@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/Helpers.php';
+require_once __DIR__ . '/../models/Company.php';
+
 class Auth {
   public static function start(): void {
     $cfg = config();
@@ -38,10 +41,21 @@ class Auth {
 
   /** Exige admin logado (redireciona pro login) */
   public static function requireAdmin(): void {
-    if (!self::checkAdmin()) {
-      header("Location: " . base_url("admin/login"));
-      exit;
+    if (self::checkAdmin()) {
+      return;
     }
+
+    $slug = self::activeCompanySlug();
+    if (!$slug) {
+      $slug = Company::defaultSlug();
+    }
+
+    if ($slug) {
+      header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
+    } else {
+      header('Location: ' . base_url('admin/login'));
+    }
+    exit;
   }
 
   /** company_id padrão do usuário (pode ser null para root) */

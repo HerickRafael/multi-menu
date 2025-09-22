@@ -4,6 +4,34 @@ require_once __DIR__ . '/../config/db.php';
 
 class Company
 {
+    /** Retorna o slug padrão configurado ou a primeira empresa ativa */
+    public static function defaultSlug(): ?string {
+        static $cached = false;
+        static $value = null;
+
+        if ($cached) {
+            return $value;
+        }
+
+        $cached = true;
+
+        $cfg = config('default_company_slug');
+        if (is_string($cfg) && trim($cfg) !== '') {
+            $value = trim($cfg);
+            return $value;
+        }
+
+        $st = db()->prepare("SELECT slug FROM companies WHERE active = 1 ORDER BY id ASC LIMIT 1");
+        if ($st->execute()) {
+            $slug = $st->fetchColumn();
+            if (is_string($slug) && $slug !== '') {
+                $value = $slug;
+            }
+        }
+
+        return $value;
+    }
+
     /** Busca empresa pelo slug (url amigável) */
     public static function findBySlug(string $slug): ?array {
         $st = db()->prepare("SELECT * FROM companies WHERE slug = ? LIMIT 1");

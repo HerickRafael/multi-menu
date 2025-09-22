@@ -4,6 +4,7 @@ return [
   'env' => 'local',
   'debug' => true,
   'base_url' => null, // será detectado automaticamente se vazio
+  'default_company_slug' => null,
   'session_name' => 'mm_session',
   'timezone' => 'America/Sao_Paulo',
 

@@ -6,6 +6,10 @@ require_once __DIR__ . '/../app/core/Router.php';
 require_once __DIR__ . '/../app/core/Controller.php';
 require_once __DIR__ . '/../app/config/db.php';
 
+if (!defined('APP_WEBROOT')) {
+  define('APP_WEBROOT', '');
+}
+
 $router = new Router();
 
 // (Opcional) Handlers de erro/404 se o Router suportar
