@@ -47,16 +47,8 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .hero-wrap{position:relative;padding-top:56px;display:flex;flex-direction:column;align-items:center;gap:18px}
   .nav-btn{position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
     background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer}
-  .hero-grid{display:flex;flex-direction:column;gap:18px;width:100%;align-items:center}
-  @media (min-width:640px){ .hero-grid{flex-direction:row;justify-content:center} }
-  .hero{position:relative;width:100%;max-width:390px;height:360px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);
-    border-radius:28px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;
-    box-shadow:0 18px 38px rgba(15,23,42,0.08)}
-  .hero picture{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-  .hero img{width:100%;height:100%;object-position:center;filter:drop-shadow(0 18px 34px rgba(0,0,0,.22))}
-  .hero--contain img{object-fit:contain}
-  .hero--cover img{object-fit:cover}
-  .hero figcaption{margin-top:auto;font-size:13px;color:#4b5563;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .hero{position:relative;width:100%;height:360px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .hero img{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(360px,90%);max-height:82%;object-fit:contain;filter:drop-shadow(0 18px 34px rgba(0,0,0,.25));z-index:0;pointer-events:none}
 
   .card{position:relative;background:var(--card);border-radius:26px 26px 0 0;margin-top:-8px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px;z-index:1}
   .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:13px}
@@ -121,24 +113,13 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
               transform="scale(0.7) translate(5 5)"></path>
       </svg>
     </a>
-    <?php
-      $imagePath = trim((string)($product['image'] ?? ''));
-      $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
-      $imgAlt = $imagePath !== '' ? ($product['name'] ?? 'Produto') : 'Imagem do produto';
-    ?>
-    <div class="hero-grid">
-      <figure class="hero hero--contain">
-        <picture>
-          <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
-        </picture>
-        <figcaption>object-fit: contain</figcaption>
-      </figure>
-      <figure class="hero hero--cover">
-        <picture>
-          <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
-        </picture>
-        <figcaption>object-fit: cover</figcaption>
-      </figure>
+    <div class="hero">
+      <?php
+        $imagePath = trim((string)($product['image'] ?? ''));
+        $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
+        $imgAlt = $imagePath !== '' ? ($product['name'] ?? 'Produto') : 'Imagem do produto';
+      ?>
+      <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
     </div>
   </div>
 
