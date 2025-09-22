@@ -117,7 +117,6 @@ ob_start(); ?>
     <div class="mb-3 text-3xl font-bold"><?= (int)count($products) ?></div>
     <div class="flex gap-2">
       <a class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50" href="<?= e(base_url('admin/' . $slug . '/products')) ?>">Ver todos</a>
-      <a class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50" href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>">+ Novo</a>
     </div>
   </div>
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -125,7 +124,6 @@ ob_start(); ?>
     <div class="mb-3 text-3xl font-bold"><?= (int)$ingredientsCount ?></div>
     <div class="flex gap-2">
       <a class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50" href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>">Ver todos</a>
-      <a class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50" href="<?= e(base_url('admin/' . $slug . '/ingredients/create')) ?>">+ Novo</a>
     </div>
   </div>
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -133,7 +131,6 @@ ob_start(); ?>
     <div class="mb-3 text-3xl font-bold"><?= (int)$ordersCount ?></div>
     <div class="flex gap-2">
       <a class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50" href="<?= e(base_url('admin/' . $slug . '/orders')) ?>">Ver pedidos</a>
-      <a class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50" href="<?= e(base_url('admin/' . $slug . '/orders/create')) ?>">+ Novo</a>
     </div>
   </div>
 </div>
@@ -159,7 +156,7 @@ ob_start(); ?>
   <!-- Produtos recentes -->
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
     <div class="mb-2 flex items-center justify-between">
-      <h2 class="font-semibold text-slate-800">Produtos (últimos cadastrados)</h2>
+      <h2 class="font-semibold text-slate-800">Produtos </h2>
       <a class="rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50" href="<?= e(base_url('admin/' . $slug . '/products')) ?>">Ver todos</a>
     </div>
     <ul class="divide-y text-sm">
