@@ -124,6 +124,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
               transform="scale(0.7) translate(5 5)"></path>
       </svg>
     </a>
+
     <?php
       $imagePath = trim((string)($product['image'] ?? ''));
       $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
@@ -242,7 +243,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
                 <?php $comboImg = $img !== '' ? base_url($img) : base_url('assets/logo-placeholder.png'); ?>
-                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
+                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
