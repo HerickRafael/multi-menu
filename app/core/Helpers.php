@@ -8,8 +8,78 @@ function config($key = null) {
 function base_url(string $path = ''): string {
   $b = config('base_url');
   if (!$b) {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scheme = 'http';
+
+    // Prioritize standard HTTPS indicators
+    if (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') {
+      $scheme = 'https';
+    } else {
+      $forwardedProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['HTTP_X_FORWARDED_SCHEME'] ?? '';
+      if ($forwardedProto !== '') {
+        $forwardedProto = trim(explode(',', $forwardedProto)[0]);
+        if (strtolower($forwardedProto) === 'https') {
+          $scheme = 'https';
+        }
+      }
+
+      if ($scheme !== 'https') {
+        $forwardedSsl = $_SERVER['HTTP_X_FORWARDED_SSL'] ?? $_SERVER['HTTP_FRONT_END_HTTPS'] ?? '';
+        if (strtolower((string)$forwardedSsl) === 'on') {
+          $scheme = 'https';
+        }
+      }
+
+      if ($scheme !== 'https' && !empty($_SERVER['HTTP_CF_VISITOR'])) {
+        $cfVisitor = json_decode((string)$_SERVER['HTTP_CF_VISITOR'], true);
+        if (is_array($cfVisitor) && isset($cfVisitor['scheme']) && strtolower((string)$cfVisitor['scheme']) === 'https') {
+          $scheme = 'https';
+        }
+      }
+
+      if ($scheme !== 'https' && !empty($_SERVER['HTTP_FORWARDED'])) {
+        $forwardedEntries = preg_split('/,\s*/', $_SERVER['HTTP_FORWARDED']);
+        foreach ($forwardedEntries as $entry) {
+          $forwardedParts = explode(';', $entry);
+          foreach ($forwardedParts as $part) {
+            [$key, $value] = array_map('trim', array_pad(explode('=', $part, 2), 2, ''));
+            $value = trim($value, '"');
+            if (strtolower($key) === 'proto' && strtolower($value) === 'https') {
+              $scheme = 'https';
+              break 2;
+            }
+          }
+        }
+      }
+    }
+
+    $host = null;
+    if (!empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+      $host = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_HOST'])[0]);
+    }
+
+    if (!$host && !empty($_SERVER['HTTP_FORWARDED'])) {
+      $forwardedEntries = preg_split('/,\s*/', $_SERVER['HTTP_FORWARDED']);
+      foreach ($forwardedEntries as $entry) {
+        $forwardedParts = explode(';', $entry);
+        foreach ($forwardedParts as $part) {
+          [$key, $value] = array_map('trim', array_pad(explode('=', $part, 2), 2, ''));
+          $value = trim($value, '"');
+          if (strtolower($key) === 'host' && $value !== '') {
+            $host = $value;
+            break 2;
+          }
+        }
+      }
+    }
+
+    if (!$host && !empty($_SERVER['HTTP_X_FORWARDED_SERVER'])) {
+      $host = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_SERVER'])[0]);
+    }
+
+    if (!$host) {
+      $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+    }
+
     $dir    = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
     $b      = $scheme . '://' . $host . ($dir ? $dir : '');
   }
