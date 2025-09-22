@@ -1,42 +1,29 @@
+# multi-menu/public/.htaccess
+
 Options -Indexes
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /
 
-<<<<<<< Updated upstream
-  # HTTPS atrás de proxy
-=======
-  # Como o DocumentRoot já é /multi-menu/public, a base é só /
-  RewriteBase /
+  # IMPORTANTE: como está em subpasta, use:
+  RewriteBase /multi-menu/
 
-  # Reconhece HTTPS mesmo atrás do proxy (Cloudflare Tunnel)
->>>>>>> Stashed changes
+  # HTTPS atrás de proxy (Cloudflare / Tunnel)
   RewriteCond %{HTTP:X-Forwarded-Proto} =https [OR]
   RewriteCond %{HTTPS} =on
   RewriteRule ^ - [E=IS_HTTPS:1]
 
-<<<<<<< Updated upstream
-  # Arquivo/pasta existe → serve direto
-=======
-  # (Opcional) Forçar HTTPS – descomente se quiser
+  # (Opcional) Forçar HTTPS – descomente se quiser:
   # RewriteCond %{ENV:IS_HTTPS} !=1
   # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # Se o arquivo ou pasta existir, serve direto (imagens, css, js)
->>>>>>> Stashed changes
+  # Arquivo/pasta existe → serve direto
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-<<<<<<< Updated upstream
   # Roteia para index.php
-  RewriteRule ^ index.php [QSA,L]
-</IfModule>
-
-AddType image/webp .webp
-=======
-  # Senão, manda para index.php
-  RewriteRule ^ index.php [QSA,L]
+  RewriteRule ^ index.php [L]
 </IfModule>
 
 <IfModule mod_headers.c>
@@ -48,7 +35,6 @@ AddType image/webp .webp
 
 AddType image/svg+xml .svg .svgz
 AddType application/javascript .js
-AddType image/webp .webp
 
 <IfModule mod_expires.c>
   ExpiresActive On
@@ -59,7 +45,5 @@ AddType image/webp .webp
   ExpiresByType image/gif "access plus 30 days"
   ExpiresByType image/svg+xml "access plus 30 days"
   ExpiresByType font/woff2 "access plus 30 days"
-  ExpiresByType image/webp "access plus 30 days"
   ExpiresDefault "access plus 1 day"
 </IfModule>
->>>>>>> Stashed changes

@@ -7,22 +7,6 @@ if (!function_exists('base_url')) {
     return $b . '/' . ltrim((string)$p, '/');
   }
 }
-if (!function_exists('upload_image_url')) {
-  function upload_image_url($value, string $fallback = 'logo-placeholder.png') {
-    $raw = is_string($value) || is_numeric($value) ? trim((string)$value) : '';
-    if ($raw === '') {
-      $raw = $fallback;
-    }
-    $raw = str_replace('\\', '/', (string)$raw);
-    $raw = explode('?', $raw, 2)[0];
-    $raw = explode('#', $raw, 2)[0];
-    $filename = basename($raw);
-    if ($filename === '' || $filename === '.' || $filename === '..') {
-      $filename = 'logo-placeholder.png';
-    }
-    return base_url('uploads/' . ltrim($filename, '/'));
-  }
-}
 
 // Normalizações seguras
 $company            = is_array($company ?? null) ? $company : [];
@@ -39,12 +23,12 @@ $publicSlug = rawurlencode((string)($company['slug'] ?? ''));
 $title      = "Dashboard - " . ($company['name'] ?? 'Empresa');
 
 // Logo com fallback
-$companyLogo = upload_image_url($company['logo'] ?? '');
+$companyLogo = $company['logo'] ?? 'assets/logo-placeholder.png';
 
 ob_start(); ?>
 
 <header class="flex items-center gap-3 mb-6">
-  <img src="<?= e($companyLogo) ?>" class="w-12 h-12 rounded-xl object-cover" alt="<?= e($company['name'] ?? 'Logo') ?>">
+  <img src="<?= e(base_url($companyLogo)) ?>" class="w-12 h-12 rounded-xl object-cover" alt="Logo">
   <div>
     <h1 class="text-xl font-bold"><?= e($company['name'] ?? '') ?></h1>
     <p class="text-sm text-gray-600">
@@ -158,9 +142,12 @@ ob_start(); ?>
     <ul class="divide-y">
       <?php $show = array_slice($products, 0, 8); ?>
       <?php foreach ($show as $p): ?>
-        <?php $productImage = upload_image_url($p['image'] ?? ''); ?>
         <li class="py-2 flex items-center gap-3">
-          <img src="<?= e($productImage) ?>" class="w-10 h-10 object-cover rounded-lg" alt="<?= e($p['name'] ?? 'Produto') ?>">
+          <?php if (!empty($p['image'])): ?>
+            <img src="<?= e(base_url($p['image'])) ?>" class="w-10 h-10 object-cover rounded-lg" alt="">
+          <?php else: ?>
+            <div class="w-10 h-10 rounded-lg bg-slate-200"></div>
+          <?php endif; ?>
           <div class="flex-1">
             <div class="font-medium text-sm"><?= e($p['name'] ?? '') ?></div>
             <div class="text-xs text-gray-500">

@@ -1,76 +1,7 @@
 <?php
 // routes/web.php
 
-require_once __DIR__ . '/../app/models/Company.php';
-
-/** Resolve o slug padrão configurado ou a primeira empresa ativa */
-if (!function_exists('resolve_default_company_slug')) {
-  function resolve_default_company_slug(): ?string {
-    return Company::defaultSlug();
-  }
-}
-
-/** Renderiza o cardápio público para a empresa padrão */
-if (!function_exists('render_default_menu')) {
-  function render_default_menu(): void {
-    $slug = resolve_default_company_slug();
-    if (!$slug) {
-      http_response_code(404);
-      echo 'Cardápio não configurado.';
-      return;
-    }
-
-    require_once __DIR__ . '/../app/controllers/PublicHomeController.php';
-    $controller = new PublicHomeController();
-    $controller->index(['slug' => $slug]);
-  }
-}
-
-/* ========= Rotas sem slug explícito ========= */
-$router->get('/', function () {
-  render_default_menu();
-});
-
-$router->get('/cardapio', function () {
-  render_default_menu();
-});
-
-$router->get('/dashboard', function () {
-  $slug = resolve_default_company_slug();
-  if (!$slug) {
-    http_response_code(404);
-    echo 'Empresa não configurada.';
-    return;
-  }
-  header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/dashboard'));
-  exit;
-});
-
-$router->get('/admin', function () {
-  $slug = resolve_default_company_slug();
-  if (!$slug) {
-    http_response_code(404);
-    echo 'Empresa não configurada.';
-    return;
-  }
-  header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
-  exit;
-});
-
-$router->get('/admin/login', function () {
-  $slug = resolve_default_company_slug();
-  if (!$slug) {
-    http_response_code(404);
-    echo 'Empresa não configurada.';
-    return;
-  }
-  header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
-  exit;
-});
-
 /* ========= Rotas públicas (cardápio) ========= */
-$router->get('/',                             'PublicHomeController@defaultMenu');
-$router->get('/cardapio',                     'PublicHomeController@defaultMenu');
 $router->get('/{slug}',                       'PublicHomeController@index');
 $router->get('/{slug}/buscar',                'PublicHomeController@buscar');
 $router->get('/{slug}/produto/{id}',          'PublicProductController@show');
@@ -91,12 +22,10 @@ $router->get('/{slug}/customer-me',           'CustomerAuthController@me');
 
 /* ========= Rotas admin ========= */
 // Auth + Dashboard
-$router->get('/admin',                        'AdminAuthController@landing');
 $router->get('/admin/{slug}/login',           'AdminAuthController@loginForm');
 $router->post('/admin/{slug}/login',          'AdminAuthController@login');
 $router->get('/admin/{slug}/logout',          'AdminAuthController@logout');
 $router->get('/admin/{slug}/dashboard',       'AdminDashboardController@index');
-$router->get('/dashboard',                    'AdminDashboardController@shortcut');
 
 // Configurações
 $router->get('/admin/{slug}/settings',        'AdminSettingsController@index');

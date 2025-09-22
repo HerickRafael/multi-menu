@@ -151,10 +151,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       </label>
       <div class="flex flex-col items-center gap-2">
         <span class="text-xs text-gray-500">Pré-visualização</span>
-        <?php $previewImage = upload_image_url($p['image'] ?? ''); ?>
         <img id="image-preview"
-             src="<?= e($previewImage) ?>"
-             alt="Pré-visualização de <?= e($p['name'] ?? 'produto') ?>"
+             src="<?= !empty($p['image']) ? e(base_url($p['image'])) : e(base_url('assets/logo-placeholder.png')) ?>"
+             alt="Pré-visualização"
              class="w-32 h-32 object-cover rounded-lg border">
       </div>
     </div>

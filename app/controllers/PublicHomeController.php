@@ -54,34 +54,12 @@ class PublicHomeController extends Controller
   }
 
   /** HOME */
-  public function defaultMenu(): void
-  {
-    $defaultSlug = Company::defaultSlug();
-    if (!$defaultSlug) {
-      http_response_code(404);
-      echo "Nenhuma empresa ativa configurada.";
-      return;
-    }
-
-    $this->index(['slug' => $defaultSlug]);
-  }
-
-  /** HOME */
   public function index($params) {
     $slug = $params['slug'] ?? null;
     $q    = isset($_GET['q']) ? trim($_GET['q']) : '';
 
     $company = Company::findBySlug($slug);
-    if (!$company || !$company['active']) {
-      $fallbackSlug = Company::defaultSlug();
-      if ($fallbackSlug && $fallbackSlug !== $slug) {
-        header('Location: ' . base_url(rawurlencode($fallbackSlug)));
-        exit;
-      }
-      http_response_code(404);
-      echo "Empresa não encontrada";
-      return;
-    }
+    if (!$company || !$company['active']) { http_response_code(404); echo "Empresa não encontrada"; return; }
 
     date_default_timezone_set(config('timezone') ?? 'America/Sao_Paulo');
 

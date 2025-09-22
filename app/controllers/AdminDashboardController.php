@@ -85,38 +85,4 @@ class AdminDashboardController extends Controller
       'activeSlug'
     ));
   }
-
-  /** GET /dashboard */
-  public function shortcut(): void
-  {
-    Auth::start();
-
-    if (!Auth::checkAdmin()) {
-      header('Location: ' . base_url('admin'));
-      exit;
-    }
-
-    $slug = Auth::activeCompanySlug();
-    if (!$slug) {
-      $companyId = Auth::activeCompanyId();
-      if ($companyId) {
-        $company = Company::find((int)$companyId);
-        if ($company && !empty($company['slug'])) {
-          $slug = $company['slug'];
-        }
-      }
-    }
-
-    if (!$slug) {
-      $slug = Company::defaultSlug();
-    }
-
-    if ($slug) {
-      header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/dashboard'));
-      exit;
-    }
-
-    http_response_code(404);
-    echo "Nenhuma empresa ativa configurada.";
-  }
 }

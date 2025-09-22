@@ -35,8 +35,9 @@ ob_start(); ?>
     foreach ($items as $p): ?>
     <tr class="border-t">
       <td class="p-3">
-        <?php $productImage = upload_image_url($p['image'] ?? ''); ?>
-        <img src="<?= e($productImage) ?>" class="w-12 h-12 object-cover rounded-lg" alt="<?= e($p['name']) ?>">
+        <?php if ($p['image']): ?>
+          <img src="<?= base_url($p['image']) ?>" class="w-12 h-12 object-cover rounded-lg">
+        <?php endif; ?>
       </td>
       <td class="p-3"><?= e($p['name']) ?></td>
       <td class="p-3"><?= e($byId[$p['category_id']] ?? '-') ?></td>

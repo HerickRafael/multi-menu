@@ -45,7 +45,6 @@ foreach (($mods ?? []) as $gIndex => $g) {
 // URLs
 $backUrl = base_url($slug . '/produto/' . $pId);
 $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
-$thumbFallback = upload_image_url(null);
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -154,15 +153,13 @@ $thumbFallback = upload_image_url(null);
           ?>
           <?php foreach ($items as $ii => $it):
             $isSel = ($ii === $selectedIndex);
-            $imgRaw = $it['img'] ?? '';
-            $thumbSrc = upload_image_url($imgRaw);
-            $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1));
-          ?>
+            $img   = $it['img'] ?? null; ?>
             <div class="row radio" data-radio="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
               <div class="thumb">
-                <img src="<?= e($thumbSrc) ?>" alt="<?= e($optName) ?>" onerror="this.src='<?= e($thumbFallback) ?>'">
+                <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
               </div>
               <div class="info">
+                <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
                 <div class="name"><?= e($optName) ?></div>
                 <?php $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : 0.0; ?>
                 <?php if ($sale > 0): ?>
@@ -187,17 +184,16 @@ $thumbFallback = upload_image_url(null);
           ?>
           <div class="list choice" data-group="g<?= (int)$gi ?>" data-min="<?= (int)$minSel ?>" data-max="<?= (int)$maxSel ?>">
             <?php foreach ($items as $ii => $it):
-              $imgRaw = $it['img'] ?? '';
+              $img   = $it['img'] ?? null;
               $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
               $isSel = !empty($it['selected']) || !empty($it['default']);
-              $thumbSrc = upload_image_url($imgRaw);
-              $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1));
             ?>
               <div class="row checkbox" data-group="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
                 <div class="thumb">
-                  <img src="<?= e($thumbSrc) ?>" alt="<?= e($optName) ?>" onerror="this.src='<?= e($thumbFallback) ?>'">
+                  <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
                 </div>
                 <div class="info">
+                  <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
                   <div class="name"><?= e($optName) ?></div>
                   <?php if ($sale > 0): ?>
                     <div class="price"><?= price_br($sale) ?></div>
@@ -216,19 +212,18 @@ $thumbFallback = upload_image_url(null);
         <?php else: ?>
           <div class="list" aria-label="<?= e($gName) ?>">
             <?php foreach ($items as $ii => $it):
-              $imgRaw = $it['img'] ?? '';
+              $img   = $it['img'] ?? null;
               $min   = isset($it['min']) ? (int)$it['min'] : 0;
               $max   = isset($it['max']) ? (int)$it['max'] : 5;
               $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? (int)($it['default_qty'] ?? $min) : $min);
               $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
-              $thumbSrc = upload_image_url($imgRaw);
-              $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii+1));
             ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">
                 <div class="thumb">
-                  <img src="<?= e($thumbSrc) ?>" alt="<?= e($itemName) ?>" onerror="this.src='<?= e($thumbFallback) ?>'">
+                  <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
                 </div>
                 <div class="info">
+                  <?php $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii+1)); ?>
                   <div class="name"><?= e($itemName) ?></div>
                   <?php if ($sale > 0): ?>
                     <div class="price"><?= price_br($sale) ?></div>
