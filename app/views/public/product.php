@@ -44,8 +44,8 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
   @media (min-width:768px){ .app{max-width:375px} }
 
-  .hero-wrap{position:relative}
-  .nav-btn{position:absolute;top:12px;left:12px;z-index:2;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
+  .hero-wrap{position:relative;padding-top:56px;display:flex;flex-direction:column;align-items:center;gap:18px}
+  .nav-btn{position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
     background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer}
   .hero{position:relative;width:100%;height:360px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);overflow:hidden;display:flex;align-items:center;justify-content:center}
   .hero img{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(360px,90%);max-height:82%;object-fit:contain;filter:drop-shadow(0 18px 34px rgba(0,0,0,.25));z-index:0;pointer-events:none}
