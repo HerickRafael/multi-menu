@@ -1,37 +1,129 @@
 <?php
+// admin/categories/index.php — Lista de categorias (versão moderna)
+
 $title = "Categorias - " . ($company['name'] ?? '');
-$slug = rawurlencode($company['slug']);
+$slug  = rawurlencode((string)($company['slug'] ?? ''));
+
+// helper de escape (se ainda não existir)
+if (!function_exists('e')) {
+  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
+
 ob_start(); ?>
-<header class="flex items-center gap-3 mb-4">
-  <h1 class="text-2xl font-bold">Categorias</h1>
-    <a href="<?= e(base_url('admin/' . $slug . '/categories/create')) ?>" class="ml-auto px-3 py-2 rounded-xl border">+ Nova</a>
-    <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="px-3 py-2 rounded-xl border">Dashboard</a>
+
+<!-- HEADER -->
+<header class="mb-6 flex items-center gap-3">
+  <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-emerald-500 text-white shadow">
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+      <path d="M6 6h12v12H6z" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+  </span>
+  <h1 class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-2xl font-semibold text-transparent">
+    Categorias
+  </h1>
+
+  <div class="ml-auto flex items-center gap-2">
+    <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>"
+       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Dashboard
+    </a>
+
+    <a href="<?= e(base_url('admin/' . $slug . '/categories/create')) ?>"
+       class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 px-3 py-2 text-sm font-medium text-white shadow hover:opacity-95">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Nova
+    </a>
+  </div>
 </header>
 
-<table class="w-full bg-white border rounded-2xl overflow-hidden">
-  <thead class="bg-slate-100">
-    <tr>
-      <th class="text-left p-3">Nome</th>
-      <th class="text-left p-3">Ordem</th>
-      <th class="text-left p-3">Ativa</th>
-      <th class="p-3"></th>
-    </tr>
-  </thead>
-  <tbody>
-  <?php foreach ($cats as $c): ?>
-    <tr class="border-t">
-      <td class="p-3"><?= e($c['name']) ?></td>
-      <td class="p-3"><?= (int)$c['sort_order'] ?></td>
-      <td class="p-3"><?= $c['active'] ? 'Sim' : 'Não' ?></td>
-      <td class="p-3 text-right">
-          <a class="px-3 py-1 border rounded-xl" href="<?= e(base_url('admin/' . $slug . '/categories/' . (int)$c['id'] . '/edit')) ?>">Editar</a>
-          <form method="post" action="<?= e(base_url('admin/' . $slug . '/categories/' . (int)$c['id'] . '/del')) ?>" class="inline" onsubmit="return confirm('Excluir categoria?');">
-          <button class="px-3 py-1 border rounded-xl">Excluir</button>
-        </form>
-      </td>
-    </tr>
-  <?php endforeach; ?>
-  </tbody>
-</table>
+<?php if (empty($cats)): ?>
+  <!-- EMPTY STATE -->
+  <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+    <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M6 6h12v12H6z" stroke="currentColor" stroke-width="1.6"/></svg>
+    </div>
+    <h2 class="text-lg font-medium text-slate-800">Nenhuma categoria cadastrada</h2>
+    <p class="mt-1 text-sm text-slate-500">Crie a primeira categoria para organizar seus produtos.</p>
+    <div class="mt-4">
+      <a href="<?= e(base_url('admin/' . $slug . '/categories/create')) ?>"
+         class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Criar categoria
+      </a>
+    </div>
+  </div>
+<?php else: ?>
+
+  <!-- TABELA -->
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="max-w-full overflow-x-auto">
+      <table class="min-w-[600px] w-full">
+        <thead class="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-600">
+          <tr>
+            <th class="p-3">Nome</th>
+            <th class="p-3">Ordem</th>
+            <th class="p-3">Status</th>
+            <th class="p-3 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-sm">
+          <?php foreach ($cats as $c): ?>
+            <tr class="hover:bg-slate-50/60">
+              <td class="p-3 align-middle">
+                <div class="font-medium text-slate-800"><?= e($c['name'] ?? '-') ?></div>
+              </td>
+
+              <td class="p-3 align-middle">
+                <span class="rounded-lg bg-slate-50 px-2 py-0.5 text-[12px] text-slate-700 ring-1 ring-slate-200">
+                  <?= (int)($c['sort_order'] ?? 0) ?>
+                </span>
+              </td>
+
+              <td class="p-3 align-middle">
+                <?php if (!empty($c['active'])): ?>
+                  <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Ativa
+                  </span>
+                <?php else: ?>
+                  <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-medium text-slate-600 ring-1 ring-slate-200">
+                    <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span> Inativa
+                  </span>
+                <?php endif; ?>
+              </td>
+
+              <td class="p-3 align-middle">
+                <div class="flex justify-end gap-2">
+                  <a class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                     href="<?= e(base_url('admin/' . $slug . '/categories/' . (int)$c['id'] . '/edit')) ?>">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                    Editar
+                  </a>
+
+                  <form method="post"
+                        action="<?= e(base_url('admin/' . $slug . '/categories/' . (int)$c['id'] . '/del')) ?>"
+                        class="inline"
+                        onsubmit="return confirm('Excluir categoria?');">
+                    <?php if (function_exists('csrf_field')): ?>
+                      <?= csrf_field() ?>
+                    <?php elseif (function_exists('csrf_token')): ?>
+                      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <?php endif; ?>
+                    <button class="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-50">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7v11m6-11v11M8 7l1-2h6l1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                      Excluir
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<?php endif; ?>
+
 <?php
-$content = ob_get_clean(); include __DIR__ . '/../layout.php';
+$content = ob_get_clean();
+include __DIR__ . '/../layout.php';

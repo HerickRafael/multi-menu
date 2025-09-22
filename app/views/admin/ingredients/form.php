@@ -1,12 +1,19 @@
 <?php
+// admin/ingredients/form.php — Formulário de ingrediente (versão moderna)
+
 $title   = "Ingrediente - " . ($company['name'] ?? '');
 $editing = !empty($ingredient['id']);
-$slug    = rawurlencode($company['slug'] ?? '');
+$slug    = rawurlencode((string)($company['slug'] ?? ''));
 $action  = $editing
-  ? 'admin/' . $slug . '/ingredients/' . (int)($ingredient['id'] ?? 0)
-  : 'admin/' . $slug . '/ingredients';
+  ? "admin/{$slug}/ingredients/" . (int)($ingredient['id'] ?? 0)
+  : "admin/{$slug}/ingredients";
 
 $image = $ingredient['image_path'] ?? null;
+
+// helper de escape
+if (!function_exists('e')) {
+  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
 
 $unitOptions = [
   ['value' => 'un', 'label' => 'Unidade (un)'],
@@ -28,22 +35,15 @@ $unitLabelMap = [
   'pc' => 'peça',
 ];
 
+// normaliza unidade
 $unitRaw = trim((string)($ingredient['unit'] ?? ''));
 $unitSelectValue = '';
 foreach ($unitOptions as $opt) {
-  if (strcasecmp($unitRaw, $opt['value']) === 0) {
-    $unitSelectValue = $opt['value'];
-    break;
-  }
+  if (strcasecmp($unitRaw, $opt['value']) === 0) { $unitSelectValue = $opt['value']; break; }
 }
 $unitCustomValue = '';
 if ($unitSelectValue === '') {
-  if ($unitRaw !== '') {
-    $unitSelectValue = 'custom';
-    $unitCustomValue = $unitRaw;
-  }
-} else {
-  $unitCustomValue = '';
+  if ($unitRaw !== '') { $unitSelectValue = 'custom'; $unitCustomValue = $unitRaw; }
 }
 
 $unitLabelDisplay = $unitSelectValue === 'custom'
@@ -51,149 +51,228 @@ $unitLabelDisplay = $unitSelectValue === 'custom'
   : ($unitLabelMap[$unitSelectValue] ?? ($unitSelectValue !== '' ? $unitSelectValue : 'unidade'));
 $unitLabelDisplay = $unitLabelDisplay !== '' ? $unitLabelDisplay : 'unidade';
 $unitValuePlaceholder = trim('Ex.: 1 ' . $unitLabelDisplay);
-ob_start(); ?>
-<h1 class="text-2xl font-bold mb-4"><?= $editing ? 'Editar' : 'Novo' ?> Ingrediente</h1>
 
+// formata valores iniciais
+$costVal = $ingredient['cost'] ?? '';
+if ($costVal !== '' && !is_string($costVal)) {
+  $costVal = number_format((float)$costVal, 2, ',', '.');
+}
+$saleVal = $ingredient['sale_price'] ?? '';
+if ($saleVal !== '' && !is_string($saleVal)) {
+  $saleVal = number_format((float)$saleVal, 2, ',', '.');
+}
+$unitValueVal = $ingredient['unit_value'] ?? '';
+if ($unitValueVal !== '' && !is_string($unitValueVal)) {
+  $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ',');
+}
+
+ob_start(); ?>
+
+<!-- HEADER -->
+<header class="mb-5 flex flex-wrap items-center gap-3">
+  <div class="flex items-center gap-3">
+    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-emerald-500 text-white shadow">
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+        <path d="M5 7h14M7 12h10M9 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <h1 class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-2xl font-semibold text-transparent">
+      <?= $editing ? 'Editar' : 'Novo' ?> ingrediente
+    </h1>
+  </div>
+
+</header>
+
+<!-- ALERTA DE ERRO -->
 <?php if (!empty($error)): ?>
-  <div class="mb-3 p-3 bg-red-100 text-red-800 rounded-xl"><?= e($error) ?></div>
+  <div class="mb-4 rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-800 shadow-sm">
+    <?= e($error) ?>
+  </div>
 <?php endif; ?>
 
-<form method="post" enctype="multipart/form-data" action="<?= e(base_url($action)) ?>" class="grid gap-3 max-w-xl bg-white p-4 rounded-2xl border">
-  <label class="grid gap-1">
-    <span class="text-sm">Nome do ingrediente</span>
-    <input name="name" value="<?= e($ingredient['name'] ?? '') ?>" class="border rounded-xl p-2" required>
-  </label>
+<form method="post" enctype="multipart/form-data"
+      action="<?= e(base_url($action)) ?>"
+      class="relative grid max-w-3xl gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 
-  <?php
-    $costVal = $ingredient['cost'] ?? '';
-    if ($costVal !== '' && !is_string($costVal)) {
-      $costVal = number_format((float)$costVal, 2, ',', '.');
-    }
-    $saleVal = $ingredient['sale_price'] ?? '';
-    if ($saleVal !== '' && !is_string($saleVal)) {
-      $saleVal = number_format((float)$saleVal, 2, ',', '.');
-    }
-    $unitValueVal = $ingredient['unit_value'] ?? '';
-    if ($unitValueVal !== '' && !is_string($unitValueVal)) {
-      $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ',');
-    }
-  ?>
+  <!-- CSRF / METHOD -->
+  <?php if (function_exists('csrf_field')): ?>
+    <?= csrf_field() ?>
+  <?php elseif (function_exists('csrf_token')): ?>
+    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+  <?php endif; ?>
+  <?php if ($editing): ?><input type="hidden" name="_method" value="PUT"><?php endif; ?>
 
-  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-    <label class="grid gap-1">
-      <span class="text-sm">Custo <span class="text-red-500">*</span></span>
-      <input type="text" name="cost" value="<?= e($costVal) ?>" class="border rounded-xl p-2" inputmode="decimal" placeholder="Ex.: 3,50" required>
+  <!-- CARD: Dados do ingrediente -->
+  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 8h12M6 12h8M6 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Dados do ingrediente
+    </legend>
+
+    <label class="grid gap-1 mb-3">
+      <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
+      <input name="name" value="<?= e($ingredient['name'] ?? '') ?>" required autocomplete="off"
+             class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
     </label>
-    <label class="grid gap-1">
-      <span class="text-sm">Valor de venda <span class="text-red-500">*</span></span>
-      <input type="text" name="sale_price" value="<?= e($saleVal) ?>" class="border rounded-xl p-2" inputmode="decimal" placeholder="Ex.: 5,90" required>
-    </label>
-  </div>
 
-  <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-    <div class="grid gap-1">
-      <span class="text-sm">Unidade de medida <span class="text-red-500">*</span></span>
+    <div class="grid gap-3 md:grid-cols-2">
+      <label class="grid gap-1">
+        <span class="text-sm text-slate-700">Custo <span class="text-red-500">*</span></span>
+        <input type="text" name="cost" value="<?= e($costVal) ?>" inputmode="decimal" placeholder="Ex.: 3,50" required
+               class="money-input rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
+      </label>
+
+      <label class="grid gap-1">
+        <span class="text-sm text-slate-700">Valor de venda <span class="text-red-500">*</span></span>
+        <input type="text" name="sale_price" value="<?= e($saleVal) ?>" inputmode="decimal" placeholder="Ex.: 5,90" required
+               class="money-input rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
+      </label>
+    </div>
+
+    <div class="mt-3 grid gap-3 md:grid-cols-2">
+      <div class="grid gap-1">
+        <span class="text-sm text-slate-700">Unidade de medida <span class="text-red-500">*</span></span>
+        <div class="grid gap-2">
+          <select name="unit_select" id="unit_select"
+                  class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400" required>
+            <option value="">Selecione</option>
+            <?php foreach ($unitOptions as $opt): ?>
+              <option value="<?= e($opt['value']) ?>" <?= $unitSelectValue === $opt['value'] ? 'selected' : '' ?>>
+                <?= e($opt['label']) ?>
+              </option>
+            <?php endforeach; ?>
+            <option value="custom" <?= $unitSelectValue === 'custom' ? 'selected' : '' ?>>Outra unidade…</option>
+          </select>
+          <input type="text" name="unit_custom" id="unit_custom" value="<?= e($unitCustomValue) ?>"
+                 class="rounded-xl border border-slate-300 bg-white px-3 py-2 <?= $unitSelectValue === 'custom' ? '' : 'hidden' ?>"
+                 placeholder="Informe a unidade" maxlength="30">
+        </div>
+      </div>
+
+      <label class="grid gap-1">
+        <span class="text-sm text-slate-700">Valor por <span id="unit_label" data-unit-label><?= e($unitLabelDisplay) ?></span> <span class="text-red-500">*</span></span>
+        <input type="text" name="unit_value" id="unit_value" value="<?= e($unitValueVal) ?>" inputmode="decimal"
+               placeholder="<?= e($unitValuePlaceholder) ?>" required
+               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
+      </label>
+    </div>
+  </fieldset>
+
+  <!-- CARD: Imagem -->
+  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Imagem (opcional)
+    </legend>
+
+    <div class="grid items-start gap-3 md:grid-cols-[1fr_auto]">
       <div class="grid gap-2">
-        <select name="unit_select" id="unit_select" class="border rounded-xl p-2" required>
-          <option value="">Selecione</option>
-          <?php foreach ($unitOptions as $opt): ?>
-            <option value="<?= e($opt['value']) ?>" <?= $unitSelectValue === $opt['value'] ? 'selected' : '' ?>><?= e($opt['label']) ?></option>
-          <?php endforeach; ?>
-          <option value="custom" <?= $unitSelectValue === 'custom' ? 'selected' : '' ?>>Outra unidade…</option>
-        </select>
-        <input
-          type="text"
-          name="unit_custom"
-          id="unit_custom"
-          value="<?= e($unitCustomValue) ?>"
-          class="border rounded-xl p-2 <?= $unitSelectValue === 'custom' ? '' : 'hidden' ?>"
-          placeholder="Informe a unidade"
-          maxlength="30"
-        >
+        <label for="image" class="text-sm text-slate-700">Upload (jpg/png/webp)</label>
+        <label class="inline-flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+          <input type="file" name="image" id="image" accept=".jpg,.jpeg,.png,.webp" class="hidden">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Selecionar arquivo
+        </label>
+        <small class="text-xs text-slate-500">Recomendado: 800×800px quadrado. Máx. 5 MB.</small>
+      </div>
+
+      <div class="flex flex-col items-center gap-2">
+        <span class="text-xs text-slate-500">Pré-visualização</span>
+        <img id="image-preview"
+             src="<?= $image ? e(base_url($image)) : e(base_url('assets/logo-placeholder.png')) ?>"
+             class="h-20 w-20 rounded-xl border border-slate-200 object-cover shadow-sm" alt="Pré-visualização">
       </div>
     </div>
-    <label class="grid gap-1">
-      <span class="text-sm">Valor por <span id="unit_label" data-unit-label><?= e($unitLabelDisplay) ?></span> <span class="text-red-500">*</span></span>
-      <input
-        type="text"
-        name="unit_value"
-        id="unit_value"
-        value="<?= e($unitValueVal) ?>"
-        class="border rounded-xl p-2"
-        inputmode="decimal"
-        placeholder="<?= e($unitValuePlaceholder) ?>"
-        required
-      >
-    </label>
-  </div>
+  </fieldset>
 
-  <div class="grid gap-2">
-    <span class="text-sm">Foto</span>
-    <div class="flex items-center gap-3">
-      <label class="inline-flex items-center px-3 py-2 border rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100">
-        <input type="file" name="image" accept="image/*" class="hidden">
-        <span>Enviar imagem</span>
-      </label>
-      <?php if ($image): ?>
-        <img src="<?= e(base_url($image)) ?>" alt="" class="w-14 h-14 rounded-full object-cover border">
-      <?php else: ?>
-        <span class="text-xs text-slate-500">Sem imagem</span>
-      <?php endif; ?>
-    </div>
-    <p class="text-xs text-slate-500">Formatos aceitos: JPG, PNG ou WEBP.</p>
-  </div>
-
+  <!-- AÇÕES -->
   <div class="flex gap-2">
-    <button class="px-4 py-2 rounded-xl border">Salvar</button>
-    <a href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>" class="px-4 py-2 rounded-xl border">Cancelar</a>
+    <button class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 font-medium text-white shadow hover:bg-slate-800">
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Salvar
+    </button>
+    <a href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>"
+       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-slate-700 shadow-sm hover:bg-slate-50">
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Cancelar
+    </a>
   </div>
 
-  <script>
-    (function(){
-      const select = document.getElementById('unit_select');
-      const custom = document.getElementById('unit_custom');
-      const labelEl = document.getElementById('unit_label');
-      const valueInput = document.getElementById('unit_value');
-      const labelMap = <?= json_encode($unitLabelMap, JSON_UNESCAPED_UNICODE) ?>;
-
-      function resolveLabel(){
-        const sel = select?.value || '';
-        if (sel === 'custom') {
-          const customVal = (custom?.value || '').trim();
-          return customVal !== '' ? customVal : 'unidade';
-        }
-        if (sel && Object.prototype.hasOwnProperty.call(labelMap, sel)) {
-          return labelMap[sel] || sel;
-        }
-        return sel !== '' ? sel : 'unidade';
-      }
-
-      function sync(){
-        if (custom) {
-          const isCustom = select?.value === 'custom';
-          custom.classList.toggle('hidden', !isCustom);
-          if (isCustom) {
-            custom.setAttribute('required', 'required');
-          } else {
-            custom.removeAttribute('required');
-          }
-        }
-
-        const unitText = resolveLabel();
-        if (labelEl) {
-          labelEl.textContent = unitText;
-        }
-        if (valueInput) {
-          valueInput.setAttribute('placeholder', ('Ex.: 1 ' + unitText).trim());
-        }
-      }
-
-      select?.addEventListener('change', sync);
-      custom?.addEventListener('input', sync);
-      sync();
-    })();
-  </script>
 </form>
+
+<!-- JS: unidade dinâmica, máscara simples e preview -->
+<script>
+(function(){
+  // ===== Unidade dinâmica
+  const select = document.getElementById('unit_select');
+  const custom = document.getElementById('unit_custom');
+  const labelEl = document.getElementById('unit_label');
+  const valueInput = document.getElementById('unit_value');
+  const labelMap = <?= json_encode($unitLabelMap, JSON_UNESCAPED_UNICODE) ?>;
+
+  function resolveLabel(){
+    const sel = select?.value || '';
+    if (sel === 'custom') {
+      const customVal = (custom?.value || '').trim();
+      return customVal !== '' ? customVal : 'unidade';
+    }
+    if (sel && Object.prototype.hasOwnProperty.call(labelMap, sel)) return labelMap[sel] || sel;
+    return sel !== '' ? sel : 'unidade';
+  }
+
+  function syncUnit(){
+    const isCustom = (select?.value === 'custom');
+    if (custom) {
+      custom.classList.toggle('hidden', !isCustom);
+      isCustom ? custom.setAttribute('required','required') : custom.removeAttribute('required');
+    }
+    const u = resolveLabel();
+    if (labelEl) labelEl.textContent = u;
+    if (valueInput) valueInput.setAttribute('placeholder', ('Ex.: 1 ' + u).trim());
+  }
+
+  select?.addEventListener('change', syncUnit);
+  custom?.addEventListener('input', syncUnit);
+  syncUnit();
+
+  // ===== Máscara simples BR para inputs monetários (usa vírgula)
+  function toMoneyBR(raw){
+    // mantém dígitos, vira centavos, formata com vírgula
+    let s = String(raw || '').replace(/\D+/g,'');
+    if (!s) return '';
+    if (s.length === 1) s = '0' + s;
+    s = s.replace(/^0+(\d)/, '$1'); // tira zeros à esquerda
+    const int = s.slice(0, -2) || '0';
+    const dec = s.slice(-2);
+    // separador de milhar simples
+    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return intFmt + ',' + dec;
+  }
+
+  document.querySelectorAll('.money-input').forEach(inp=>{
+    // ao digitar, mantém padrão 0,00
+    inp.addEventListener('input', ()=>{
+      const digits = inp.value.replace(/\D+/g,'');
+      inp.value = toMoneyBR(digits);
+    });
+    // ao focar, seleciona
+    inp.addEventListener('focus', ()=> inp.select());
+  });
+
+  // ===== Preview de imagem
+  const file = document.getElementById('image');
+  const prev = document.getElementById('image-preview');
+  file?.addEventListener('change', ()=>{
+    const f = file.files?.[0];
+    if (!f) return;
+    const ok = /image\/(png|jpe?g|webp)/i.test(f.type);
+    if (!ok) { alert('Formato inválido. Use JPG, PNG ou WEBP.'); file.value=''; return; }
+    const reader = new FileReader();
+    reader.onload = e => { prev.src = e.target.result; };
+    reader.readAsDataURL(f);
+  });
+})();
+</script>
 
 <?php
 $content = ob_get_clean();

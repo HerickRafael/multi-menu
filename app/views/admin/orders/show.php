@@ -1,73 +1,183 @@
 <?php
+// admin/orders/show.php — Detalhe do pedido (versão moderna)
+
 $title = "Pedido #" . ($order['id'] ?? '');
-ob_start();
-$o = $order;
-?>
+$o     = $order ?? [];
+$slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 
-<div class="max-w-4xl mx-auto p-4">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold">Pedido #<?= (int)$o['id'] ?></h1>
-      <a class="px-3 py-2 rounded-xl border" href="<?= e(base_url('admin/' . rawurlencode($activeSlug) . '/orders')) ?>">← Voltar</a>
-  </div>
+// helper de escape (se ainda não existir)
+if (!function_exists('e')) {
+  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+}
 
-    <form method="post" action="<?= e(base_url('admin/' . rawurlencode($activeSlug) . '/orders/setStatus')) ?>" class="flex items-center gap-2 mb-4">
-    <input type="hidden" name="id" value="<?= (int)$o['id'] ?>">
-    <select name="status" class="border px-3 py-2 rounded">
-      <?php foreach (['pending'=>'Pendente','paid'=>'Pago','completed'=>'Concluído','canceled'=>'Cancelado'] as $k=>$label): ?>
-        <option value="<?= e($k) ?>" <?= ($o['status']===$k?'selected':'') ?>><?= e($label) ?></option>
+// labels e cores de status
+$statusLabels = [
+  'pending'   => 'Pendente',
+  'paid'      => 'Pago',
+  'completed' => 'Concluído',
+  'canceled'  => 'Cancelado',
+];
+$st = (string)($o['status'] ?? 'pending');
+$badgeClass = match($st){
+  'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
+  'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
+  default     => 'bg-amber-50 text-amber-700 ring-amber-200',
+};
+
+// util: montar link do WhatsApp se houver telefone
+$wa = null;
+if (!empty($o['customer_phone'])) {
+  $digits = preg_replace('/\D+/', '', (string)$o['customer_phone']);
+  if ($digits) {
+    $waText = rawurlencode("Olá! Sobre o pedido #".(int)($o['id'] ?? 0).".");
+    $wa = "https://wa.me/{$digits}?text={$waText}";
+  }
+}
+
+ob_start(); ?>
+<div class="mx-auto max-w-5xl p-4">
+  <!-- HEADER -->
+  <header class="mb-5 flex flex-wrap items-center gap-3">
+    <div class="flex items-center gap-3">
+      <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-emerald-500 text-white shadow">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M7 12h10M9 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </span>
+      <h1 class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-2xl font-semibold text-transparent">
+        Pedido #<?= (int)($o['id'] ?? 0) ?>
+      </h1>
+      <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 <?= $badgeClass ?>">
+        <?php if ($st === 'completed'): ?>
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+        <?php elseif ($st === 'paid'): ?>
+          <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+        <?php elseif ($st === 'canceled'): ?>
+          <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+        <?php else: ?>
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+        <?php endif; ?>
+        <?= e($statusLabels[$st] ?? ucfirst($st)) ?>
+      </span>
+    </div>
+
+    <div class="ml-auto flex items-center gap-2">
+      <?php if ($wa): ?>
+        <a href="<?= e($wa) ?>" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-50">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M7 20l1.5-4.5a7 7 0 1 1 2.5 2.5L7 20z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          WhatsApp
+        </a>
+      <?php endif; ?>
+      <a href="<?= e(base_url('admin/' . $slug . '/orders/create?dup=' . (int)($o['id'] ?? 0))) ?>"
+         class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6 17V5a2 2 0 0 1 2-2h8l4 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="1.4"/></svg>
+        Duplicar
+      </a>
+      <button type="button" onclick="window.print()"
+         class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M7 9V4h10v5M7 14H5a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2m-10 0h10v6H7v-6Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Imprimir
+      </button>
+      <a class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50"
+         href="<?= e(base_url('admin/' . $slug . '/orders')) ?>">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Voltar
+      </a>
+    </div>
+  </header>
+
+  <!-- STATUS: formulário -->
+  <form method="post" action="<?= e(base_url('admin/' . $slug . '/orders/setStatus')) ?>"
+        class="mb-4 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+    <?php if (function_exists('csrf_field')): ?>
+      <?= csrf_field() ?>
+    <?php elseif (function_exists('csrf_token')): ?>
+      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+    <?php endif; ?>
+    <input type="hidden" name="id" value="<?= (int)($o['id'] ?? 0) ?>">
+    <label class="text-sm text-slate-700">Atualizar status:</label>
+    <select name="status" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
+      <?php foreach ($statusLabels as $k=>$label): ?>
+        <option value="<?= e($k) ?>" <?= ($o['status'] ?? '')===$k ? 'selected' : '' ?>><?= e($label) ?></option>
       <?php endforeach; ?>
     </select>
-    <button class="px-4 py-2 border rounded">Atualizar</button>
+    <button class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Aplicar
+    </button>
+    <?php if (!empty($o['created_at'])): ?>
+      <span class="ml-auto text-xs text-slate-500">Criado em: <?= e($o['created_at']) ?></span>
+    <?php endif; ?>
   </form>
 
-  <div class="grid md:grid-cols-2 gap-4 mb-6">
-    <div class="border rounded p-3">
-      <div class="text-sm opacity-70 mb-2">Cliente</div>
-      <div><strong><?= e($o['customer_name'] ?? '-') ?></strong></div>
-      <div><?= e($o['customer_phone'] ?? '-') ?></div>
+  <!-- CARDS: Cliente & Resumo -->
+  <div class="mb-6 grid gap-4 md:grid-cols-2">
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 class="mb-2 text-sm font-medium text-slate-700">Cliente</h2>
+      <div class="text-lg font-semibold text-slate-900"><?= e($o['customer_name'] ?? '-') ?></div>
+      <div class="text-slate-700"><?= e($o['customer_phone'] ?? '-') ?></div>
+      <?php if (!empty($o['customer_address'])): ?>
+        <div class="mt-1 text-sm text-slate-700"><?= nl2br(e($o['customer_address'])) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($o['notes'])): ?>
+        <div class="mt-3 rounded-xl bg-slate-50 p-3 text-sm">
+          <div class="mb-1 text-xs font-medium text-slate-500">Observações</div>
+          <div><?= nl2br(e($o['notes'])) ?></div>
+        </div>
+      <?php endif; ?>
     </div>
-    <div class="border rounded p-3">
-      <div class="text-sm opacity-70 mb-2">Resumo</div>
-      <div>Subtotal: R$ <?= number_format((float)$o['subtotal'], 2, ',', '.') ?></div>
-      <div>Entrega: R$ <?= number_format((float)$o['delivery_fee'], 2, ',', '.') ?></div>
-      <div>Desconto: R$ <?= number_format((float)$o['discount'], 2, ',', '.') ?></div>
-      <div class="font-semibold mt-1">Total: R$ <?= number_format((float)$o['total'], 2, ',', '.') ?></div>
-      <div class="text-xs opacity-70 mt-2">Status: <?= e($o['status']) ?></div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 class="mb-2 text-sm font-medium text-slate-700">Resumo</h2>
+      <dl class="space-y-1 text-slate-800">
+        <div class="flex justify-between"><dt>Subtotal</dt><dd>R$ <?= number_format((float)($o['subtotal'] ?? 0), 2, ',', '.') ?></dd></div>
+        <div class="flex justify-between"><dt>Entrega</dt><dd>R$ <?= number_format((float)($o['delivery_fee'] ?? 0), 2, ',', '.') ?></dd></div>
+        <div class="flex justify-between"><dt>Desconto</dt><dd>R$ <?= number_format((float)($o['discount'] ?? 0), 2, ',', '.') ?></dd></div>
+      </dl>
+      <div class="mt-2 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+        <div class="text-sm text-slate-600">Total</div>
+        <div class="text-xl font-semibold text-slate-900">R$ <?= number_format((float)($o['total'] ?? 0), 2, ',', '.') ?></div>
+      </div>
+      <div class="mt-2 text-xs text-slate-500">Status atual: <?= e($statusLabels[$st] ?? ucfirst($st)) ?></div>
     </div>
   </div>
 
-  <div class="border rounded">
-    <table class="min-w-full">
-      <thead>
-        <tr class="bg-gray-50">
-          <th class="p-2 text-left">Produto</th>
-          <th class="p-2 text-right">Qtde</th>
-          <th class="p-2 text-right">Preço</th>
-          <th class="p-2 text-right">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($o['items'] as $it): ?>
-          <tr class="border-t">
-            <td class="p-2"><?= e($it['product_name']) ?></td>
-            <td class="p-2 text-right"><?= (int)$it['quantity'] ?></td>
-            <td class="p-2 text-right">R$ <?= number_format((float)$it['unit_price'], 2, ',', '.') ?></td>
-            <td class="p-2 text-right">R$ <?= number_format((float)$it['line_total'], 2, ',', '.') ?></td>
+  <!-- ITENS -->
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="max-w-full overflow-x-auto">
+      <table class="min-w-[720px] w-full">
+        <thead class="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-600">
+          <tr>
+            <th class="p-3">Produto</th>
+            <th class="p-3 text-right">Qtde</th>
+            <th class="p-3 text-right">Preço</th>
+            <th class="p-3 text-right">Total</th>
           </tr>
-        <?php endforeach; ?>
-        <?php if (empty($o['items'])): ?>
-          <tr><td class="p-4 opacity-70" colspan="4">Sem itens.</td></tr>
-        <?php endif; ?>
-      </tbody>
-    </table>
-  </div>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-sm">
+          <?php foreach (($o['items'] ?? []) as $it): ?>
+            <tr class="hover:bg-slate-50/60">
+              <td class="p-3 align-middle">
+                <div class="font-medium text-slate-800"><?= e($it['product_name'] ?? '-') ?></div>
+                <?php if (!empty($it['notes'])): ?>
+                  <div class="mt-0.5 text-xs text-slate-500"><?= nl2br(e($it['notes'])) ?></div>
+                <?php endif; ?>
+              </td>
+              <td class="p-3 align-middle text-right"><?= (int)($it['quantity'] ?? 0) ?></td>
+              <td class="p-3 align-middle whitespace-nowrap text-right">R$ <?= number_format((float)($it['unit_price'] ?? 0), 2, ',', '.') ?></td>
+              <td class="p-3 align-middle whitespace-nowrap text-right font-medium text-slate-800">
+                R$ <?= number_format((float)($it['line_total'] ?? 0), 2, ',', '.') ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
 
-  <?php if (!empty($o['notes'])): ?>
-    <div class="mt-4 border rounded p-3">
-      <div class="text-sm opacity-70 mb-1">Observações</div>
-      <div><?= nl2br(e($o['notes'])) ?></div>
+          <?php if (empty($o['items'])): ?>
+            <tr><td class="p-6 text-center text-slate-500" colspan="4">Sem itens neste pedido.</td></tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
     </div>
-  <?php endif; ?>
+  </div>
 </div>
 
 <?php
