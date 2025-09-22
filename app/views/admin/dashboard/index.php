@@ -33,7 +33,7 @@ $price = function($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); };
 ob_start(); ?>
 
 <!-- HERO / TOPO -->
-<section class="relative mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-600 via-indigo-500 to-emerald-600">
+<section class="relative mb-6 overflow-hidden rounded-3xl border border-slate-200 admin-gradient-bg text-white">
   <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl"></div>
   <div class="absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-black/10 blur-3xl"></div>
 
