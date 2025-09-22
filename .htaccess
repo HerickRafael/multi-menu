@@ -1,5 +1,4 @@
 # multi-menu/.htaccess
-
 Options -Indexes
 
 <IfModule mod_rewrite.c>
