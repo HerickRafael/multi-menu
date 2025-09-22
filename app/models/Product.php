@@ -88,6 +88,45 @@ class Product
     return $row ?: null;
   }
 
+  /**
+   * Retorna a próxima SKU numérica disponível para a empresa.
+   * Busca o menor número positivo que ainda não está em uso,
+   * permitindo reutilizar gaps quando um produto é excluído.
+   */
+  public static function nextSkuForCompany(int $companyId): string {
+    $st = db()->prepare("SELECT sku FROM products WHERE company_id = ? AND sku IS NOT NULL AND sku <> ''");
+    $st->execute([$companyId]);
+
+    $used = [];
+    while ($row = $st->fetch(PDO::FETCH_ASSOC)) {
+      $sku = trim((string)($row['sku'] ?? ''));
+      if ($sku === '' || !ctype_digit($sku)) {
+        continue;
+      }
+
+      $value = (int)$sku;
+      if ($value > 0) {
+        $used[] = $value;
+      }
+    }
+
+    sort($used, SORT_NUMERIC);
+
+    $next = 1;
+    foreach ($used as $value) {
+      if ($value === $next) {
+        $next++;
+        continue;
+      }
+
+      if ($value > $next) {
+        break;
+      }
+    }
+
+    return (string)$next;
+  }
+
   /** Produto garantido por empresa (útil para rotas públicas /{empresa}/produto/{id}) */
   public static function findByCompanyAndId(int $companyId, int $productId): ?array {
     $sql = "SELECT * FROM products

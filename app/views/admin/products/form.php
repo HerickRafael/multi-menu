@@ -99,13 +99,24 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       <label for="name" class="grid gap-1">
         <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
         <input required name="name" id="name" value="<?= e($p['name'] ?? '') ?>" autocomplete="off"
-               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
       </label>
 
       <label for="sku" class="grid gap-1">
         <span class="text-sm text-slate-700">SKU</span>
-        <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Opcional" autocomplete="off"
-               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+        <div class="sku-lock relative">
+          <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
+                 readonly
+                 class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+          <button type="button" class="sku-lock-btn" aria-label="Definido automaticamente em ordem crescente e sem repetições."
+                  title="Definido automaticamente em ordem crescente e sem repetições.">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M17 11h-1V9a4 4 0 0 0-8 0v2h-.333A1.667 1.667 0 0 0 6 12.667v6.666C6 20.955 6.746 22 7.667 22h8.666C17.254 22 18 20.955 18 19.333v-6.666A1.667 1.667 0 0 0 16.667 11H17Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M15 11H9V9a3 3 0 1 1 6 0v2Z" fill="currentColor" />
+            </svg>
+            <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
+          </button>
+        </div>
       </label>
     </div>
 
@@ -195,6 +206,54 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
   <!-- ===== DRAG ESTILOS ===== -->
   <style>
+    .sku-lock-btn{
+      position:absolute;
+      right:.75rem;
+      top:50%;
+      transform:translateY(-50%);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      height:2rem;
+      width:2rem;
+      border-radius:9999px;
+      color:rgba(71,85,105,1);
+      background-color:transparent;
+      border:none;
+      cursor:help;
+      padding:0;
+    }
+    .sku-lock-btn:hover,
+    .sku-lock-btn:focus{
+      color:rgba(30,41,59,1);
+    }
+    .sku-lock-btn:focus{
+      outline:2px solid rgba(99,102,241,.4);
+      outline-offset:2px;
+    }
+    .sku-lock-tooltip{
+      position:absolute;
+      bottom:-0.5rem;
+      right:2.5rem;
+      transform:translateY(100%);
+      display:none;
+      max-width:16rem;
+      padding:.5rem .75rem;
+      border-radius:.5rem;
+      background-color:rgba(15,23,42,.92);
+      color:white;
+      font-size:.75rem;
+      line-height:1.1;
+      box-shadow:0 10px 30px -15px rgba(15,23,42,.55);
+      text-align:left;
+      pointer-events:none;
+      z-index:30;
+    }
+    .sku-lock-btn:hover .sku-lock-tooltip,
+    .sku-lock-btn:focus-visible .sku-lock-tooltip,
+    .sku-lock-btn:active .sku-lock-tooltip{
+      display:block;
+    }
     /* Personalização */
     #cust-groups-container .cust-group{transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}
     #cust-groups-container .cust-group.dragging{opacity:.85;transform:scale(.985);box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
