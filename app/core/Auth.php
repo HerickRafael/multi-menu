@@ -39,7 +39,7 @@ class Auth {
   /** Exige admin logado (redireciona pro login) */
   public static function requireAdmin(): void {
     if (!self::checkAdmin()) {
-      header("Location: " . base_url("admin/login"));
+      header('Location: ' . base_url('admin'));
       exit;
     }
   }

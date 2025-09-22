@@ -2,6 +2,8 @@
 // routes/web.php
 
 /* ========= Rotas públicas (cardápio) ========= */
+$router->get('/',                             'PublicHomeController@defaultMenu');
+$router->get('/cardapio',                     'PublicHomeController@defaultMenu');
 $router->get('/{slug}',                       'PublicHomeController@index');
 $router->get('/{slug}/buscar',                'PublicHomeController@buscar');
 $router->get('/{slug}/produto/{id}',          'PublicProductController@show');
@@ -22,10 +24,12 @@ $router->get('/{slug}/customer-me',           'CustomerAuthController@me');
 
 /* ========= Rotas admin ========= */
 // Auth + Dashboard
+$router->get('/admin',                        'AdminAuthController@landing');
 $router->get('/admin/{slug}/login',           'AdminAuthController@loginForm');
 $router->post('/admin/{slug}/login',          'AdminAuthController@login');
 $router->get('/admin/{slug}/logout',          'AdminAuthController@logout');
 $router->get('/admin/{slug}/dashboard',       'AdminDashboardController@index');
+$router->get('/dashboard',                    'AdminDashboardController@shortcut');
 
 // Configurações
 $router->get('/admin/{slug}/settings',        'AdminSettingsController@index');
