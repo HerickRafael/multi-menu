@@ -22,12 +22,12 @@ ob_start(); ?>
 <!-- HEADER -->
 <header class="mb-5 flex flex-wrap items-center gap-3">
   <div class="flex items-center gap-3">
-    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-emerald-500 text-white shadow">
+    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
       <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
         <path d="M4 7h16M7 12h10M10 17h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
       </svg>
     </span>
-    <h1 class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-2xl font-semibold text-transparent">
+    <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">
       Produtos
     </h1>
   </div>
@@ -46,7 +46,7 @@ ob_start(); ?>
     </a>
 
     <a href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>"
-       class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 px-3 py-2 text-sm font-medium text-white shadow hover:opacity-95">
+       class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-3 py-2 text-sm font-medium text-white shadow hover:opacity-95">
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       Novo
     </a>
@@ -140,7 +140,7 @@ if ($status !== '') {
     <p class="mt-1 text-sm text-slate-500">Ajuste os filtros ou crie um novo produto.</p>
     <div class="mt-4">
       <a href="<?= e(base_url('admin/' . $slug . '/products/create')) ?>"
-         class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
+        class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         Criar produto
       </a>

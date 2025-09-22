@@ -67,7 +67,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           Cancelar
         </a>
         <button type="submit"
-                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 px-4 py-1.5 text-sm font-medium text-white shadow hover:opacity-95">
+                class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-1.5 text-sm font-medium text-white shadow hover:opacity-95">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Salvar
         </button>
