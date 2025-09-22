@@ -47,12 +47,12 @@ ob_start(); ?>
 
 <!-- HEADER -->
 <header class="mb-6 flex items-center gap-3">
-  <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-emerald-500 text-white shadow">
+  <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
       <path d="M4 7h16M7 12h10M10 17h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
     </svg>
   </span>
-  <h1 class="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-2xl font-semibold text-transparent">
+  <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">
     Configurações gerais
   </h1>
 
@@ -268,7 +268,7 @@ ob_start(); ?>
 
   <!-- AÇÕES -->
   <div class="flex gap-2">
-    <button class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
+    <button class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
       <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Salvar
     </button>

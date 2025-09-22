@@ -22,6 +22,71 @@ function e($s) {
   return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+if (!function_exists('normalize_color_hex')) {
+  /**
+   * Normaliza um valor de cor hexadecimal para o formato completo #RRGGBB.
+   *
+   * @param string|null $value    Valor informado (com ou sem #, 3 ou 6 dígitos).
+   * @param string      $default  Cor padrão caso $value seja vazio ou inválido.
+   */
+  function normalize_color_hex(?string $value, string $default = '#000000'): string {
+    $value = trim((string)($value ?? ''));
+    $default = strtoupper($default);
+    if ($value === '') {
+      return $default;
+    }
+
+    if ($value[0] !== '#') {
+      $value = '#' . $value;
+    }
+
+    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
+      return $default;
+    }
+
+    if (strlen($value) === 4) {
+      $value = '#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3];
+    }
+
+    return strtoupper($value);
+  }
+}
+
+if (!function_exists('hex_to_rgba')) {
+  /**
+   * Converte uma cor hexadecimal para rgba(R,G,B,A).
+   */
+  function hex_to_rgba(?string $hex, float $alpha = 1.0, string $fallback = '#000000'): string {
+    $hex = normalize_color_hex($hex, $fallback);
+    $alpha = max(0, min(1, $alpha));
+    $r = hexdec(substr($hex, 1, 2));
+    $g = hexdec(substr($hex, 3, 2));
+    $b = hexdec(substr($hex, 5, 2));
+    return sprintf('rgba(%d, %d, %d, %.3f)', $r, $g, $b, $alpha);
+  }
+}
+
+if (!function_exists('admin_theme_primary_color')) {
+  /**
+   * Retorna a cor principal do painel admin baseada na configuração da empresa.
+   */
+  function admin_theme_primary_color(?array $company, string $default = '#5B21B6'): string {
+    $color = $company['menu_header_bg_color'] ?? ($company['menu_logo_bg_color'] ?? $default);
+    return normalize_color_hex($color, $default);
+  }
+}
+
+if (!function_exists('admin_theme_gradient')) {
+  /**
+   * Cria um gradiente suave usando a cor principal da empresa.
+   */
+  function admin_theme_gradient(?array $company, float $opacity = 0.65, string $direction = '135deg'): string {
+    $base = admin_theme_primary_color($company);
+    $soft = hex_to_rgba($base, $opacity, $base);
+    return sprintf('linear-gradient(%s, %s 0%%, %s 100%%)', $direction, $base, $soft);
+  }
+}
+
 /**
  * Verifica se o produto ainda é considerado "Novidade"
  * conforme a config 'novidades_days'.
