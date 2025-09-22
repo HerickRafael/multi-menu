@@ -1,6 +1,15 @@
 <?php
 // public/index.php
 
+if (!defined('APP_WEBROOT')) {
+  $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+  $webroot = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+  if ($webroot === '/' || $webroot === '.') {
+    $webroot = '';
+  }
+  define('APP_WEBROOT', $webroot);
+}
+
 require_once __DIR__ . '/../app/core/Helpers.php';
 require_once __DIR__ . '/../app/core/Router.php';
 require_once __DIR__ . '/../app/core/Controller.php';
@@ -28,10 +37,12 @@ require_once __DIR__ . '/../routes/web.php';
 
 // --- Normalização robusta da URI/base path ---
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-$basePath = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+$basePath = defined('APP_WEBROOT') ? (string)APP_WEBROOT : '';
+if ($basePath === '/' || $basePath === '.') {
+  $basePath = '';
+}
 
-if ($basePath && strpos($uri, $basePath) === 0) {
+if ($basePath !== '' && strpos($uri, $basePath) === 0) {
   // Remove /multi-menu/public (ou pasta equivalente) da URI
   $uri = substr($uri, strlen($basePath));
 }
