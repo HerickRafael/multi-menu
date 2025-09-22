@@ -44,13 +44,24 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
   @media (min-width:768px){ .app{max-width:375px} }
 
-  .hero-wrap{position:relative}
-  .nav-btn{position:absolute;top:12px;left:12px;z-index:2;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
+  .hero-wrap{position:relative;padding:56px 0 120px;display:flex;align-items:flex-end;justify-content:center;min-height:360px}
+  .nav-btn{position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
     background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer}
-  .hero{width:100%;height:360px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);display:grid;place-items:center}
-  .hero img{width:100%;height:100%;object-fit:contain;filter: drop-shadow(0 18px 34px rgba(0,0,0,.25))}
+  .hero-visual{position:absolute;top:72px;left:50%;transform:translateX(-50%);width:min(90%,390px);height:360px;
+    border-radius:28px;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);
+    overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 38px rgba(15,23,42,0.08);z-index:0;
+    pointer-events:none}
+  .hero-visual img{width:100%;height:100%;object-position:center;object-fit:var(--hero-fit, contain);
+    filter:drop-shadow(0 18px 34px rgba(0,0,0,.22))}
+  .hero-visual[data-fit="cover"] img{object-fit:cover}
+  .hero-toggle{position:absolute;top:20px;right:16px;z-index:2;display:flex;gap:6px;background:rgba(255,255,255,0.82);
+    border:1px solid rgba(15,23,42,0.08);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:600;color:#1f2937;
+    backdrop-filter:blur(8px)}
+  .hero-toggle button{appearance:none;border:none;background:transparent;padding:4px 10px;border-radius:999px;cursor:pointer;
+    color:inherit;font:inherit}
+  .hero-toggle button[aria-pressed="true"]{background:#111827;color:#fff}
 
-  .card{background:var(--card);border-radius:26px 26px 0 0;margin-top:-8px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px}
+  .card{position:relative;background:var(--card);border-radius:26px 26px 0 0;margin-top:-8px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px;z-index:1}
   .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:13px}
   .brand .dot{width:18px;height:18px;border-radius:999px;background:#ffb703;display:grid;place-items:center;color:#7c2d12;font-weight:800;font-size:11px}
   h1{margin:2px 0 0;font-size:20px;line-height:1.25;font-weight:700}
@@ -113,39 +124,16 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
               transform="scale(0.7) translate(5 5)"></path>
       </svg>
     </a>
-    <div class="hero">
-      <?php
-        // Resolução robusta do caminho da imagem (URL absoluta, caminho relativo, removendo "public/" se vier do painel)
-        $rawImg = trim((string)($product['image'] ?? ''));
-        $placeholder = base_url('assets/logo-placeholder.png');
-        $imgSrc = '';
-
-        if ($rawImg !== '') {
-          if (preg_match('#^https?://#i', $rawImg)) {
-            // URL completa
-            $imgSrc = $rawImg;
-          } else {
-            // Caminho relativo no /public
-            $relative = ltrim($rawImg, '/');
-            if (strpos($relative, 'public/') === 0) {
-              $relative = substr($relative, strlen('public/'));
-            }
-
-            $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
-            $fsPath = $docRoot !== '' ? $docRoot . '/' . $relative : '';
-
-            // Se não conseguimos validar o arquivo por falta de docRoot, ainda assim tentamos servir via base_url
-            if ($fsPath === '' || @is_file($fsPath)) {
-              $imgSrc = base_url($relative);
-            }
-          }
-        }
-
-        $imgAlt = $imgSrc === '' ? 'Imagem do produto' : ($product['name'] ?? 'Produto');
-        if ($imgSrc === '') {
-          $imgSrc = $placeholder;
-        }
-      ?>
+    <?php
+      $imagePath = trim((string)($product['image'] ?? ''));
+      $imgSrc = base_url($imagePath !== '' ? $imagePath : 'assets/logo-placeholder.png');
+      $imgAlt = $imagePath !== '' ? ($product['name'] ?? 'Produto') : 'Imagem do produto';
+    ?>
+    <div class="hero-toggle" role="group" aria-label="Modo de exibição da imagem">
+      <button type="button" data-fit="contain" aria-pressed="true">Contain</button>
+      <button type="button" data-fit="cover" aria-pressed="false">Cover</button>
+    </div>
+    <div class="hero-visual" data-fit="contain">
       <img src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
     </div>
   </div>
@@ -289,6 +277,21 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
 </div>
 
 <script>
+  // ===== Hero fit toggle =====
+  const hero = document.querySelector('.hero-visual');
+  const toggleButtons = document.querySelectorAll('.hero-toggle button');
+  if (hero && toggleButtons.length) {
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const fit = btn.getAttribute('data-fit') === 'cover' ? 'cover' : 'contain';
+        hero.setAttribute('data-fit', fit);
+        toggleButtons.forEach(control => {
+          control.setAttribute('aria-pressed', control === btn ? 'true' : 'false');
+        });
+      });
+    });
+  }
+
   // ===== Qty stepper =====
   const qval   = document.getElementById('qval');
   const qfield = document.getElementById('qtyField');
@@ -297,7 +300,7 @@ $addToCartUrl  = base_url($slug . '/orders/add');                               
   const clamp  = n => Math.max(1, Math.min(99, n|0));
   function setQty(n){ const v = clamp(n); qval.textContent = String(v); qfield.value = String(v); }
   minus?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)-1));
-  plus ?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)+1));
+  plus?.addEventListener('click', ()=> setQty(parseInt(qval.textContent,10)+1));
   function attach(e){ setQty(parseInt(qval.textContent,10)||1); return true; }
 
   // Botão Personalizar: acrescenta qty atual na URL (opcional)
