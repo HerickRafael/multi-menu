@@ -141,7 +141,8 @@ ob_start(); ?>
     <div>
       <span class="text-sm block mb-1">Logo (quadrado) – jpg/png/webp</span>
       <?php if (!empty($company['logo'])): ?>
-        <img src="<?= base_url($company['logo']) ?>" class="w-20 h-20 object-cover rounded-xl mb-2" alt="Logo atual">
+        <?php $logoImage = upload_image_url($company['logo']); ?>
+        <img src="<?= e($logoImage) ?>" class="w-20 h-20 object-cover rounded-xl mb-2" alt="Logo atual">
       <?php endif; ?>
       <input type="file" name="logo" accept=".jpg,.jpeg,.png,.webp" class="border rounded-xl p-2 w-full">
     </div>
@@ -149,7 +150,8 @@ ob_start(); ?>
     <div>
       <span class="text-sm block mb-1">Banner (largura) – jpg/png/webp</span>
       <?php if (!empty($company['banner'])): ?>
-        <img src="<?= base_url($company['banner']) ?>" class="w-full max-w-md h-24 object-cover rounded-xl mb-2" alt="Banner atual">
+        <?php $bannerImage = upload_image_url($company['banner']); ?>
+        <img src="<?= e($bannerImage) ?>" class="w-full max-w-md h-24 object-cover rounded-xl mb-2" alt="Banner atual">
       <?php endif; ?>
       <input type="file" name="banner" accept=".jpg,.jpeg,.png,.webp" class="border rounded-xl p-2 w-full">
     </div>

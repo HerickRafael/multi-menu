@@ -135,7 +135,8 @@ ob_start(); ?>
         <span>Enviar imagem</span>
       </label>
       <?php if ($image): ?>
-        <img src="<?= e(base_url($image)) ?>" alt="" class="w-14 h-14 rounded-full object-cover border">
+        <?php $imageUrl = upload_image_url($image); ?>
+        <img src="<?= e($imageUrl) ?>" alt="<?= e($ingredient['name'] ?? 'Ingrediente') ?>" class="w-14 h-14 rounded-full object-cover border">
       <?php else: ?>
         <span class="text-xs text-slate-500">Sem imagem</span>
       <?php endif; ?>

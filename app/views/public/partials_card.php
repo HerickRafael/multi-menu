@@ -1,6 +1,7 @@
 <a href="<?= base_url(rawurlencode((string)($company['slug'] ?? '')) . '/produto/' . (int)$p['id']) ?>" class="block">
   <div class="rounded-2xl shadow p-4 bg-white border flex gap-3 hover:bg-gray-50">
-    <img src="<?= base_url($p['image'] ?: 'assets/logo-placeholder.png') ?>"
+    <?php $cardImage = upload_image_url($p['image'] ?? ''); ?>
+    <img src="<?= e($cardImage) ?>"
          alt="<?= e($p['name']) ?>"
          class="w-24 h-24 object-cover rounded-xl">
 

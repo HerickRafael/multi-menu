@@ -18,6 +18,36 @@ function base_url(string $path = ''): string {
   return $p ? "$b/$p" : $b;
 }
 
+function upload_image_url($value, string $fallback = 'logo-placeholder.png'): string {
+  $filename = '';
+
+  if (is_string($value) || is_numeric($value)) {
+    $raw = trim((string)$value);
+    if ($raw !== '') {
+      $raw = str_replace('\\', '/', $raw);
+      $raw = explode('?', $raw, 2)[0];
+      $raw = explode('#', $raw, 2)[0];
+      $filename = basename($raw);
+    }
+  }
+
+  if ($filename === '' || $filename === '.' || $filename === '..') {
+    $fallback = trim((string)$fallback);
+    if ($fallback !== '') {
+      $fallback = str_replace('\\', '/', $fallback);
+      $fallback = explode('?', $fallback, 2)[0];
+      $fallback = explode('#', $fallback, 2)[0];
+      $filename = basename($fallback);
+    }
+  }
+
+  if ($filename === '' || $filename === '.' || $filename === '..') {
+    $filename = 'logo-placeholder.png';
+  }
+
+  return base_url('uploads/' . ltrim($filename, '/'));
+}
+
 function e($s) {
   return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
 }

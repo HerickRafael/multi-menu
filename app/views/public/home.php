@@ -67,7 +67,8 @@ $company        = $company        ?? [];
 /* Flags: controller decide; view só obedece */
 $mostraNovidade = isset($mostraNovidade) ? (bool)$mostraNovidade : (count($novidades) > 0);
 
-$bannerUrl = !empty($company['banner']) ? base_url($company['banner']) : null;
+$bannerUrl = !empty($company['banner']) ? upload_image_url($company['banner']) : null;
+$logoUrl = upload_image_url($company['logo'] ?? '');
 
 /* Sessão do cliente (se existir) */
 if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
@@ -157,7 +158,7 @@ $showFooterMenu = true;
   <div class="rounded-2xl overflow-hidden">
     <?php if ($bannerUrl): ?>
       <div class="relative">
-        <img src="<?= $bannerUrl ?>" class="w-full h-36 md:h-48 object-cover" alt="Banner">
+        <img src="<?= e($bannerUrl) ?>" class="w-full h-36 md:h-48 object-cover" alt="Banner">
         <div class="absolute inset-0 bg-black/30"></div>
       </div>
     <?php else: ?>
@@ -165,7 +166,7 @@ $showFooterMenu = true;
     <?php endif; ?>
 
     <div class="p-5 relative -mt-10 rounded-2xl no-focus-ring menu-header">
-      <img src="<?= base_url($company['logo'] ?? 'assets/logo-placeholder.png') ?>"
+      <img src="<?= e($logoUrl) ?>"
            class="w-24 h-24 rounded-full object-cover border-4 absolute -top-10 right-6 pointer-events-none"
            style="background-color: <?= e($logoBorderColor) ?>; border-color: <?= e($logoBorderColor) ?>;"
            alt="<?= e($company['name'] ?? 'Logo') ?>">

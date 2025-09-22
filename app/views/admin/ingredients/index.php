@@ -58,7 +58,8 @@ ob_start(); ?>
       <td class="p-3">
         <div class="flex items-center gap-3">
           <?php if (!empty($item['image_path'])): ?>
-            <img src="<?= e(base_url($item['image_path'])) ?>" alt="" class="w-10 h-10 rounded-full object-cover">
+            <?php $ingredientImage = upload_image_url($item['image_path']); ?>
+            <img src="<?= e($ingredientImage) ?>" alt="<?= e($item['name'] ?? 'Ingrediente') ?>" class="w-10 h-10 rounded-full object-cover">
           <?php else: ?>
             <div class="w-10 h-10 rounded-full bg-slate-200 grid place-items-center text-slate-500 text-xs">IMG</div>
           <?php endif; ?>
