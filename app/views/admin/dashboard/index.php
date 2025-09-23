@@ -177,11 +177,8 @@ ob_start(); ?>
             <?php if (!empty($p['image'])): ?>
               <img src="<?= e(base_url($p['image'])) ?>" class="h-11 w-11 rounded-lg object-cover ring-1 ring-slate-200" alt="">
             <?php else: ?>
-              <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 ring-1 ring-slate-200">
-                <svg viewBox="0 0 24 24" class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                  <path d="m3 16 5-5 4 4 5-6 4 6"/>
-                </svg>
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-400 ring-1 ring-slate-200">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
             <?php endif; ?>
             <div class="min-w-0 flex-1">
