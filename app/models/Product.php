@@ -45,9 +45,12 @@ class Product
    * LISTAGENS / BÁSICO
    * ======================== */
 
-  public static function listByCompany(int $companyId, ?string $q = null): array {
-    $sql = "SELECT * FROM products WHERE company_id = ? AND active = 1";
+  public static function listByCompany(int $companyId, ?string $q = null, bool $onlyActive = true): array {
+    $sql = "SELECT * FROM products WHERE company_id = ?";
     $args = [$companyId];
+    if ($onlyActive) {
+      $sql .= " AND active = 1";
+    }
     if ($q) {
       $sql .= " AND (name LIKE ? OR description LIKE ?)";
       $args[] = "%$q%"; $args[] = "%$q%";
