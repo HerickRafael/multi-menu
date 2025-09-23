@@ -75,7 +75,7 @@ ob_start(); ?>
 </section>
 
 <!-- AÇÕES RÁPIDAS -->
-<div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+<div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
   <a href="<?= e(base_url('admin/' . $slug . '/categories/create')) ?>" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
     <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
@@ -108,10 +108,20 @@ ob_start(); ?>
     <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
   <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/>
-</svg> 
+</svg>
     </div>
     <div class="font-semibold text-slate-900">Novo pedido</div>
     <p class="text-sm text-slate-500">Registre um pedido manualmente.</p>
+  </a>
+
+  <a href="<?= e(base_url('admin/' . $slug . '/delivery-fees')) ?>" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-truck" viewBox="0 0 16 16">
+  <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5v7A1.5 1.5 0 0 1 10.5 12H10a2 2 0 1 1-4 0H4a2 2 0 1 1-3.874-.5A1.5 1.5 0 0 1 0 10.5v-7zM1 3.5v5.473A2 2 0 0 1 3.874 11H6V3H1.5a.5.5 0 0 0-.5.5M10 3v8h.5a.5.5 0 0 0 .5-.5V9h1.5a.5.5 0 0 0 .447-.276l1.5-3A.5.5 0 0 0 13.5 5H12V3.5A.5.5 0 0 0 11.5 3zM4.5 12a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+</svg>
+    </div>
+    <div class="font-semibold text-slate-900">Taxas de entrega</div>
+    <p class="text-sm text-slate-500">Gerencie cidades e bairros atendidos.</p>
   </a>
 </div>
 
