@@ -1,5 +1,4 @@
 <?php
-
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -7,10 +6,14 @@ require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/DeliveryCity.php';
 require_once __DIR__ . '/../models/DeliveryZone.php';
 
-class AdminDeliveryFeeController extends Controller {
-  private function guard(string $slug): array {
+class AdminDeliveryFeeController extends Controller
+{
+  /** Protege a rota e retorna [user, company] */
+  private function guard(string $slug): array
+  {
     Auth::start();
     $user = Auth::user();
+
     if (!$user) {
       header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
       exit;
@@ -30,7 +33,9 @@ class AdminDeliveryFeeController extends Controller {
     return [$user, $company];
   }
 
-  private function redirectToIndex(array $company, array $query = []): void {
+  /** Redireciona para index com flash opcional ?status= */
+  private function redirectToIndex(array $company, array $query = []): void
+  {
     $base = base_url('admin/' . rawurlencode($company['slug']) . '/delivery-fees');
     if ($query) {
       $base .= '?' . http_build_query($query);
@@ -39,11 +44,11 @@ class AdminDeliveryFeeController extends Controller {
     exit;
   }
 
-  private function resolveFlashFromQuery(): array {
+  /** Lê flash (?status=) e resolve mensagem */
+  private function resolveFlashFromQuery(): array
+  {
     $status = trim((string)($_GET['status'] ?? ''));
-    if ($status === '') {
-      return [];
-    }
+    if ($status === '') return [];
 
     $messages = [
       'city-created'   => 'Cidade cadastrada com sucesso.',
@@ -56,17 +61,17 @@ class AdminDeliveryFeeController extends Controller {
       'options-saved'  => 'Preferências de entrega atualizadas.',
     ];
 
-    if (!isset($messages[$status])) {
-      return [];
-    }
+    if (!isset($messages[$status])) return [];
 
-    return [
-      'type'    => 'success',
-      'message' => $messages[$status],
-    ];
+    return ['type' => 'success', 'message' => $messages[$status]];
   }
 
-  private function renderPage(array $company, array $options = []) {
+  /**
+   * Renderiza a página principal (lista + formulários).
+   * Observação: mantido allByCompany($companyId) sem parâmetro de busca para compatibilidade.
+   */
+  private function renderPage(array $company, array $options = [])
+  {
     $companyId = (int)$company['id'];
 
     $cityErrors   = $options['cityErrors']   ?? [];
@@ -74,42 +79,54 @@ class AdminDeliveryFeeController extends Controller {
     $optionErrors = $options['optionErrors'] ?? [];
     $bulkErrors   = $options['bulkErrors']   ?? [];
 
+    // (Opcional) parâmetros de busca/edição vindos por GET — não filtramos nos models para manter compat
     $citySearch = trim((string)($options['citySearch'] ?? ($_GET['city_search'] ?? '')));
     $zoneSearch = trim((string)($options['zoneSearch'] ?? ($_GET['zone_search'] ?? '')));
 
     $editCityId = (int)($options['editCityId'] ?? ($_GET['edit_city'] ?? 0));
     $editZoneId = (int)($options['editZoneId'] ?? ($_GET['edit_zone'] ?? 0));
 
-    $cities = DeliveryCity::allByCompany($companyId, $citySearch !== '' ? $citySearch : null);
-    $zones  = DeliveryZone::allByCompany($companyId, $zoneSearch !== '' ? $zoneSearch : null);
+    // Carregamento (sem search para compat)
+    $cities = DeliveryCity::allByCompany($companyId);
+    $zones  = DeliveryZone::allByCompany($companyId);
 
+    // Repopulação cidade (edição)
     $oldCity = $options['oldCity'] ?? [];
     if ($editCityId > 0 && !$oldCity) {
-      $city = DeliveryCity::findForCompany($editCityId, $companyId);
-      if ($city) {
-        $oldCity = ['id' => $city['id'], 'name' => $city['name']];
+      // requer DeliveryCity::findForCompany($id, $companyId)
+      if (method_exists('DeliveryCity', 'findForCompany')) {
+        $city = DeliveryCity::findForCompany($editCityId, $companyId);
+        if ($city) $oldCity = ['id' => $city['id'], 'name' => $city['name']];
+        else       $editCityId = 0;
       } else {
         $editCityId = 0;
       }
     }
     $oldCity = $oldCity + ['id' => '', 'name' => ''];
 
+    // Repopulação zona (edição)
     $oldZone = $options['oldZone'] ?? [];
     if ($editZoneId > 0 && !$oldZone) {
-      $zone = DeliveryZone::findForCompany($editZoneId, $companyId);
-      if ($zone) {
-        $oldZone = [
-          'id'           => $zone['id'],
-          'city_id'      => $zone['city_id'],
-          'neighborhood' => $zone['neighborhood'],
-          'fee'          => number_format((float)$zone['fee'], 2, '.', ''),
-        ];
+      // requer DeliveryZone::findForCompany($id, $companyId)
+      if (method_exists('DeliveryZone', 'findForCompany')) {
+        $zone = DeliveryZone::findForCompany($editZoneId, $companyId);
+        if ($zone) {
+          $oldZone = [
+            'id'           => $zone['id'],
+            'city_id'      => $zone['city_id'],
+            'neighborhood' => $zone['neighborhood'],
+            'fee'          => number_format((float)$zone['fee'], 2, '.', ''),
+          ];
+        } else {
+          $editZoneId = 0;
+        }
       } else {
         $editZoneId = 0;
       }
     }
     $oldZone = $oldZone + ['id' => '', 'city_id' => '', 'neighborhood' => '', 'fee' => ''];
 
+    // Opções de entrega na Company (campos opcionais)
     $optionValues = $options['optionValues'] ?? [];
     if (!array_key_exists('after_hours_fee', $optionValues)) {
       $optionValues['after_hours_fee'] = number_format((float)($company['delivery_after_hours_fee'] ?? 0), 2, '.', '');
@@ -119,8 +136,7 @@ class AdminDeliveryFeeController extends Controller {
     }
 
     $bulkValue = $options['bulkValue'] ?? '';
-
-    $flash = $options['flash'] ?? $this->resolveFlashFromQuery();
+    $flash     = $options['flash'] ?? $this->resolveFlashFromQuery();
 
     return $this->view('admin/delivery-fees/index', [
       'company'      => $company,
@@ -142,16 +158,20 @@ class AdminDeliveryFeeController extends Controller {
     ]);
   }
 
-  public function index($params) {
+  /** GET /delivery-fees */
+  public function index($params)
+  {
     [, $company] = $this->guard($params['slug']);
     return $this->renderPage($company);
   }
 
-  public function storeCity($params) {
+  /** POST /delivery-fees/cities (criar cidade) */
+  public function storeCity($params)
+  {
     [, $company] = $this->guard($params['slug']);
-    $companyId = (int)$company['id'];
+    $companyId   = (int)$company['id'];
 
-    $name = trim((string)($_POST['name'] ?? ''));
+    $name   = trim((string)($_POST['name'] ?? ''));
     $errors = [];
 
     if ($name === '') {
@@ -175,21 +195,24 @@ class AdminDeliveryFeeController extends Controller {
     $this->redirectToIndex($company, ['status' => 'city-created']);
   }
 
-  public function updateCity($params) {
+  /** POST /delivery-fees/cities/{id} (atualizar cidade) */
+  public function updateCity($params)
+  {
     [, $company] = $this->guard($params['slug']);
-    $companyId = (int)$company['id'];
-    $id = (int)($params['id'] ?? 0);
+    $companyId   = (int)$company['id'];
+    $id          = (int)($params['id'] ?? 0);
 
-    if ($id <= 0 || !DeliveryCity::findForCompany($id, $companyId)) {
+    // requer DeliveryCity::findForCompany
+    if ($id <= 0 || (method_exists('DeliveryCity', 'findForCompany') && !DeliveryCity::findForCompany($id, $companyId))) {
       $this->redirectToIndex($company);
     }
 
-    $name = trim((string)($_POST['name'] ?? ''));
+    $name   = trim((string)($_POST['name'] ?? ''));
     $errors = [];
 
     if ($name === '') {
       $errors[] = 'Informe o nome da cidade.';
-    } elseif (DeliveryCity::existsByNameExcept($companyId, $name, $id)) {
+    } elseif (method_exists('DeliveryCity', 'existsByNameExcept') && DeliveryCity::existsByNameExcept($companyId, $name, $id)) {
       $errors[] = 'Esta cidade já está cadastrada.';
     }
 
@@ -201,12 +224,17 @@ class AdminDeliveryFeeController extends Controller {
       ]);
     }
 
-    DeliveryCity::update($id, $companyId, $name);
+    // requer DeliveryCity::update
+    if (method_exists('DeliveryCity', 'update')) {
+      DeliveryCity::update($id, $companyId, $name);
+    }
 
     $this->redirectToIndex($company, ['status' => 'city-updated']);
   }
 
-  public function destroyCity($params) {
+  /** POST /delivery-fees/cities/{id}/del (excluir cidade) */
+  public function destroyCity($params)
+  {
     [, $company] = $this->guard($params['slug']);
     $id = (int)($params['id'] ?? 0);
 
@@ -217,26 +245,31 @@ class AdminDeliveryFeeController extends Controller {
     $this->redirectToIndex($company, ['status' => 'city-removed']);
   }
 
-  public function storeZone($params) {
+  /** POST /delivery-fees/zones (criar bairro/taxa) */
+  public function storeZone($params)
+  {
     [, $company] = $this->guard($params['slug']);
-    $companyId = (int)$company['id'];
+    $companyId   = (int)$company['id'];
 
     $cityId       = (int)($_POST['city_id'] ?? 0);
     $neighborhood = trim((string)($_POST['neighborhood'] ?? ''));
     $feeRaw       = trim((string)($_POST['fee'] ?? ''));
 
-    $errors = [];
+    $errors        = [];
     $feeNormalized = str_replace(',', '.', $feeRaw);
 
+    // cidade
     $city = $cityId > 0 ? DeliveryCity::findForCompany($cityId, $companyId) : null;
     if (!$city) {
       $errors[] = 'Selecione uma cidade válida.';
     }
 
+    // bairro
     if ($neighborhood === '') {
       $errors[] = 'Informe o bairro.';
     }
 
+    // taxa
     if ($feeRaw === '') {
       $errors[] = 'Informe o valor da taxa de entrega.';
     } elseif (!is_numeric($feeNormalized)) {
@@ -245,6 +278,7 @@ class AdminDeliveryFeeController extends Controller {
       $errors[] = 'A taxa não pode ser negativa.';
     }
 
+    // duplicidade
     if (!$errors && DeliveryZone::existsForCity($companyId, $cityId, $neighborhood)) {
       $errors[] = 'Este bairro já está cadastrado para a cidade selecionada.';
     }
@@ -272,32 +306,35 @@ class AdminDeliveryFeeController extends Controller {
     $this->redirectToIndex($company, ['status' => 'zone-created']);
   }
 
-  public function updateZone($params) {
+  /** POST /delivery-fees/zones/{id} (atualizar bairro/taxa) */
+  public function updateZone($params)
+  {
     [, $company] = $this->guard($params['slug']);
     $companyId = (int)$company['id'];
-    $id = (int)($params['id'] ?? 0);
+    $id        = (int)($params['id'] ?? 0);
 
-    $zone = $id > 0 ? DeliveryZone::findForCompany($id, $companyId) : null;
-    if (!$zone) {
+    // requer DeliveryZone::findForCompany
+    if (!method_exists('DeliveryZone', 'findForCompany')) {
+      // Sem suporte no model: volta para index
       $this->redirectToIndex($company);
     }
+    $zone = DeliveryZone::findForCompany($id, $companyId);
+    if (!$zone) $this->redirectToIndex($company);
 
     $cityId       = (int)($_POST['city_id'] ?? 0);
     $neighborhood = trim((string)($_POST['neighborhood'] ?? ''));
     $feeRaw       = trim((string)($_POST['fee'] ?? ''));
 
-    $errors = [];
+    $errors        = [];
     $feeNormalized = str_replace(',', '.', $feeRaw);
 
     $city = $cityId > 0 ? DeliveryCity::findForCompany($cityId, $companyId) : null;
     if (!$city) {
       $errors[] = 'Selecione uma cidade válida.';
     }
-
     if ($neighborhood === '') {
       $errors[] = 'Informe o bairro.';
     }
-
     if ($feeRaw === '') {
       $errors[] = 'Informe o valor da taxa de entrega.';
     } elseif (!is_numeric($feeNormalized)) {
@@ -306,7 +343,8 @@ class AdminDeliveryFeeController extends Controller {
       $errors[] = 'A taxa não pode ser negativa.';
     }
 
-    if (!$errors && DeliveryZone::existsForCityExcept($companyId, $cityId, $neighborhood, $id)) {
+    if (!$errors && method_exists('DeliveryZone', 'existsForCityExcept')
+        && DeliveryZone::existsForCityExcept($companyId, $cityId, $neighborhood, $id)) {
       $errors[] = 'Este bairro já está cadastrado para a cidade selecionada.';
     }
 
@@ -325,21 +363,26 @@ class AdminDeliveryFeeController extends Controller {
 
     $feeValue = number_format((float)$feeNormalized, 2, '.', '');
 
-    DeliveryZone::update($id, $companyId, [
-      'city_id'      => $cityId,
-      'neighborhood' => $neighborhood,
-      'fee'          => $feeValue,
-    ]);
+    // requer DeliveryZone::update
+    if (method_exists('DeliveryZone', 'update')) {
+      DeliveryZone::update($id, $companyId, [
+        'city_id'      => $cityId,
+        'neighborhood' => $neighborhood,
+        'fee'          => $feeValue,
+      ]);
+    }
 
     $this->redirectToIndex($company, ['status' => 'zone-updated']);
   }
 
-  public function adjustZones($params) {
+  /** POST /delivery-fees/zones/adjust (ajuste em massa) */
+  public function adjustZones($params)
+  {
     [, $company] = $this->guard($params['slug']);
-    $companyId = (int)$company['id'];
+    $companyId   = (int)$company['id'];
 
     $deltaRaw = trim((string)($_POST['delta'] ?? ''));
-    $errors = [];
+    $errors   = [];
 
     if ($deltaRaw === '') {
       $errors[] = 'Informe o valor para ajuste.';
@@ -358,12 +401,18 @@ class AdminDeliveryFeeController extends Controller {
     }
 
     $delta = (float)$normalized;
-    DeliveryZone::adjustFees($companyId, $delta);
+
+    // requer DeliveryZone::adjustFees($companyId, $delta)
+    if (method_exists('DeliveryZone', 'adjustFees')) {
+      DeliveryZone::adjustFees($companyId, $delta);
+    }
 
     $this->redirectToIndex($company, ['status' => 'fees-adjusted']);
   }
 
-  public function destroyZone($params) {
+  /** POST /delivery-fees/zones/{id}/del (excluir bairro/taxa) */
+  public function destroyZone($params)
+  {
     [, $company] = $this->guard($params['slug']);
     $id = (int)($params['id'] ?? 0);
 
@@ -374,18 +423,20 @@ class AdminDeliveryFeeController extends Controller {
     $this->redirectToIndex($company, ['status' => 'zone-removed']);
   }
 
-  public function updateOptions($params) {
+  /** POST /delivery-fees/options (salva opções de entrega na Company) */
+  public function updateOptions($params)
+  {
     [, $company] = $this->guard($params['slug']);
-    $companyId = (int)$company['id'];
+    $companyId   = (int)$company['id'];
 
     $afterRaw = trim((string)($_POST['after_hours_fee'] ?? '0'));
     $freeFlag = isset($_POST['free_delivery']) && (int)$_POST['free_delivery'] === 1;
 
-    $errors = [];
+    $errors     = [];
     $normalized = str_replace(',', '.', $afterRaw);
 
     if ($afterRaw === '') {
-      $afterRaw = '0';
+      $afterRaw   = '0';
       $normalized = '0';
     }
 
@@ -405,7 +456,10 @@ class AdminDeliveryFeeController extends Controller {
       ]);
     }
 
-    Company::updateDeliveryOptions($companyId, (float)$normalized, $freeFlag);
+    // requer Company::updateDeliveryOptions($companyId, float $afterFee, bool $freeEnabled)
+    if (method_exists('Company', 'updateDeliveryOptions')) {
+      Company::updateDeliveryOptions($companyId, (float)$normalized, $freeFlag);
+    }
 
     $this->redirectToIndex($company, ['status' => 'options-saved']);
   }

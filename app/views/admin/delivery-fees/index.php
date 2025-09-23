@@ -21,9 +21,10 @@ $zoneSearch   = isset($zoneSearch) ? trim((string)$zoneSearch) : '';
 $editCityId   = isset($editCityId) ? (int)$editCityId : 0;
 $editZoneId   = isset($editZoneId) ? (int)$editZoneId : 0;
 $flash        = is_array($flash ?? null) ? $flash : [];
-$title      = 'Taxas de entrega - ' . ($company['name'] ?? '');
-$slug       = rawurlencode((string)($company['slug'] ?? ''));
+$title        = 'Taxas de entrega - ' . ($company['name'] ?? '');
+$slug         = rawurlencode((string)($company['slug'] ?? ''));
 
+// Contagem de bairros por cidade
 $zoneCountByCity = [];
 foreach ($zones as $zone) {
   $cityId = (int)($zone['city_id'] ?? 0);
@@ -43,7 +44,6 @@ if (!function_exists('delivery_query_suffix')) {
     foreach ($remove as $key) {
       unset($current[$key]);
     }
-
     foreach ($overrides as $key => $value) {
       if ($value === null || $value === '') {
         unset($current[$key]);
@@ -51,11 +51,7 @@ if (!function_exists('delivery_query_suffix')) {
         $current[$key] = $value;
       }
     }
-
-    if (!$current) {
-      return '';
-    }
-
+    if (!$current) return '';
     return '?' . http_build_query($current);
   }
 }
@@ -79,7 +75,7 @@ ob_start();
        class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-gear" viewBox="0 0 16 16">
         <path d="M7.293 1.5a1 1 0 0 1 1.414 0L11 3.793V2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v3.293l2.354 2.353a.5.5 0 0 1-.708.708L8.207 2.207l-5 5V13.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 2 13.5V8.207l-.646.647a.5.5 0 1 1-.708-.708z"/>
-        <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"/>
+        <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0 .382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"/>
       </svg>
       Dashboard
     </a>
@@ -398,36 +394,36 @@ ob_start();
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-          <?php foreach ($zones as $zone): ?>
-            <tr class="hover:bg-slate-50/70">
-              <td class="p-3 align-middle font-medium text-slate-800"><?= e($zone['city_name'] ?? '') ?></td>
-              <td class="p-3 align-middle text-slate-700"><?= e($zone['neighborhood'] ?? '') ?></td>
-              <td class="p-3 align-middle text-slate-700">R$ <?= number_format((float)($zone['fee'] ?? 0), 2, ',', '.') ?></td>
-              <td class="p-3 align-middle">
-                <div class="flex justify-end gap-2">
-                  <a href="<?= e($basePath . delivery_query_suffix($queryState, ['edit_zone' => (int)($zone['id'] ?? 0)], ['edit_city'])) ?>"
-                     class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 16.5 16.5 5 19 7.5 7.5 19H5v-2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    Editar
-                  </a>
-                  <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)($zone['id'] ?? 0) . '/del')) ?>"
-                        onsubmit="return confirm('Remover esta taxa de entrega?');">
-                    <?php if (function_exists('csrf_field')): ?>
-                      <?= csrf_field() ?>
-                    <?php elseif (function_exists('csrf_token')): ?>
-                      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                    <?php endif; ?>
-                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-50">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7v11m6-11v11M8 7l1-2h6l1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                      Excluir
-                    </button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+              <?php foreach ($zones as $zone): ?>
+                <tr class="hover:bg-slate-50/70">
+                  <td class="p-3 align-middle font-medium text-slate-800"><?= e($zone['city_name'] ?? '') ?></td>
+                  <td class="p-3 align-middle text-slate-700"><?= e($zone['neighborhood'] ?? '') ?></td>
+                  <td class="p-3 align-middle text-slate-700">R$ <?= number_format((float)($zone['fee'] ?? 0), 2, ',', '.') ?></td>
+                  <td class="p-3 align-middle">
+                    <div class="flex justify-end gap-2">
+                      <a href="<?= e($basePath . delivery_query_suffix($queryState, ['edit_zone' => (int)($zone['id'] ?? 0)], ['edit_city'])) ?>"
+                         class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 16.5 16.5 5 19 7.5 7.5 19H5v-2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Editar
+                      </a>
+                      <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)($zone['id'] ?? 0) . '/del')) ?>"
+                            onsubmit="return confirm('Remover esta taxa de entrega?');">
+                        <?php if (function_exists('csrf_field')): ?>
+                          <?= csrf_field() ?>
+                        <?php elseif (function_exists('csrf_token')): ?>
+                          <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <?php endif; ?>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-50">
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7v11m6-11v11M8 7l1-2h6l1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                          Excluir
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
       <?php endif; ?>
     </div>
