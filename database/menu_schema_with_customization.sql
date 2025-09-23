@@ -95,12 +95,22 @@ INSERT INTO `company_hours` (`id`, `company_id`, `weekday`, `is_open`, `open1`, 
 (7, 1, 7, 0, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
+-- Estrutura da tabela `delivery_cities`
+-- --------------------------------------------------------
+CREATE TABLE `delivery_cities` (
+  `id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `name` varchar(120) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Estrutura da tabela `delivery_zones`
 -- --------------------------------------------------------
 CREATE TABLE `delivery_zones` (
   `id` int(11) NOT NULL,
   `company_id` int(11) NOT NULL,
-  `city` varchar(120) NOT NULL,
+  `city_id` int(11) NOT NULL,
   `neighborhood` varchar(120) NOT NULL,
   `fee` decimal(10,2) NOT NULL DEFAULT 0.00,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
@@ -285,9 +295,16 @@ ALTER TABLE `company_hours`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `company_day` (`company_id`,`weekday`);
 
+ALTER TABLE `delivery_cities`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `delivery_cities_company_name_unique` (`company_id`,`name`),
+  ADD KEY `delivery_cities_company_fk` (`company_id`);
+
 ALTER TABLE `delivery_zones`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `delivery_zones_company_city_idx` (`company_id`,`city`,`neighborhood`);
+  ADD UNIQUE KEY `delivery_zones_company_city_neighborhood_unique` (`company_id`,`city_id`,`neighborhood`),
+  ADD KEY `delivery_zones_city_fk` (`city_id`),
+  ADD KEY `delivery_zones_company_fk` (`company_id`);
 
 ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`),
@@ -346,6 +363,9 @@ ALTER TABLE `categories`
 ALTER TABLE `company_hours`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
+ALTER TABLE `delivery_cities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `delivery_zones`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
@@ -388,7 +408,11 @@ ALTER TABLE `categories`
 ALTER TABLE `company_hours`
   ADD CONSTRAINT `company_hours_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
 
+ALTER TABLE `delivery_cities`
+  ADD CONSTRAINT `delivery_cities_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
+
 ALTER TABLE `delivery_zones`
+  ADD CONSTRAINT `delivery_zones_city_fk` FOREIGN KEY (`city_id`) REFERENCES `delivery_cities` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `delivery_zones_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `customers`

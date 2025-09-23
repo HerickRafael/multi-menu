@@ -4,6 +4,7 @@ require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../models/Company.php';
+require_once __DIR__ . '/../models/DeliveryCity.php';
 require_once __DIR__ . '/../models/DeliveryZone.php';
 
 class AdminDeliveryFeeController extends Controller {
@@ -29,27 +30,83 @@ class AdminDeliveryFeeController extends Controller {
     return [$user, $company];
   }
 
-  public function index($params) {
-    [$user, $company] = $this->guard($params['slug']);
-    $zones = DeliveryZone::allByCompany((int)$company['id']);
-    $errors = [];
-    $old = ['city' => '', 'neighborhood' => '', 'fee' => ''];
+  private function renderPage(array $company, array $cityErrors = [], array $zoneErrors = [], array $oldCity = [], array $oldZone = []) {
+    $companyId = (int)$company['id'];
 
-    return $this->view('admin/delivery-fees/index', compact('company', 'zones', 'errors', 'old'));
+    $cities = DeliveryCity::allByCompany($companyId);
+    $zones  = DeliveryZone::allByCompany($companyId);
+
+    $oldCity = $oldCity + ['name' => ''];
+    $oldZone = $oldZone + ['city_id' => '', 'neighborhood' => '', 'fee' => ''];
+
+    return $this->view('admin/delivery-fees/index', [
+      'company'     => $company,
+      'cities'      => $cities,
+      'zones'       => $zones,
+      'cityErrors'  => $cityErrors,
+      'zoneErrors'  => $zoneErrors,
+      'oldCity'     => $oldCity,
+      'oldZone'     => $oldZone,
+    ]);
   }
 
-  public function store($params) {
-    [$user, $company] = $this->guard($params['slug']);
+  public function index($params) {
+    [, $company] = $this->guard($params['slug']);
+    return $this->renderPage($company);
+  }
 
-    $city         = trim((string)($_POST['city'] ?? ''));
+  public function storeCity($params) {
+    [, $company] = $this->guard($params['slug']);
+    $companyId = (int)$company['id'];
+
+    $name = trim((string)($_POST['name'] ?? ''));
+    $errors = [];
+
+    if ($name === '') {
+      $errors[] = 'Informe o nome da cidade.';
+    } elseif (DeliveryCity::existsByName($companyId, $name)) {
+      $errors[] = 'Esta cidade já está cadastrada.';
+    }
+
+    if ($errors) {
+      return $this->renderPage($company, $errors, [], ['name' => $name]);
+    }
+
+    DeliveryCity::create([
+      'company_id' => $companyId,
+      'name'       => $name,
+    ]);
+
+    header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/delivery-fees'));
+    exit;
+  }
+
+  public function destroyCity($params) {
+    [, $company] = $this->guard($params['slug']);
+    $id = (int)($params['id'] ?? 0);
+
+    if ($id > 0) {
+      DeliveryCity::delete($id, (int)$company['id']);
+    }
+
+    header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/delivery-fees'));
+    exit;
+  }
+
+  public function storeZone($params) {
+    [, $company] = $this->guard($params['slug']);
+    $companyId = (int)$company['id'];
+
+    $cityId       = (int)($_POST['city_id'] ?? 0);
     $neighborhood = trim((string)($_POST['neighborhood'] ?? ''));
     $feeRaw       = trim((string)($_POST['fee'] ?? ''));
 
     $errors = [];
     $feeNormalized = str_replace(',', '.', $feeRaw);
 
-    if ($city === '') {
-      $errors[] = 'Informe a cidade.';
+    $city = $cityId > 0 ? DeliveryCity::findForCompany($cityId, $companyId) : null;
+    if (!$city) {
+      $errors[] = 'Selecione uma cidade válida.';
     }
 
     if ($neighborhood === '') {
@@ -64,22 +121,29 @@ class AdminDeliveryFeeController extends Controller {
       $errors[] = 'A taxa não pode ser negativa.';
     }
 
-    if ($errors) {
-      $zones = DeliveryZone::allByCompany((int)$company['id']);
-      $old = [
-        'city' => $city,
-        'neighborhood' => $neighborhood,
-        'fee' => $feeRaw,
-      ];
+    if (!$errors && DeliveryZone::existsForCity($companyId, $cityId, $neighborhood)) {
+      $errors[] = 'Este bairro já está cadastrado para a cidade selecionada.';
+    }
 
-      return $this->view('admin/delivery-fees/index', compact('company', 'zones', 'errors', 'old'));
+    if ($errors) {
+      return $this->renderPage(
+        $company,
+        [],
+        $errors,
+        [],
+        [
+          'city_id'      => $cityId ?: '',
+          'neighborhood' => $neighborhood,
+          'fee'          => $feeRaw,
+        ]
+      );
     }
 
     $feeValue = number_format((float)$feeNormalized, 2, '.', '');
 
     DeliveryZone::create([
-      'company_id'   => (int)$company['id'],
-      'city'         => $city,
+      'company_id'   => $companyId,
+      'city_id'      => $cityId,
       'neighborhood' => $neighborhood,
       'fee'          => $feeValue,
     ]);
@@ -88,8 +152,8 @@ class AdminDeliveryFeeController extends Controller {
     exit;
   }
 
-  public function destroy($params) {
-    [$user, $company] = $this->guard($params['slug']);
+  public function destroyZone($params) {
+    [, $company] = $this->guard($params['slug']);
     $id = (int)($params['id'] ?? 0);
 
     if ($id > 0) {

@@ -64,9 +64,11 @@ $router->post('/admin/{slug}/ingredients/{id}',        'AdminIngredientControlle
 $router->post('/admin/{slug}/ingredients/{id}/del',    'AdminIngredientController@destroy');
 
 // Taxas de entrega
-$router->get('/admin/{slug}/delivery-fees',             'AdminDeliveryFeeController@index');
-$router->post('/admin/{slug}/delivery-fees',            'AdminDeliveryFeeController@store');
-$router->post('/admin/{slug}/delivery-fees/{id}/del',   'AdminDeliveryFeeController@destroy');
+$router->get('/admin/{slug}/delivery-fees',                   'AdminDeliveryFeeController@index');
+$router->post('/admin/{slug}/delivery-fees/cities',      'AdminDeliveryFeeController@storeCity');
+$router->post('/admin/{slug}/delivery-fees/cities/{id}/del','AdminDeliveryFeeController@destroyCity');
+$router->post('/admin/{slug}/delivery-fees/zones',       'AdminDeliveryFeeController@storeZone');
+$router->post('/admin/{slug}/delivery-fees/zones/{id}/del','AdminDeliveryFeeController@destroyZone');
 
 /* ========= Constraints globais ========= */
 if (method_exists($router, 'where')) {
