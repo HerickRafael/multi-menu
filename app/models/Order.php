@@ -81,4 +81,20 @@ class Order
     $row = $st->fetch(PDO::FETCH_ASSOC);
     return (int)($row['total'] ?? 0);
   }
+
+  public static function listRecentByCompany(int $companyId, int $limit = 8): array
+  {
+    $pdo = db();
+    $sql = 'SELECT id, customer_name, total, status, created_at
+            FROM orders
+            WHERE company_id = :cid
+            ORDER BY created_at DESC, id DESC
+            LIMIT :lim';
+    $st = $pdo->prepare($sql);
+    $st->bindValue(':cid', $companyId, PDO::PARAM_INT);
+    $st->bindValue(':lim', $limit, PDO::PARAM_INT);
+    $st->execute();
+
+    return $st->fetchAll(PDO::FETCH_ASSOC);
+  }
 }
