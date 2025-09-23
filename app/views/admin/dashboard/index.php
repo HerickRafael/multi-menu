@@ -315,7 +315,7 @@ ob_start(); ?>
       ?>
       <li>
         <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
-           href="<?= e(base_url('admin/' . $slug . '/orders/' . $oid . '/edit')) ?>">
+           href="<?= e(base_url('admin/' . $slug . '/orders/show?id=' . $oid)) ?>">
 
           <div class="min-w-0">
             <div class="truncate font-medium text-slate-800">
