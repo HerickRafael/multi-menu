@@ -21,9 +21,11 @@ $zoneSearch   = isset($zoneSearch) ? trim((string)$zoneSearch) : '';
 $editCityId   = isset($editCityId) ? (int)$editCityId : 0;
 $editZoneId   = isset($editZoneId) ? (int)$editZoneId : 0;
 $flash        = is_array($flash ?? null) ? $flash : [];
-$title      = 'Taxas de entrega - ' . ($company['name'] ?? '');
-$slug       = rawurlencode((string)($company['slug'] ?? ''));
 
+$title        = 'Taxas de entrega - ' . ($company['name'] ?? '');
+$slug         = rawurlencode((string)($company['slug'] ?? ''));
+
+// Contagem de bairros por cidade
 $zoneCountByCity = [];
 foreach ($zones as $zone) {
   $cityId = (int)($zone['city_id'] ?? 0);
@@ -43,7 +45,6 @@ if (!function_exists('delivery_query_suffix')) {
     foreach ($remove as $key) {
       unset($current[$key]);
     }
-
     foreach ($overrides as $key => $value) {
       if ($value === null || $value === '') {
         unset($current[$key]);
@@ -51,11 +52,7 @@ if (!function_exists('delivery_query_suffix')) {
         $current[$key] = $value;
       }
     }
-
-    if (!$current) {
-      return '';
-    }
-
+    if (!$current) return '';
     return '?' . http_build_query($current);
   }
 }
@@ -79,7 +76,7 @@ ob_start();
        class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-gear" viewBox="0 0 16 16">
         <path d="M7.293 1.5a1 1 0 0 1 1.414 0L11 3.793V2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v3.293l2.354 2.353a.5.5 0 0 1-.708.708L8.207 2.207l-5 5V13.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 2 13.5V8.207l-.646.647a.5.5 0 1 1-.708-.708z"/>
-        <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"/>
+        <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0 .382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"/>
       </svg>
       Dashboard
     </a>
@@ -406,41 +403,41 @@ ob_start();
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100" data-js="zone-body">
-          <?php foreach ($zones as $zone): ?>
-            <tr class="hover:bg-slate-50/70"
-                data-js="zone-row"
-                data-zone-search="<?= e(strtolower(($zone['city_name'] ?? '') . ' ' . ($zone['neighborhood'] ?? ''))) ?>">
-              <td class="p-3 align-middle font-medium text-slate-800"><?= e($zone['city_name'] ?? '') ?></td>
-              <td class="p-3 align-middle text-slate-700"><?= e($zone['neighborhood'] ?? '') ?></td>
-              <td class="p-3 align-middle text-slate-700">R$ <?= number_format((float)($zone['fee'] ?? 0), 2, ',', '.') ?></td>
-              <td class="p-3 align-middle">
-                <div class="flex justify-end gap-2">
-                  <a href="<?= e($basePath . delivery_query_suffix($queryState, ['edit_zone' => (int)($zone['id'] ?? 0)], ['edit_city'])) ?>"
-                     class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 16.5 16.5 5 19 7.5 7.5 19H5v-2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    Editar
-                  </a>
-                  <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)($zone['id'] ?? 0) . '/del')) ?>"
-                        onsubmit="return confirm('Remover esta taxa de entrega?');">
-                    <?php if (function_exists('csrf_field')): ?>
-                      <?= csrf_field() ?>
-                    <?php elseif (function_exists('csrf_token')): ?>
-                      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                    <?php endif; ?>
-                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-50">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7v11m6-11v11M8 7l1-2h6l1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                      Excluir
-                    </button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          <tr class="hidden" data-js="zone-empty">
-            <td colspan="4" class="p-4 text-center text-sm text-slate-500">Nenhum bairro encontrado para a busca atual.</td>
-          </tr>
-        </tbody>
-      </table>
+              <?php foreach ($zones as $zone): ?>
+                <tr class="hover:bg-slate-50/70"
+                    data-js="zone-row"
+                    data-zone-search="<?= e(strtolower(($zone['city_name'] ?? '') . ' ' . ($zone['neighborhood'] ?? ''))) ?>">
+                  <td class="p-3 align-middle font-medium text-slate-800"><?= e($zone['city_name'] ?? '') ?></td>
+                  <td class="p-3 align-middle text-slate-700"><?= e($zone['neighborhood'] ?? '') ?></td>
+                  <td class="p-3 align-middle text-slate-700">R$ <?= number_format((float)($zone['fee'] ?? 0), 2, ',', '.') ?></td>
+                  <td class="p-3 align-middle">
+                    <div class="flex justify-end gap-2">
+                      <a href="<?= e($basePath . delivery_query_suffix($queryState, ['edit_zone' => (int)($zone['id'] ?? 0)], ['edit_city'])) ?>"
+                         class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 16.5 16.5 5 19 7.5 7.5 19H5v-2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Editar
+                      </a>
+                      <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)($zone['id'] ?? 0) . '/del')) ?>"
+                            onsubmit="return confirm('Remover esta taxa de entrega?');">
+                        <?php if (function_exists('csrf_field')): ?>
+                          <?= csrf_field() ?>
+                        <?php elseif (function_exists('csrf_token')): ?>
+                          <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <?php endif; ?>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-50">
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7v11m6-11v11M8 7l1-2h6l1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                          Excluir
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+              <tr class="hidden" data-js="zone-empty">
+                <td colspan="4" class="p-4 text-center text-sm text-slate-500">Nenhum bairro encontrado para a busca atual.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       <?php endif; ?>
     </div>
@@ -449,40 +446,25 @@ ob_start();
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  var cityForm = document.querySelector('[data-js="city-search-form"]');
+  // Busca de cidades (client-side)
+  var cityForm  = document.querySelector('[data-js="city-search-form"]');
   var cityInput = document.querySelector('[data-js="city-search-input"]');
-  var cityList = document.querySelector('[data-js="city-list"]');
+  var cityList  = document.querySelector('[data-js="city-list"]');
   var cityItems = cityList ? Array.prototype.slice.call(cityList.querySelectorAll('[data-js="city-item"]')) : [];
   var cityEmpty = document.querySelector('[data-js="city-empty"]');
 
   function filterCities() {
-    if (!cityList) {
-      return;
-    }
-
+    if (!cityList) return;
     var term = (cityInput && cityInput.value ? cityInput.value : '').toLowerCase().trim();
     var visible = 0;
-
     cityItems.forEach(function (item) {
       var haystack = (item.dataset && item.dataset.cityName ? item.dataset.cityName : '').toLowerCase();
       var match = term === '' || haystack.indexOf(term) !== -1;
       item.style.display = match ? '' : 'none';
-      if (match) {
-        visible++;
-      }
+      if (match) visible++;
     });
-
-    if (cityList) {
-      cityList.style.display = visible === 0 ? 'none' : '';
-    }
-
-    if (cityEmpty) {
-      if (visible === 0) {
-        cityEmpty.classList.remove('hidden');
-      } else {
-        cityEmpty.classList.add('hidden');
-      }
-    }
+    if (cityList) cityList.style.display = visible === 0 ? 'none' : '';
+    if (cityEmpty) cityEmpty.classList.toggle('hidden', visible !== 0);
   }
 
   if (cityForm && cityInput && cityList) {
@@ -490,37 +472,28 @@ document.addEventListener('DOMContentLoaded', function () {
       event.preventDefault();
       filterCities();
     });
-
     cityInput.addEventListener('input', filterCities);
     filterCities();
   }
 
-  var zoneForm = document.querySelector('[data-js="zone-search-form"]');
+  // Busca de bairros/zonas (client-side)
+  var zoneForm  = document.querySelector('[data-js="zone-search-form"]');
   var zoneInput = document.querySelector('[data-js="zone-search-input"]');
-  var zoneBody = document.querySelector('[data-js="zone-body"]');
-  var zoneRows = zoneBody ? Array.prototype.slice.call(zoneBody.querySelectorAll('[data-js="zone-row"]')) : [];
+  var zoneBody  = document.querySelector('[data-js="zone-body"]');
+  var zoneRows  = zoneBody ? Array.prototype.slice.call(zoneBody.querySelectorAll('[data-js="zone-row"]')) : [];
   var zoneEmpty = document.querySelector('[data-js="zone-empty"]');
 
   function filterZones() {
-    if (!zoneBody) {
-      return;
-    }
-
+    if (!zoneBody) return;
     var term = (zoneInput && zoneInput.value ? zoneInput.value : '').toLowerCase().trim();
     var visible = 0;
-
     zoneRows.forEach(function (row) {
       var haystack = (row.dataset && row.dataset.zoneSearch ? row.dataset.zoneSearch : '').toLowerCase();
       var match = term === '' || haystack.indexOf(term) !== -1;
       row.style.display = match ? '' : 'none';
-      if (match) {
-        visible++;
-      }
+      if (match) visible++;
     });
-
-    if (zoneEmpty) {
-      zoneEmpty.classList.toggle('hidden', visible !== 0);
-    }
+    if (zoneEmpty) zoneEmpty.classList.toggle('hidden', visible !== 0);
   }
 
   if (zoneForm && zoneInput && zoneBody) {
@@ -528,7 +501,6 @@ document.addEventListener('DOMContentLoaded', function () {
       event.preventDefault();
       filterZones();
     });
-
     zoneInput.addEventListener('input', filterZones);
     filterZones();
   }
