@@ -95,6 +95,18 @@ INSERT INTO `company_hours` (`id`, `company_id`, `weekday`, `is_open`, `open1`, 
 (7, 1, 7, 0, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
+-- Estrutura da tabela `delivery_zones`
+-- --------------------------------------------------------
+CREATE TABLE `delivery_zones` (
+  `id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `city` varchar(120) NOT NULL,
+  `neighborhood` varchar(120) NOT NULL,
+  `fee` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Estrutura da tabela `customers`
 -- --------------------------------------------------------
 CREATE TABLE `customers` (
@@ -273,6 +285,10 @@ ALTER TABLE `company_hours`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `company_day` (`company_id`,`weekday`);
 
+ALTER TABLE `delivery_zones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `delivery_zones_company_city_idx` (`company_id`,`city`,`neighborhood`);
+
 ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `company_whatsapp` (`company_id`,`whatsapp_e164`);
@@ -330,6 +346,9 @@ ALTER TABLE `categories`
 ALTER TABLE `company_hours`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
+ALTER TABLE `delivery_zones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `customers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
@@ -368,6 +387,9 @@ ALTER TABLE `categories`
 
 ALTER TABLE `company_hours`
   ADD CONSTRAINT `company_hours_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `delivery_zones`
+  ADD CONSTRAINT `delivery_zones_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `customers`
   ADD CONSTRAINT `customers_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
