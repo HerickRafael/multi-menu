@@ -1,4 +1,4 @@
-CREATE TABLE `delivery_cities` (
+CREATE TABLE IF NOT EXISTS `delivery_cities` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `company_id` int(11) NOT NULL,
   `name` varchar(120) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE `delivery_cities` (
     FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `delivery_zones` (
+CREATE TABLE IF NOT EXISTS `delivery_zones` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `company_id` int(11) NOT NULL,
   `city_id` int(11) NOT NULL,

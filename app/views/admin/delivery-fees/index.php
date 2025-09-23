@@ -21,6 +21,7 @@ $zoneSearch   = isset($zoneSearch) ? trim((string)$zoneSearch) : '';
 $editCityId   = isset($editCityId) ? (int)$editCityId : 0;
 $editZoneId   = isset($editZoneId) ? (int)$editZoneId : 0;
 $flash        = is_array($flash ?? null) ? $flash : [];
+
 $title        = 'Taxas de entrega - ' . ($company['name'] ?? '');
 $slug         = rawurlencode((string)($company['slug'] ?? ''));
 
@@ -88,95 +89,7 @@ ob_start();
   </div>
 <?php endif; ?>
 
-<!-- ===== AJUSTES RÁPIDOS (TOPO) ===== -->
-<div class="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-  <h2 class="mb-3 text-lg font-semibold text-slate-800">Ajustes rápidos</h2>
-
-  <?php if ($bulkErrors): ?>
-    <div class="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
-      <?php foreach ($bulkErrors as $error): ?>
-        <div><?= e($error) ?></div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
-  <!-- Ajuste em massa -->
-  <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/adjust')) ?>" class="mb-4 grid gap-3 rounded-xl border border-indigo-100 bg-white px-4 py-3 shadow-sm">
-    <div class="flex flex-wrap items-end gap-3">
-      <label class="flex-1 min-w-[180px]">
-        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Aumentar/diminuir todas as taxas</span>
-        <input type="number" step="0.01" name="delta" value="<?= e($bulkValue) ?>" placeholder="Ex.: 2,00" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-      </label>
-      <?php if (function_exists('csrf_field')): ?>
-        <?= csrf_field() ?>
-      <?php elseif (function_exists('csrf_token')): ?>
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-      <?php endif; ?>
-      <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-indigo-300 bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        Aplicar ajuste
-      </button>
-    </div>
-    <p class="text-xs text-slate-500">Informe um valor positivo para aumentar ou negativo para diminuir todas as taxas atuais.</p>
-  </form>
-
-  <?php if ($optionErrors): ?>
-    <div class="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
-      <?php foreach ($optionErrors as $error): ?>
-        <div><?= e($error) ?></div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
-  <!-- Opções extras (adicional após 18h e frete grátis) -->
-  <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-    <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/options')) ?>" class="grid gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
-      <?php if (function_exists('csrf_field')): ?>
-        <?= csrf_field() ?>
-      <?php elseif (function_exists('csrf_token')): ?>
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-      <?php endif; ?>
-      <input type="hidden" name="free_delivery" value="<?= (int)($optionValues['free_delivery'] ?? 0) ?>">
-      <label class="grid gap-1">
-        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Adicional após as 18h (R$)</span>
-        <input type="number" step="0.01" min="0" name="after_hours_fee" value="<?= e($optionValues['after_hours_fee'] ?? '0.00') ?>" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-      </label>
-      <button type="submit" class="inline-flex items-center gap-2 justify-self-start rounded-xl border border-emerald-300 bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-emerald-500">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Salvar adicional
-      </button>
-      <p class="text-xs text-slate-500">Esse valor será somado automaticamente às entregas realizadas após as 18h.</p>
-    </form>
-
-    <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/options')) ?>" class="justify-self-start">
-      <?php if (function_exists('csrf_field')): ?>
-        <?= csrf_field() ?>
-      <?php elseif (function_exists('csrf_token')): ?>
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-      <?php endif; ?>
-      <input type="hidden" name="after_hours_fee" value="<?= e($optionValues['after_hours_fee'] ?? '0.00') ?>">
-      <input type="hidden" name="free_delivery" value="<?= (int)($optionValues['free_delivery'] ?? 0) ? 0 : 1 ?>">
-      <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
-        <?php if ((int)($optionValues['free_delivery'] ?? 0)): ?>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-toggle-on text-emerald-600" viewBox="0 0 16 16">
-            <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8"/>
-          </svg>
-          Desativar taxa gratuita
-        <?php else: ?>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-toggle-off text-slate-500" viewBox="0 0 16 16">
-            <path d="M11 4a4 4 0 0 1 0 8H8a5 5 0 0 0 2-4 5 5 0 0 0-2-4zm-6 8a4 4 0 1 1 0-8 4 4 0 0 1 0 8M0 8a5 5 0 0 0 5 5h6a5 5 0 0 0 0-10H5a5 5 0 0 0-5 5"/>
-          </svg>
-          Ativar taxa gratuita
-        <?php endif; ?>
-      </button>
-      <p class="mt-2 max-w-xs text-xs text-slate-500">Quando ativado, todas as entregas serão tratadas como gratuitas independentemente da taxa cadastrada.</p>
-    </form>
-  </div>
-</div>
-<!-- ===== /AJUSTES RÁPIDOS ===== -->
-
 <div class="grid gap-6 xl:grid-cols-[1fr_1.1fr]">
-  <!-- ===== Bloco 1: Cidades ===== -->
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-slate-800">1. Cadastrar cidades atendidas</h2>
@@ -235,9 +148,10 @@ ob_start();
         <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">Total: <?= count($cities) ?></span>
       </div>
 
-      <form method="get" action="<?= e($basePath) ?>" class="mb-3 flex items-center gap-2 text-sm">
+      <form method="get" action="<?= e($basePath) ?>" class="mb-3 flex items-center gap-2 text-sm" data-js="city-search-form">
         <input type="search" name="city_search" value="<?= e($citySearch) ?>" placeholder="Buscar cidade..."
-               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+               data-js="city-search-input">
         <?php if ($zoneSearch !== ''): ?>
           <input type="hidden" name="zone_search" value="<?= e($zoneSearch) ?>">
         <?php endif; ?>
@@ -256,9 +170,11 @@ ob_start();
           Nenhuma cidade cadastrada ainda.
         </div>
       <?php else: ?>
-        <ul class="space-y-2">
+        <ul class="space-y-2" data-js="city-list">
           <?php foreach ($cities as $city): ?>
-            <li class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <li class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                data-js="city-item"
+                data-city-name="<?= e(strtolower($city['name'] ?? '')) ?>">
               <div>
                 <div class="font-medium text-slate-800"><?= e($city['name'] ?? '') ?></div>
                 <div class="text-xs text-slate-500">
@@ -287,11 +203,14 @@ ob_start();
             </li>
           <?php endforeach; ?>
         </ul>
+        <div class="hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500"
+             data-js="city-empty">
+          Nenhuma cidade encontrada para a busca atual.
+        </div>
       <?php endif; ?>
     </div>
   </section>
 
-  <!-- ===== Bloco 2: Bairros/Taxas ===== -->
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-slate-800">2. Cadastrar bairros e taxas</h2>
@@ -362,18 +281,102 @@ ob_start();
       </div>
     </form>
 
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Ajustes rápidos</h3>
+
+      <?php if ($bulkErrors): ?>
+        <div class="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
+          <?php foreach ($bulkErrors as $error): ?>
+            <div><?= e($error) ?></div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/adjust')) ?>" class="mb-4 grid gap-3 rounded-xl border border-indigo-100 bg-white px-4 py-3 shadow-sm">
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="flex-1 min-w-[180px]">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Aumentar/diminuir todas as taxas</span>
+            <input type="number" step="0.01" name="delta" value="<?= e($bulkValue) ?>" placeholder="Ex.: 2,00" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          </label>
+          <?php if (function_exists('csrf_field')): ?>
+            <?= csrf_field() ?>
+          <?php elseif (function_exists('csrf_token')): ?>
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+          <?php endif; ?>
+          <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-indigo-300 bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Aplicar ajuste
+          </button>
+        </div>
+        <p class="text-xs text-slate-500">Informe um valor positivo para aumentar ou negativo para diminuir todas as taxas atuais.</p>
+      </form>
+
+      <?php if ($optionErrors): ?>
+        <div class="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
+          <?php foreach ($optionErrors as $error): ?>
+            <div><?= e($error) ?></div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/options')) ?>" class="grid gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+          <?php if (function_exists('csrf_field')): ?>
+            <?= csrf_field() ?>
+          <?php elseif (function_exists('csrf_token')): ?>
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+          <?php endif; ?>
+          <input type="hidden" name="free_delivery" value="<?= (int)($optionValues['free_delivery'] ?? 0) ?>">
+          <label class="grid gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Adicional após as 18h (R$)</span>
+            <input type="number" step="0.01" min="0" name="after_hours_fee" value="<?= e($optionValues['after_hours_fee'] ?? '0.00') ?>" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          </label>
+          <button type="submit" class="inline-flex items-center gap-2 justify-self-start rounded-xl border border-emerald-300 bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-emerald-500">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Salvar adicional
+          </button>
+          <p class="text-xs text-slate-500">Esse valor será somado automaticamente às entregas realizadas após as 18h.</p>
+        </form>
+
+        <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/options')) ?>" class="justify-self-start">
+          <?php if (function_exists('csrf_field')): ?>
+            <?= csrf_field() ?>
+          <?php elseif (function_exists('csrf_token')): ?>
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+          <?php endif; ?>
+          <input type="hidden" name="after_hours_fee" value="<?= e($optionValues['after_hours_fee'] ?? '0.00') ?>">
+          <input type="hidden" name="free_delivery" value="<?= (int)($optionValues['free_delivery'] ?? 0) ? 0 : 1 ?>">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+            <?php if ((int)($optionValues['free_delivery'] ?? 0)): ?>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-toggle-on text-emerald-600" viewBox="0 0 16 16">
+                <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8"/>
+              </svg>
+              Desativar taxa gratuita
+            <?php else: ?>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-toggle-off text-slate-500" viewBox="0 0 16 16">
+                <path d="M11 4a4 4 0 0 1 0 8H8a5 5 0 0 0 2-4 5 5 0 0 0-2-4zm-6 8a4 4 0 1 1 0-8 4 4 0 0 1 0 8M0 8a5 5 0 0 0 5 5h6a5 5 0 0 0 0-10H5a5 5 0 0 0-5 5"/>
+              </svg>
+              Ativar taxa gratuita
+            <?php endif; ?>
+          </button>
+          <p class="mt-2 max-w-xs text-xs text-slate-500">Quando ativado, todas as entregas serão tratadas como gratuitas independentemente da taxa cadastrada.</p>
+        </form>
+      </div>
+    </div>
+
     <div class="mt-6">
       <div class="mb-3 flex items-center justify-between">
         <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Bairros cadastrados</h3>
         <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">Total: <?= count($zones) ?></span>
       </div>
 
-      <form method="get" action="<?= e($basePath) ?>" class="mb-3 flex items-center gap-2 text-sm">
+      <form method="get" action="<?= e($basePath) ?>" class="mb-3 flex items-center gap-2 text-sm" data-js="zone-search-form">
         <?php if ($citySearch !== ''): ?>
           <input type="hidden" name="city_search" value="<?= e($citySearch) ?>">
         <?php endif; ?>
         <input type="search" name="zone_search" value="<?= e($zoneSearch) ?>" placeholder="Buscar por bairro ou cidade..."
-               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+               data-js="zone-search-input">
         <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-700 shadow-sm hover:bg-slate-50">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="m11 4-7 8h8l-1 8 7-8h-8l1-8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
           Buscar
@@ -389,7 +392,7 @@ ob_start();
           Nenhuma taxa cadastrada ainda.
         </div>
       <?php else: ?>
-        <div class="max-h-[520px] overflow-auto rounded-xl border border-slate-200">
+        <div class="max-h-[520px] overflow-auto rounded-xl border border-slate-200" data-js="zone-table-wrapper">
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-600">
               <tr>
@@ -399,9 +402,11 @@ ob_start();
                 <th class="p-3 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-slate-100" data-js="zone-body">
               <?php foreach ($zones as $zone): ?>
-                <tr class="hover:bg-slate-50/70">
+                <tr class="hover:bg-slate-50/70"
+                    data-js="zone-row"
+                    data-zone-search="<?= e(strtolower(($zone['city_name'] ?? '') . ' ' . ($zone['neighborhood'] ?? ''))) ?>">
                   <td class="p-3 align-middle font-medium text-slate-800"><?= e($zone['city_name'] ?? '') ?></td>
                   <td class="p-3 align-middle text-slate-700"><?= e($zone['neighborhood'] ?? '') ?></td>
                   <td class="p-3 align-middle text-slate-700">R$ <?= number_format((float)($zone['fee'] ?? 0), 2, ',', '.') ?></td>
@@ -428,6 +433,9 @@ ob_start();
                   </td>
                 </tr>
               <?php endforeach; ?>
+              <tr class="hidden" data-js="zone-empty">
+                <td colspan="4" class="p-4 text-center text-sm text-slate-500">Nenhum bairro encontrado para a busca atual.</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -435,6 +443,69 @@ ob_start();
     </div>
   </section>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Busca de cidades (client-side)
+  var cityForm  = document.querySelector('[data-js="city-search-form"]');
+  var cityInput = document.querySelector('[data-js="city-search-input"]');
+  var cityList  = document.querySelector('[data-js="city-list"]');
+  var cityItems = cityList ? Array.prototype.slice.call(cityList.querySelectorAll('[data-js="city-item"]')) : [];
+  var cityEmpty = document.querySelector('[data-js="city-empty"]');
+
+  function filterCities() {
+    if (!cityList) return;
+    var term = (cityInput && cityInput.value ? cityInput.value : '').toLowerCase().trim();
+    var visible = 0;
+    cityItems.forEach(function (item) {
+      var haystack = (item.dataset && item.dataset.cityName ? item.dataset.cityName : '').toLowerCase();
+      var match = term === '' || haystack.indexOf(term) !== -1;
+      item.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    if (cityList) cityList.style.display = visible === 0 ? 'none' : '';
+    if (cityEmpty) cityEmpty.classList.toggle('hidden', visible !== 0);
+  }
+
+  if (cityForm && cityInput && cityList) {
+    cityForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      filterCities();
+    });
+    cityInput.addEventListener('input', filterCities);
+    filterCities();
+  }
+
+  // Busca de bairros/zonas (client-side)
+  var zoneForm  = document.querySelector('[data-js="zone-search-form"]');
+  var zoneInput = document.querySelector('[data-js="zone-search-input"]');
+  var zoneBody  = document.querySelector('[data-js="zone-body"]');
+  var zoneRows  = zoneBody ? Array.prototype.slice.call(zoneBody.querySelectorAll('[data-js="zone-row"]')) : [];
+  var zoneEmpty = document.querySelector('[data-js="zone-empty"]');
+
+  function filterZones() {
+    if (!zoneBody) return;
+    var term = (zoneInput && zoneInput.value ? zoneInput.value : '').toLowerCase().trim();
+    var visible = 0;
+    zoneRows.forEach(function (row) {
+      var haystack = (row.dataset && row.dataset.zoneSearch ? row.dataset.zoneSearch : '').toLowerCase();
+      var match = term === '' || haystack.indexOf(term) !== -1;
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    if (zoneEmpty) zoneEmpty.classList.toggle('hidden', visible !== 0);
+  }
+
+  if (zoneForm && zoneInput && zoneBody) {
+    zoneForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      filterZones();
+    });
+    zoneInput.addEventListener('input', filterZones);
+    filterZones();
+  }
+});
+</script>
 
 <?php
 $content = ob_get_clean();

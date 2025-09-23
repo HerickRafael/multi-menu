@@ -5,7 +5,7 @@ require_once __DIR__ . '/../config/db.php';
 class DeliveryZone
 {
   /**
-   * Lista zonas da empresa com nome da cidade.
+   * Lista zonas da empresa com o nome da cidade.
    * Se $search for informado, filtra por cidade OU bairro (case-insensitive).
    */
   public static function allByCompany(int $companyId, ?string $search = null): array
@@ -108,7 +108,7 @@ class DeliveryZone
     ]);
   }
 
-  /** Ajusta todas as taxas por um delta (não permite negativo) */
+  /** Ajusta todas as taxas por um delta (garante mínimo 0) */
   public static function adjustFees(int $companyId, float $delta): void
   {
     $st = db()->prepare('UPDATE delivery_zones SET fee = GREATEST(0, fee + ?) WHERE company_id = ?');
