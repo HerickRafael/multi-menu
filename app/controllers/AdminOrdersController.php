@@ -154,4 +154,20 @@ class AdminOrdersController extends Controller
         header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/orders/show?id=' . $orderId));
         exit;
     }
+
+    public function destroy($params) {
+        $slug = $params['slug'];
+        [$u, $company] = $this->guard($slug);
+        $db = $this->db();
+
+        $orderId = (int)($params['id'] ?? 0);
+
+        if ($orderId > 0 && Order::delete($db, $orderId, (int)$company['id'])) {
+            header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/orders'));
+            exit;
+        }
+
+        http_response_code(400);
+        echo "Não foi possível excluir o pedido.";
+    }
 }
