@@ -234,11 +234,15 @@ ob_start(); ?>
       ?>
       <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
         <a class="flex w-full items-center gap-3" href="<?= e(base_url('admin/' . $slug . '/ingredients/' . $iid . '/edit')) ?>">
-          <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-100">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M13.902.334a.5.5 0 0 1-.28.65l-2.254.902-.4 1.927c.376.095.715.215.972.367.228.135.56.396.56.82q0 .069-.011.132l-.962 9.068a1.28 1.28 0 0 1-.524.93c-.488.34-1.494.87-3.01.87s-2.522-.53-3.01-.87a1.28 1.28 0 0 1-.524-.93L3.51 5.132A1 1 0 0 1 3.5 5c0-.424.332-.685.56-.82.262-.154.607-.276.99-.372C5.824 3.614 6.867 3.5 8 3.5c.712 0 1.389.045 1.985.127l.464-2.215a.5.5 0 0 1 .303-.356l2.5-1a.5.5 0 0 1 .65.278"/>
-            </svg>
-          </div>
+          <?php $ingImage = trim((string)($ing['image_path'] ?? '')); ?>
+          <?php if ($ingImage !== ''): ?>
+            <img src="<?= e(base_url($ingImage)) ?>" alt=""
+                 class="h-11 w-11 rounded-lg object-cover ring-1 ring-slate-200">
+          <?php else: ?>
+            <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-400 ring-1 ring-slate-200">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          <?php endif; ?>
           <div class="min-w-0 flex-1">
             <div class="truncate font-medium text-slate-800"><?= e($ing['name'] ?? '') ?></div>
             <?php if (!empty($pn)): ?>
