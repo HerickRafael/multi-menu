@@ -37,6 +37,7 @@ $router->get('/admin/{slug}/orders/show',     'AdminOrdersController@show');
 $router->get('/admin/{slug}/orders/create',   'AdminOrdersController@create');
 $router->post('/admin/{slug}/orders',         'AdminOrdersController@store');
 $router->post('/admin/{slug}/orders/setStatus','AdminOrdersController@setStatus');
+$router->post('/admin/{slug}/orders/{id}/del','AdminOrdersController@destroy');
 
 // Categorias (CRUD)
 $router->get('/admin/{slug}/categories',            'AdminCategoryController@index');

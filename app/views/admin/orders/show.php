@@ -36,7 +36,98 @@ if (!empty($o['customer_phone'])) {
 }
 
 ob_start(); ?>
-<div class="mx-auto max-w-5xl p-4">
+<div class="admin-print-only">
+  <?php
+    $companyName    = trim((string)($company['name'] ?? ''));
+    $companyAddress = trim((string)($company['address'] ?? ''));
+    $companyContact = trim((string)($company['whatsapp'] ?? ($company['phone'] ?? '')));
+    $createdAt      = trim((string)($o['created_at'] ?? ''));
+    $subtotal       = (float)($o['subtotal'] ?? 0);
+    $deliveryFee    = (float)($o['delivery_fee'] ?? 0);
+    $discountValue  = (float)($o['discount'] ?? 0);
+    $totalValue     = (float)($o['total'] ?? 0);
+    $printTitle     = $companyName !== ''
+      ? (function_exists('mb_strtoupper') ? mb_strtoupper($companyName, 'UTF-8') : strtoupper($companyName))
+      : 'PEDIDO';
+    $printStatus    = $statusLabels[$st] ?? ucfirst($st);
+    $items          = is_array($o['items'] ?? null) ? $o['items'] : [];
+    $discountLabel  = $discountValue > 0
+      ? '-R$ ' . number_format($discountValue, 2, ',', '.')
+      : 'R$ ' . number_format($discountValue, 2, ',', '.');
+  ?>
+  <div class="receipt">
+    <div class="receipt-header">
+      <h1><?= e($printTitle) ?></h1>
+      <?php if ($companyAddress !== ''): ?>
+        <p class="receipt-text"><?= e($companyAddress) ?></p>
+      <?php endif; ?>
+      <?php if ($companyContact !== ''): ?>
+        <p class="receipt-text">Contato: <?= e($companyContact) ?></p>
+      <?php endif; ?>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-row"><span>Pedido</span><span>#<?= (int)($o['id'] ?? 0) ?></span></div>
+      <?php if ($createdAt !== ''): ?>
+        <div class="receipt-row"><span>Data</span><span><?= e($createdAt) ?></span></div>
+      <?php endif; ?>
+      <div class="receipt-row"><span>Status</span><span><?= e($printStatus) ?></span></div>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-label">Cliente</div>
+      <div class="receipt-text"><?= e($o['customer_name'] ?? '-') ?></div>
+      <?php if (!empty($o['customer_phone'])): ?>
+        <div class="receipt-text">Tel: <?= e($o['customer_phone']) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($o['customer_address'])): ?>
+        <div class="receipt-text receipt-pre"><?= e($o['customer_address']) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($o['notes'])): ?>
+        <div class="receipt-text receipt-pre">Obs.: <?= e($o['notes']) ?></div>
+      <?php endif; ?>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-label">Itens</div>
+      <table class="receipt-table">
+        <?php foreach ($items as $it): ?>
+          <tr>
+            <td colspan="3" class="receipt-item-name"><?= e($it['product_name'] ?? '-') ?></td>
+          </tr>
+          <tr class="receipt-item-row">
+            <td class="qty"><?= (int)($it['quantity'] ?? 0) ?>x</td>
+            <td class="price">R$ <?= number_format((float)($it['unit_price'] ?? 0), 2, ',', '.') ?></td>
+            <td class="total">R$ <?= number_format((float)($it['line_total'] ?? 0), 2, ',', '.') ?></td>
+          </tr>
+          <?php if (!empty($it['notes'])): ?>
+            <tr>
+              <td colspan="3" class="receipt-note receipt-pre"><?= e($it['notes']) ?></td>
+            </tr>
+          <?php endif; ?>
+        <?php endforeach; ?>
+        <?php if (empty($items)): ?>
+          <tr>
+            <td colspan="3" class="receipt-text">Sem itens neste pedido.</td>
+          </tr>
+        <?php endif; ?>
+      </table>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-row"><span>Subtotal</span><span>R$ <?= number_format($subtotal, 2, ',', '.') ?></span></div>
+      <div class="receipt-row"><span>Entrega</span><span>R$ <?= number_format($deliveryFee, 2, ',', '.') ?></span></div>
+      <div class="receipt-row"><span>Desconto</span><span><?= $discountLabel ?></span></div>
+      <div class="receipt-total"><span>Total</span><span>R$ <?= number_format($totalValue, 2, ',', '.') ?></span></div>
+    </div>
+    <hr>
+    <div class="receipt-footer">
+      <div>Nº do pedido: #<?= (int)($o['id'] ?? 0) ?></div>
+      <div>Obrigado pela preferência!</div>
+    </div>
+  </div>
+</div>
+<div class="mx-auto max-w-5xl p-4 admin-screen-only">
   <!-- HEADER -->
   <header class="mb-5 flex flex-wrap items-center gap-3">
     <div class="flex items-center gap-3">
@@ -68,11 +159,20 @@ ob_start(); ?>
           WhatsApp
         </a>
       <?php endif; ?>
-      <a href="<?= e(base_url('admin/' . $slug . '/orders/create?dup=' . (int)($o['id'] ?? 0))) ?>"
-         class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6 17V5a2 2 0 0 1 2-2h8l4 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="1.4"/></svg>
-        Duplicar
-      </a>
+      <form method="post"
+            action="<?= e(base_url('admin/' . $slug . '/orders/' . (int)($o['id'] ?? 0) . '/del')) ?>"
+            class="inline"
+            onsubmit="return confirm('Excluir pedido?');">
+        <?php if (function_exists('csrf_field')): ?>
+          <?= csrf_field() ?>
+        <?php elseif (function_exists('csrf_token')): ?>
+          <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <?php endif; ?>
+        <button class="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-50">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7v11m6-11v11M8 7l1-2h6l1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Excluir
+        </button>
+      </form>
       <button type="button" onclick="window.print()"
          class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M7 9V4h10v5M7 14H5a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2m-10 0h10v6H7v-6Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
