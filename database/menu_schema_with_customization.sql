@@ -31,6 +31,8 @@ CREATE TABLE `companies` (
   `address` varchar(255) DEFAULT NULL,
   `highlight_text` text DEFAULT NULL,
   `min_order` decimal(10,2) DEFAULT NULL,
+  `delivery_after_hours_fee` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `delivery_free_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `avg_delivery_min_from` int(11) DEFAULT NULL,
   `avg_delivery_min_to` int(11) DEFAULT NULL,
   `logo` varchar(255) DEFAULT NULL,
@@ -48,13 +50,13 @@ CREATE TABLE `companies` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `companies` (
-  `id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `min_order`,
+  `id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `min_order`, `delivery_after_hours_fee`, `delivery_free_enabled`,
   `avg_delivery_min_from`, `avg_delivery_min_to`, `logo`, `banner`,
   `menu_header_text_color`, `menu_header_button_color`, `menu_header_bg_color`,
   `menu_logo_border_color`, `menu_group_title_bg_color`, `menu_group_title_text_color`,
   `menu_welcome_bg_color`, `menu_welcome_text_color`, `active`, `created_at`
 ) VALUES
-(1, 'wollburger', 'Wollburger', '55', '', '', NULL, NULL, NULL, NULL, NULL,
+(1, 'wollburger', 'Wollburger', '55', '', '', NULL, 0.00, 0, NULL, NULL, NULL, NULL,
  '#FFFFFF', '#FACC15', '#5B21B6', '#7C3AED', '#FACC15', '#000000', '#6B21A8', '#FFFFFF', 1, '2025-09-11 01:38:16');
 
 -- --------------------------------------------------------
@@ -93,6 +95,28 @@ INSERT INTO `company_hours` (`id`, `company_id`, `weekday`, `is_open`, `open1`, 
 (5, 1, 5, 0, NULL, NULL, NULL, NULL),
 (6, 1, 6, 0, NULL, NULL, NULL, NULL),
 (7, 1, 7, 0, NULL, NULL, NULL, NULL);
+
+-- --------------------------------------------------------
+-- Estrutura da tabela `delivery_cities`
+-- --------------------------------------------------------
+CREATE TABLE `delivery_cities` (
+  `id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `name` varchar(120) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Estrutura da tabela `delivery_zones`
+-- --------------------------------------------------------
+CREATE TABLE `delivery_zones` (
+  `id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `city_id` int(11) NOT NULL,
+  `neighborhood` varchar(120) NOT NULL,
+  `fee` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 -- Estrutura da tabela `customers`
@@ -273,6 +297,17 @@ ALTER TABLE `company_hours`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `company_day` (`company_id`,`weekday`);
 
+ALTER TABLE `delivery_cities`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `delivery_cities_company_name_unique` (`company_id`,`name`),
+  ADD KEY `delivery_cities_company_fk` (`company_id`);
+
+ALTER TABLE `delivery_zones`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `delivery_zones_company_city_neighborhood_unique` (`company_id`,`city_id`,`neighborhood`),
+  ADD KEY `delivery_zones_city_fk` (`city_id`),
+  ADD KEY `delivery_zones_company_fk` (`company_id`);
+
 ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `company_whatsapp` (`company_id`,`whatsapp_e164`);
@@ -330,6 +365,12 @@ ALTER TABLE `categories`
 ALTER TABLE `company_hours`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
+ALTER TABLE `delivery_cities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `delivery_zones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `customers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
@@ -368,6 +409,13 @@ ALTER TABLE `categories`
 
 ALTER TABLE `company_hours`
   ADD CONSTRAINT `company_hours_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `delivery_cities`
+  ADD CONSTRAINT `delivery_cities_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `delivery_zones`
+  ADD CONSTRAINT `delivery_zones_city_fk` FOREIGN KEY (`city_id`) REFERENCES `delivery_cities` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `delivery_zones_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `customers`
   ADD CONSTRAINT `customers_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
