@@ -62,4 +62,29 @@ class Company
         $st = db()->prepare("DELETE FROM companies WHERE id = ?");
         $st->execute([$id]);
     }
+
+    public static function updateDeliveryFeeSettings(int $id, array $data): void {
+        $fields = [];
+        $params = [];
+
+        if (array_key_exists('delivery_after_hours_fee', $data)) {
+            $fields[] = 'delivery_after_hours_fee = ?';
+            $params[] = $data['delivery_after_hours_fee'];
+        }
+
+        if (array_key_exists('delivery_free_enabled', $data)) {
+            $fields[] = 'delivery_free_enabled = ?';
+            $params[] = (int)$data['delivery_free_enabled'];
+        }
+
+        if (!$fields) {
+            return;
+        }
+
+        $sql = 'UPDATE companies SET ' . implode(', ', $fields) . ' WHERE id = ?';
+        $params[] = $id;
+
+        $st = db()->prepare($sql);
+        $st->execute($params);
+    }
 }

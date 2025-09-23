@@ -63,6 +63,18 @@ $router->get('/admin/{slug}/ingredients/{id}/edit',    'AdminIngredientControlle
 $router->post('/admin/{slug}/ingredients/{id}',        'AdminIngredientController@update');
 $router->post('/admin/{slug}/ingredients/{id}/del',    'AdminIngredientController@destroy');
 
+// Taxas de entrega
+$router->get('/admin/{slug}/delivery-fees',                   'AdminDeliveryFeeController@index');
+$router->post('/admin/{slug}/delivery-fees/cities',      'AdminDeliveryFeeController@storeCity');
+$router->post('/admin/{slug}/delivery-fees/cities/{id}', 'AdminDeliveryFeeController@updateCity');
+$router->post('/admin/{slug}/delivery-fees/cities/{id}/del','AdminDeliveryFeeController@destroyCity');
+$router->post('/admin/{slug}/delivery-fees/zones',       'AdminDeliveryFeeController@storeZone');
+$router->post('/admin/{slug}/delivery-fees/zones/{id}',  'AdminDeliveryFeeController@updateZone');
+$router->post('/admin/{slug}/delivery-fees/zones/adjust','AdminDeliveryFeeController@adjustZones');
+$router->post('/admin/{slug}/delivery-fees/zones/{id}/del','AdminDeliveryFeeController@destroyZone');
+$router->post('/admin/{slug}/delivery-fees/settings/after-hours','AdminDeliveryFeeController@updateAfterHoursFee');
+$router->post('/admin/{slug}/delivery-fees/settings/free-toggle','AdminDeliveryFeeController@toggleFreeDelivery');
+
 /* ========= Constraints globais ========= */
 if (method_exists($router, 'where')) {
   $router->where('slug', '[a-z0-9\-]+');
