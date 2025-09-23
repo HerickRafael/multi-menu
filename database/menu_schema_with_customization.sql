@@ -12,8 +12,11 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+@OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+@OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+@OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION;
 /*!40101 SET NAMES utf8mb4 */;
 
 --
@@ -95,12 +98,22 @@ INSERT INTO `company_hours` (`id`, `company_id`, `weekday`, `is_open`, `open1`, 
 (7, 1, 7, 0, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
+-- Estrutura da tabela `delivery_cities`
+-- --------------------------------------------------------
+CREATE TABLE `delivery_cities` (
+  `id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `name` varchar(120) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 -- Estrutura da tabela `delivery_zones`
 -- --------------------------------------------------------
 CREATE TABLE `delivery_zones` (
   `id` int(11) NOT NULL,
   `company_id` int(11) NOT NULL,
-  `city` varchar(120) NOT NULL,
+  `city_id` int(11) NOT NULL,
   `neighborhood` varchar(120) NOT NULL,
   `fee` decimal(10,2) NOT NULL DEFAULT 0.00,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
@@ -271,7 +284,7 @@ INSERT INTO `users` (`id`, `company_id`, `name`, `email`, `password_hash`, `role
 (3, 1, 'Atendente 1', 'staff1@wollburger.local', '$2y$10$2LxL1b0Jr3m6y8oE0EJk2uYw7s5qf7o8x7mY4O1mF0b4oE2Y5eTZu', 'staff', 1, '2025-09-11 01:49:38');
 
 -- --------------------------------------------------------
--- Índices para tabelas despejadas
+-- Índices
 -- --------------------------------------------------------
 ALTER TABLE `companies`
   ADD PRIMARY KEY (`id`),
@@ -285,9 +298,16 @@ ALTER TABLE `company_hours`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `company_day` (`company_id`,`weekday`);
 
+ALTER TABLE `delivery_cities`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `delivery_cities_company_name_unique` (`company_id`,`name`),
+  ADD KEY `delivery_cies_company_fk` (`company_id`);
+
 ALTER TABLE `delivery_zones`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `delivery_zones_company_city_idx` (`company_id`,`city`,`neighborhood`);
+  ADD UNIQUE KEY `delivery_zones_company_city_neighborhood_unique` (`company_id`,`city_id`,`neighborhood`),
+  ADD KEY `delivery_zones_city_fk` (`city_id`),
+  ADD KEY `delivery_zones_company_fk` (`company_id`);
 
 ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`),
@@ -346,6 +366,9 @@ ALTER TABLE `categories`
 ALTER TABLE `company_hours`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
+ALTER TABLE `delivery_cities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 ALTER TABLE `delivery_zones`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
@@ -380,7 +403,7 @@ ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 -- --------------------------------------------------------
--- Restrições para tabelas despejadas
+-- FKs
 -- --------------------------------------------------------
 ALTER TABLE `categories`
   ADD CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
@@ -388,7 +411,11 @@ ALTER TABLE `categories`
 ALTER TABLE `company_hours`
   ADD CONSTRAINT `company_hours_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
 
+ALTER TABLE `delivery_cities`
+  ADD CONSTRAINT `delivery_cities_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
+
 ALTER TABLE `delivery_zones`
+  ADD CONSTRAINT `delivery_zones_city_fk` FOREIGN KEY (`city_id`) REFERENCES `delivery_cities` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `delivery_zones_company_fk` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
 
 ALTER TABLE `customers`
@@ -428,5 +455,5 @@ ALTER TABLE `users`
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+ /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+ /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
