@@ -75,65 +75,54 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     </div>
   </div>
 
-  <!-- CARD: Dados básicos -->
-  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
-    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M5 12h10M5 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      Dados básicos
-    </legend>
+ <!-- CARD: Dados básicos -->
+<fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+  <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+      <path d="M5 7h14M5 12h10M5 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    Dados básicos
+  </legend>
 
-    <label for="category_id" class="grid gap-1 mb-3">
-      <span class="text-sm text-slate-700">Categoria</span>
-      <select name="category_id" id="category_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400" aria-describedby="help-cat">
-        <option value="">— sem categoria —</option>
-        <?php foreach ($cats as $c): ?>
-          <option value="<?= (int)$c['id'] ?>" <?= (isset($p['category_id']) && (int)$p['category_id'] === (int)$c['id']) ? 'selected' : '' ?>>
-            <?= e($c['name']) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-      <small id="help-cat" class="text-xs text-slate-500">Usado para agrupar o cardápio.</small>
+  <label for="category_id" class="grid gap-1 mb-3">
+    <span class="text-sm text-slate-700">Categoria</span>
+    <select name="category_id" id="category_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400" aria-describedby="help-cat">
+      <option value="">— sem categoria —</option>
+      <?php foreach ($cats as $c): ?>
+        <option value="<?= (int)$c['id'] ?>" <?= (isset($p['category_id']) && (int)$p['category_id'] === (int)$c['id']) ? 'selected' : '' ?>>
+          <?= e($c['name']) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+    <small id="help-cat" class="text-xs text-slate-500">Usado para agrupar o cardápio.</small>
+  </label>
+
+  <div class="grid gap-3 md:grid-cols-2">
+    <label for="name" class="grid gap-1">
+      <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
+      <input required name="name" id="name" value="<?= e($p['name'] ?? '') ?>" autocomplete="off"
+             class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
     </label>
 
-    <div class="grid gap-3 md:grid-cols-2">
-      <label for="name" class="grid gap-1">
-        <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
-        <input required name="name" id="name" value="<?= e($p['name'] ?? '') ?>" autocomplete="off"
-               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
-      </label>
-
-      <label for="sku" class="grid gap-1">
-        <span class="text-sm text-slate-700">SKU</span>
-        <div class="sku-lock relative">
-          <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
-                 readonly
-                 class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
-          <button type="button" class="sku-lock-btn" aria-label="Definido automaticamente em ordem crescente e sem repetições."
-                  title="Definido automaticamente em ordem crescente e sem repetições.">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M17 11h-1V9a4 4 0 0 0-8 0v2h-.333A1.667 1.667 0 0 0 6 12.667v6.666C6 20.955 6.746 22 7.667 22h8.666C17.254 22 18 20.955 18 19.333v-6.666A1.667 1.667 0 0 0 16.667 11H17Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M15 11H9V9a3 3 0 1 1 6 0v2Z" fill="currentColor" />
-            </svg>
-            <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
-          </button>
-        </div>
+    <label for="sku" class="grid gap-1">
+      <span class="text-sm text-slate-700">SKU</span>
+      <div class="sku-lock relative">
         <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
                readonly
-               class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
-        <small class="text-xs text-slate-500">Definido automaticamente em ordem crescente e sem repetições.</small>
-      </label>
-    </div>
+               class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+<button type="button" 
+        class="sku-lock-btn focus:outline-none focus:ring-0" .>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M8 0a4 4 0 0 1 4 4v2.05a2.5 2.5 0 0 1 2 2.45v5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 13.5v-5a2.5 2.5 0 0 1 2-2.45V4a4 4 0 0 1 4-4m0 1a3 3 0 0 0-3 3v2h6V4a3 3 0 0 0-3-3"/>
+</svg>
+  <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
+</button>
 
-    <label for="description" class="mt-3 grid gap-1">
-      <span class="text-sm text-slate-700">Descrição</span>
-      <textarea name="description" id="description" rows="3" maxlength="300" placeholder="Até 300 caracteres"
-                class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400"><?= e($p['description'] ?? '') ?></textarea>
-      <div class="flex justify-between text-xs text-slate-500">
-        <span>Mostrada na página do produto.</span>
-        <span><span id="desc-count">0</span>/300</span>
       </div>
     </label>
-  </fieldset>
+  </div>
+</fieldset>
+
 
   <!-- CARD: Tipo & Preço -->
   <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
