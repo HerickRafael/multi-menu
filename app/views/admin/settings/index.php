@@ -1,5 +1,5 @@
 <?php
-// admin/settings/index.php — Configurações (versão moderna)
+// admin/settings/index.php — Configurações (com toolbar fixa)
 
 $title = "Configurações - " . ($company['name'] ?? '');
 $slug  = rawurlencode((string)($company['slug'] ?? ''));
@@ -45,36 +45,6 @@ $hours = $hours ?? [];
 
 ob_start(); ?>
 
-<!-- HEADER -->
-<header class="mb-6 flex items-center gap-3">
-  <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
-    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
-      <path d="M4 7h16M7 12h10M10 17h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    </svg>
-  </span>
-  <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">
-    Configurações gerais
-  </h1>
-
-  <div class="ml-auto flex items-center gap-2">
-    <a href="<?= e(base_url('admin/' . $slug . '/categories')) ?>"
-       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 6h12v12H6z" stroke="currentColor" stroke-width="1.6"/></svg>
-      Categorias
-    </a>
-    <a href="<?= e(base_url('admin/' . $slug . '/products')) ?>"
-       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 12h10M10 17h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      Produtos
-    </a>
-    <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>"
-       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      Dashboard
-    </a>
-  </div>
-</header>
-
 <!-- ALERTA DE ERRO -->
 <?php if (!empty($error)): ?>
   <div class="mb-4 rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-800 shadow-sm">
@@ -84,13 +54,39 @@ ob_start(); ?>
 
 <form id="settingsForm" method="post" enctype="multipart/form-data"
       action="<?= e(base_url('admin/' . $slug . '/settings')) ?>"
-      class="grid max-w-5xl gap-6">
+      class="relative grid max-w-5xl gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 
   <?php if (function_exists('csrf_field')): ?>
     <?= csrf_field() ?>
   <?php elseif (function_exists('csrf_token')): ?>
     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
   <?php endif; ?>
+
+  <!-- TOOLBAR FIXA -->
+  <div class="sticky top-0 z-20 -m-4 mb-0 border-b bg-white/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div class="mx-auto flex max-w-5xl items-center justify-between">
+      <div class="flex items-center gap-2 text-sm text-slate-800">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
+          <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 7h12M6 12h12M6 17h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <strong>Configurações</strong>
+      </div>
+      <div class="flex gap-2">
+        <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>"
+           class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Cancelar
+        </a>
+        <button type="submit"
+                class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-1.5 text-sm font-medium text-white shadow hover:opacity-95">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- CARD: Dados principais -->
   <fieldset class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
@@ -265,20 +261,6 @@ ob_start(); ?>
       <?php endforeach; ?>
     </div>
   </fieldset>
-
-  <!-- AÇÕES -->
-  <div class="flex gap-2">
-    <button class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Salvar
-    </button>
-    <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>"
-       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Voltar
-    </a>
-  </div>
-</form>
 
 <!-- SCRIPTS -->
 <script>

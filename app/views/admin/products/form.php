@@ -583,18 +583,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     </label>
   </fieldset>
 
-  <!-- Rodapé -->
-  <div class="flex gap-2 pt-0">
-    <button class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 font-medium text-white shadow hover:bg-slate-800">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Salvar
-    </button>
-    <a href="<?= e(base_url("admin/{$slug}/products")) ?>" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-slate-700 shadow-sm hover:bg-slate-50">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Cancelar
-    </a>
-  </div>
-
   <!-- ===== Templates (Combo) ===== -->
   <template id="tpl-group">
     <div class="group-card rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="__GI__">

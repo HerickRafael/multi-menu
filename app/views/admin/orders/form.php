@@ -1,10 +1,9 @@
 <?php
-// admin/orders/create.php — Novo pedido (versão moderna)
+// admin/orders/create.php — Novo pedido (com toolbar fixa)
 
 $title = "Novo pedido";
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 
-// helper de escape (se ainda não existir)
 if (!function_exists('e')) {
   function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
@@ -12,36 +11,46 @@ if (!function_exists('e')) {
 ob_start(); ?>
 <div class="mx-auto max-w-4xl p-4">
 
-  <!-- HEADER -->
-  <header class="mb-5 flex items-center gap-3">
-    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
-        <path d="M5 7h14M7 12h10M9 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-    </span>
-    <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">
-      Novo pedido
-    </h1>
-
-    <div class="ml-auto">
-      <a href="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
-         class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        Voltar
-      </a>
-    </div>
-  </header>
-
   <form method="post"
         action="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
         id="order-form"
-        class="grid gap-6">
+        class="relative grid gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 
     <?php if (function_exists('csrf_field')): ?>
       <?= csrf_field() ?>
     <?php elseif (function_exists('csrf_token')): ?>
       <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
     <?php endif; ?>
+
+    <!-- TOOLBAR FIXA -->
+    <div class="sticky top-0 z-20 -m-4 mb-0 border-b bg-white/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div class="mx-auto flex max-w-4xl items-center justify-between">
+        <div class="flex items-center gap-2 text-sm text-slate-800">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
+            <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <strong>Novo pedido</strong>
+        </div>
+        <div class="flex gap-2">
+          <a href="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
+             class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            Cancelar
+          </a>
+          <button type="submit"
+                  class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-1.5 text-sm font-medium text-white shadow hover:opacity-95">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Salvar pedido
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- CARD: Cliente -->
     <fieldset class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
@@ -118,13 +127,13 @@ ob_start(); ?>
         <label class="grid gap-1">
           <span class="text-sm text-slate-700">Taxa de entrega</span>
           <input type="number" step="0.01" name="delivery_fee" value="<?= e($defaults['delivery_fee'] ?? 0) ?>"
-                 class="fee-input rounded-xl border border-slate-300 bg-white px-3 py-2">
+                 class="fee-input rounded-xl border border-slate-300 bg-white px-1 py-2">
         </label>
 
         <label class="grid gap-1">
           <span class="text-sm text-slate-700">Desconto</span>
           <input type="number" step="0.01" name="discount" value="<?= e($defaults['discount'] ?? 0) ?>"
-                 class="disc-input rounded-xl border border-slate-300 bg-white px-3 py-2">
+                 class="disc-input rounded-xl border border-slate-300 bg-white px-1 py-2">
         </label>
 
         <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -149,21 +158,6 @@ ob_start(); ?>
                 class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400"
                 placeholder="Ex.: Sem cebola, entregar no portão…"><?= e($defaults['notes'] ?? '') ?></textarea>
     </fieldset>
-
-    <!-- AÇÕES -->
-    <div class="flex gap-2">
-      <button class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Salvar pedido
-      </button>
-      <a href="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
-         class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Cancelar
-      </a>
-    </div>
-  </form>
-</div>
 
 <script>
 (function(){
@@ -197,7 +191,7 @@ ob_start(); ?>
     btnDel.addEventListener('click', ()=>{ row.remove(); recalc(); });
 
     itemsBox.appendChild(row);
-    updateLine(); // inicia calculado
+    updateLine();
   }
 
   function recalc(){
@@ -218,26 +212,14 @@ ob_start(); ?>
     document.getElementById('total-view').textContent  = formatBR(total);
   }
 
-  // Adicionar linha
   document.getElementById('btn-add-item').addEventListener('click', addRow);
+  document.querySelectorAll('.fee-input, .disc-input').forEach(inp=>{ inp.addEventListener('input', recalc); });
 
-  // Recalcular quando taxa/desconto mudarem
-  document.querySelectorAll('.fee-input, .disc-input').forEach(inp=>{
-    inp.addEventListener('input', recalc);
-  });
-
-  // Validação simples antes de enviar
   form.addEventListener('submit', (e)=>{
-    const hasItem = Array.from(itemsBox.querySelectorAll('.product-select'))
-      .some(sel => sel.value && sel.value !== '');
-    if (!hasItem) {
-      e.preventDefault();
-      alert('Adicione pelo menos 1 item ao pedido.');
-      return false;
-    }
+    const hasItem = Array.from(itemsBox.querySelectorAll('.product-select')).some(sel => sel.value && sel.value !== '');
+    if (!hasItem) { e.preventDefault(); alert('Adicione pelo menos 1 item ao pedido.'); return false; }
   });
 
-  // Primeira linha pronta
   addRow();
 })();
 </script>

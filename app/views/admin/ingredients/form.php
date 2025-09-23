@@ -1,5 +1,5 @@
 <?php
-// admin/ingredients/form.php — Formulário de ingrediente (versão moderna)
+// admin/ingredients/form.php — Formulário de ingrediente (versão moderna com toolbar fixa)
 
 $title   = "Ingrediente - " . ($company['name'] ?? '');
 $editing = !empty($ingredient['id']);
@@ -10,10 +10,7 @@ $action  = $editing
 
 $image = $ingredient['image_path'] ?? null;
 
-// helper de escape
-if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-}
+if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 
 $unitOptions = [
   ['value' => 'un', 'label' => 'Unidade (un)'],
@@ -25,26 +22,13 @@ $unitOptions = [
   ['value' => 'pc', 'label' => 'Peça (pc)'],
 ];
 
-$unitLabelMap = [
-  'un' => 'unidade',
-  'kg' => 'kg',
-  'g'  => 'g',
-  'mg' => 'mg',
-  'l'  => 'litro',
-  'ml' => 'mililitro',
-  'pc' => 'peça',
-];
+$unitLabelMap = ['un'=>'unidade','kg'=>'kg','g'=>'g','mg'=>'mg','l'=>'litro','ml'=>'mililitro','pc'=>'peça'];
 
-// normaliza unidade
 $unitRaw = trim((string)($ingredient['unit'] ?? ''));
 $unitSelectValue = '';
-foreach ($unitOptions as $opt) {
-  if (strcasecmp($unitRaw, $opt['value']) === 0) { $unitSelectValue = $opt['value']; break; }
-}
+foreach ($unitOptions as $opt) { if (strcasecmp($unitRaw, $opt['value']) === 0) { $unitSelectValue = $opt['value']; break; } }
 $unitCustomValue = '';
-if ($unitSelectValue === '') {
-  if ($unitRaw !== '') { $unitSelectValue = 'custom'; $unitCustomValue = $unitRaw; }
-}
+if ($unitSelectValue === '') { if ($unitRaw !== '') { $unitSelectValue = 'custom'; $unitCustomValue = $unitRaw; } }
 
 $unitLabelDisplay = $unitSelectValue === 'custom'
   ? ($unitCustomValue !== '' ? $unitCustomValue : 'unidade')
@@ -52,36 +36,14 @@ $unitLabelDisplay = $unitSelectValue === 'custom'
 $unitLabelDisplay = $unitLabelDisplay !== '' ? $unitLabelDisplay : 'unidade';
 $unitValuePlaceholder = trim('Ex.: 1 ' . $unitLabelDisplay);
 
-// formata valores iniciais
 $costVal = $ingredient['cost'] ?? '';
-if ($costVal !== '' && !is_string($costVal)) {
-  $costVal = number_format((float)$costVal, 2, ',', '.');
-}
+if ($costVal !== '' && !is_string($costVal)) { $costVal = number_format((float)$costVal, 2, ',', '.'); }
 $saleVal = $ingredient['sale_price'] ?? '';
-if ($saleVal !== '' && !is_string($saleVal)) {
-  $saleVal = number_format((float)$saleVal, 2, ',', '.');
-}
+if ($saleVal !== '' && !is_string($saleVal)) { $saleVal = number_format((float)$saleVal, 2, ',', '.'); }
 $unitValueVal = $ingredient['unit_value'] ?? '';
-if ($unitValueVal !== '' && !is_string($unitValueVal)) {
-  $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ',');
-}
+if ($unitValueVal !== '' && !is_string($unitValueVal)) { $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ','); }
 
 ob_start(); ?>
-
-<!-- HEADER -->
-<header class="mb-5 flex flex-wrap items-center gap-3">
-  <div class="flex items-center gap-3">
-    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
-        <path d="M5 7h14M7 12h10M9 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-    </span>
-    <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">
-      <?= $editing ? 'Editar' : 'Novo' ?> ingrediente
-    </h1>
-  </div>
-
-</header>
 
 <!-- ALERTA DE ERRO -->
 <?php if (!empty($error)): ?>
@@ -101,6 +63,36 @@ ob_start(); ?>
     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
   <?php endif; ?>
   <?php if ($editing): ?><input type="hidden" name="_method" value="PUT"><?php endif; ?>
+
+  <!-- TOOLBAR FIXA (igual ao bloco de Produto) -->
+  <div class="sticky top-0 z-20 -m-4 mb-0 border-b bg-white/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div class="mx-auto flex max-w-3xl items-center justify-between">
+      <div class="flex items-center gap-2 text-sm text-slate-800">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
+          <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <strong><?= $editing ? 'Editar' : 'Novo' ?> ingrediente</strong>
+      </div>
+      <div class="flex gap-2">
+        <a href="<?= e(base_url("admin/{$slug}/ingredients")) ?>"
+           class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Cancelar
+        </a>
+        <button type="submit"
+                class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-1.5 text-sm font-medium text-white shadow hover:opacity-95">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- CARD: Dados do ingrediente -->
   <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
@@ -185,25 +177,9 @@ ob_start(); ?>
     </div>
   </fieldset>
 
-  <!-- AÇÕES -->
-  <div class="flex gap-2">
-    <button class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 font-medium text-white shadow hover:bg-slate-800">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Salvar
-    </button>
-    <a href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>"
-       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-slate-700 shadow-sm hover:bg-slate-50">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      Cancelar
-    </a>
-  </div>
-
-</form>
-
 <!-- JS: unidade dinâmica, máscara simples e preview -->
 <script>
 (function(){
-  // ===== Unidade dinâmica
   const select = document.getElementById('unit_select');
   const custom = document.getElementById('unit_custom');
   const labelEl = document.getElementById('unit_label');
@@ -219,7 +195,6 @@ ob_start(); ?>
     if (sel && Object.prototype.hasOwnProperty.call(labelMap, sel)) return labelMap[sel] || sel;
     return sel !== '' ? sel : 'unidade';
   }
-
   function syncUnit(){
     const isCustom = (select?.value === 'custom');
     if (custom) {
@@ -230,36 +205,28 @@ ob_start(); ?>
     if (labelEl) labelEl.textContent = u;
     if (valueInput) valueInput.setAttribute('placeholder', ('Ex.: 1 ' + u).trim());
   }
-
   select?.addEventListener('change', syncUnit);
   custom?.addEventListener('input', syncUnit);
   syncUnit();
 
-  // ===== Máscara simples BR para inputs monetários (usa vírgula)
   function toMoneyBR(raw){
-    // mantém dígitos, vira centavos, formata com vírgula
     let s = String(raw || '').replace(/\D+/g,'');
     if (!s) return '';
     if (s.length === 1) s = '0' + s;
-    s = s.replace(/^0+(\d)/, '$1'); // tira zeros à esquerda
+    s = s.replace(/^0+(\d)/, '$1');
     const int = s.slice(0, -2) || '0';
     const dec = s.slice(-2);
-    // separador de milhar simples
     const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     return intFmt + ',' + dec;
   }
-
   document.querySelectorAll('.money-input').forEach(inp=>{
-    // ao digitar, mantém padrão 0,00
     inp.addEventListener('input', ()=>{
       const digits = inp.value.replace(/\D+/g,'');
       inp.value = toMoneyBR(digits);
     });
-    // ao focar, seleciona
     inp.addEventListener('focus', ()=> inp.select());
   });
 
-  // ===== Preview de imagem
   const file = document.getElementById('image');
   const prev = document.getElementById('image-preview');
   file?.addEventListener('change', ()=>{
