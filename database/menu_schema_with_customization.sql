@@ -12,12 +12,9 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-@OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-@OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-@OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION;
-/*!40101 SET NAMES utf8mb4 */;
+ /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+ /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+ /*!40101 SET NAMES utf8mb4 */;
 
 --
 -- Banco de dados: `menu`
@@ -34,6 +31,8 @@ CREATE TABLE `companies` (
   `address` varchar(255) DEFAULT NULL,
   `highlight_text` text DEFAULT NULL,
   `min_order` decimal(10,2) DEFAULT NULL,
+  `delivery_after_hours_fee` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `delivery_free_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `avg_delivery_min_from` int(11) DEFAULT NULL,
   `avg_delivery_min_to` int(11) DEFAULT NULL,
   `logo` varchar(255) DEFAULT NULL,
@@ -51,13 +50,13 @@ CREATE TABLE `companies` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `companies` (
-  `id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `min_order`,
+  `id`, `slug`, `name`, `whatsapp`, `address`, `highlight_text`, `min_order`, `delivery_after_hours_fee`, `delivery_free_enabled`,
   `avg_delivery_min_from`, `avg_delivery_min_to`, `logo`, `banner`,
   `menu_header_text_color`, `menu_header_button_color`, `menu_header_bg_color`,
   `menu_logo_border_color`, `menu_group_title_bg_color`, `menu_group_title_text_color`,
   `menu_welcome_bg_color`, `menu_welcome_text_color`, `active`, `created_at`
 ) VALUES
-(1, 'wollburger', 'Wollburger', '55', '', '', NULL, NULL, NULL, NULL, NULL,
+(1, 'wollburger', 'Wollburger', '55', '', '', NULL, 0.00, 0, NULL, NULL, NULL, NULL,
  '#FFFFFF', '#FACC15', '#5B21B6', '#7C3AED', '#FACC15', '#000000', '#6B21A8', '#FFFFFF', 1, '2025-09-11 01:38:16');
 
 -- --------------------------------------------------------
@@ -301,7 +300,7 @@ ALTER TABLE `company_hours`
 ALTER TABLE `delivery_cities`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `delivery_cities_company_name_unique` (`company_id`,`name`),
-  ADD KEY `delivery_cies_company_fk` (`company_id`);
+  ADD KEY `delivery_cities_company_fk` (`company_id`);
 
 ALTER TABLE `delivery_zones`
   ADD PRIMARY KEY (`id`),

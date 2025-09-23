@@ -4,17 +4,29 @@ require_once __DIR__ . '/../config/db.php';
 
 class DeliveryZone
 {
-  /** Lista zonas da empresa com nome da cidade */
-  public static function allByCompany(int $companyId): array
+  /**
+   * Lista zonas da empresa com nome da cidade.
+   * Se $search for informado, filtra por cidade OU bairro (case-insensitive).
+   */
+  public static function allByCompany(int $companyId, ?string $search = null): array
   {
-    $st = db()->prepare(
-      'SELECT dz.*, dc.name AS city_name
-         FROM delivery_zones dz
-         JOIN delivery_cities dc ON dc.id = dz.city_id
-        WHERE dz.company_id = ?
-        ORDER BY dc.name, dz.neighborhood'
-    );
-    $st->execute([$companyId]);
+    $sql = 'SELECT dz.*, dc.name AS city_name
+              FROM delivery_zones dz
+              JOIN delivery_cities dc ON dc.id = dz.city_id
+             WHERE dz.company_id = ?';
+    $params = [$companyId];
+
+    if ($search !== null && $search !== '') {
+      $sql .= ' AND (LOWER(dc.name) LIKE LOWER(?) OR LOWER(dz.neighborhood) LIKE LOWER(?))';
+      $like = '%' . $search . '%';
+      $params[] = $like;
+      $params[] = $like;
+    }
+
+    $sql .= ' ORDER BY dc.name, dz.neighborhood';
+
+    $st = db()->prepare($sql);
+    $st->execute($params);
     return $st->fetchAll() ?: [];
   }
 
@@ -34,6 +46,20 @@ class DeliveryZone
     return (int)db()->lastInsertId();
   }
 
+  /** Busca uma zona específica da empresa (inclui city_name) */
+  public static function findForCompany(int $id, int $companyId): ?array
+  {
+    $st = db()->prepare(
+      'SELECT dz.*, dc.name AS city_name
+         FROM delivery_zones dz
+         JOIN delivery_cities dc ON dc.id = dz.city_id
+        WHERE dz.id = ? AND dz.company_id = ?'
+    );
+    $st->execute([$id, $companyId]);
+    $row = $st->fetch();
+    return $row ?: null;
+  }
+
   /** Verifica duplicidade de bairro na mesma cidade */
   public static function existsForCity(int $companyId, int $cityId, string $neighborhood): bool
   {
@@ -47,6 +73,46 @@ class DeliveryZone
     );
     $st->execute([$companyId, $cityId, $neighborhood]);
     return (bool)$st->fetchColumn();
+  }
+
+  /** Verifica duplicidade ignorando um ID (para edição) */
+  public static function existsForCityExcept(int $companyId, int $cityId, string $neighborhood, int $ignoreId): bool
+  {
+    $st = db()->prepare(
+      'SELECT 1
+         FROM delivery_zones
+        WHERE company_id = ?
+          AND city_id = ?
+          AND LOWER(neighborhood) = LOWER(?)
+          AND id <> ?
+        LIMIT 1'
+    );
+    $st->execute([$companyId, $cityId, $neighborhood, $ignoreId]);
+    return (bool)$st->fetchColumn();
+  }
+
+  /** Atualiza uma zona */
+  public static function update(int $id, int $companyId, array $data): void
+  {
+    $st = db()->prepare(
+      'UPDATE delivery_zones
+          SET city_id = ?, neighborhood = ?, fee = ?
+        WHERE id = ? AND company_id = ?'
+    );
+    $st->execute([
+      (int)$data['city_id'],
+      $data['neighborhood'],
+      $data['fee'],
+      $id,
+      $companyId,
+    ]);
+  }
+
+  /** Ajusta todas as taxas por um delta (não permite negativo) */
+  public static function adjustFees(int $companyId, float $delta): void
+  {
+    $st = db()->prepare('UPDATE delivery_zones SET fee = GREATEST(0, fee + ?) WHERE company_id = ?');
+    $st->execute([$delta, $companyId]);
   }
 
   /** Exclui zona */
