@@ -122,10 +122,10 @@ ob_start(); ?>
               <div class="flex items-center gap-3">
                 <?php if (!empty($item['image_path'])): ?>
                   <img src="<?= e(base_url($item['image_path'])) ?>" alt=""
-                       class="h-10 w-10 rounded-full object-cover ring-1 ring-slate-200">
+                       class="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200">
                 <?php else: ?>
-                  <div class="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-[11px] uppercase tracking-wide text-slate-500 ring-1 ring-slate-200">
-                    IMG
+                  <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-400 ring-1 ring-slate-200">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </div>
                 <?php endif; ?>
 
