@@ -36,7 +36,98 @@ if (!empty($o['customer_phone'])) {
 }
 
 ob_start(); ?>
-<div class="mx-auto max-w-5xl p-4">
+<div class="admin-print-only">
+  <?php
+    $companyName    = trim((string)($company['name'] ?? ''));
+    $companyAddress = trim((string)($company['address'] ?? ''));
+    $companyContact = trim((string)($company['whatsapp'] ?? ($company['phone'] ?? '')));
+    $createdAt      = trim((string)($o['created_at'] ?? ''));
+    $subtotal       = (float)($o['subtotal'] ?? 0);
+    $deliveryFee    = (float)($o['delivery_fee'] ?? 0);
+    $discountValue  = (float)($o['discount'] ?? 0);
+    $totalValue     = (float)($o['total'] ?? 0);
+    $printTitle     = $companyName !== ''
+      ? (function_exists('mb_strtoupper') ? mb_strtoupper($companyName, 'UTF-8') : strtoupper($companyName))
+      : 'PEDIDO';
+    $printStatus    = $statusLabels[$st] ?? ucfirst($st);
+    $items          = is_array($o['items'] ?? null) ? $o['items'] : [];
+    $discountLabel  = $discountValue > 0
+      ? '-R$ ' . number_format($discountValue, 2, ',', '.')
+      : 'R$ ' . number_format($discountValue, 2, ',', '.');
+  ?>
+  <div class="receipt">
+    <div class="receipt-header">
+      <h1><?= e($printTitle) ?></h1>
+      <?php if ($companyAddress !== ''): ?>
+        <p class="receipt-text"><?= e($companyAddress) ?></p>
+      <?php endif; ?>
+      <?php if ($companyContact !== ''): ?>
+        <p class="receipt-text">Contato: <?= e($companyContact) ?></p>
+      <?php endif; ?>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-row"><span>Pedido</span><span>#<?= (int)($o['id'] ?? 0) ?></span></div>
+      <?php if ($createdAt !== ''): ?>
+        <div class="receipt-row"><span>Data</span><span><?= e($createdAt) ?></span></div>
+      <?php endif; ?>
+      <div class="receipt-row"><span>Status</span><span><?= e($printStatus) ?></span></div>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-label">Cliente</div>
+      <div class="receipt-text"><?= e($o['customer_name'] ?? '-') ?></div>
+      <?php if (!empty($o['customer_phone'])): ?>
+        <div class="receipt-text">Tel: <?= e($o['customer_phone']) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($o['customer_address'])): ?>
+        <div class="receipt-text receipt-pre"><?= e($o['customer_address']) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($o['notes'])): ?>
+        <div class="receipt-text receipt-pre">Obs.: <?= e($o['notes']) ?></div>
+      <?php endif; ?>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-label">Itens</div>
+      <table class="receipt-table">
+        <?php foreach ($items as $it): ?>
+          <tr>
+            <td colspan="3" class="receipt-item-name"><?= e($it['product_name'] ?? '-') ?></td>
+          </tr>
+          <tr class="receipt-item-row">
+            <td class="qty"><?= (int)($it['quantity'] ?? 0) ?>x</td>
+            <td class="price">R$ <?= number_format((float)($it['unit_price'] ?? 0), 2, ',', '.') ?></td>
+            <td class="total">R$ <?= number_format((float)($it['line_total'] ?? 0), 2, ',', '.') ?></td>
+          </tr>
+          <?php if (!empty($it['notes'])): ?>
+            <tr>
+              <td colspan="3" class="receipt-note receipt-pre"><?= e($it['notes']) ?></td>
+            </tr>
+          <?php endif; ?>
+        <?php endforeach; ?>
+        <?php if (empty($items)): ?>
+          <tr>
+            <td colspan="3" class="receipt-text">Sem itens neste pedido.</td>
+          </tr>
+        <?php endif; ?>
+      </table>
+    </div>
+    <hr>
+    <div class="receipt-section">
+      <div class="receipt-row"><span>Subtotal</span><span>R$ <?= number_format($subtotal, 2, ',', '.') ?></span></div>
+      <div class="receipt-row"><span>Entrega</span><span>R$ <?= number_format($deliveryFee, 2, ',', '.') ?></span></div>
+      <div class="receipt-row"><span>Desconto</span><span><?= $discountLabel ?></span></div>
+      <div class="receipt-total"><span>Total</span><span>R$ <?= number_format($totalValue, 2, ',', '.') ?></span></div>
+    </div>
+    <hr>
+    <div class="receipt-footer">
+      <div>Nº do pedido: #<?= (int)($o['id'] ?? 0) ?></div>
+      <div>Obrigado pela preferência!</div>
+    </div>
+  </div>
+</div>
+<div class="mx-auto max-w-5xl p-4 admin-screen-only">
   <!-- HEADER -->
   <header class="mb-5 flex flex-wrap items-center gap-3">
     <div class="flex items-center gap-3">
