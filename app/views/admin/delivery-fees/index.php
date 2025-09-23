@@ -12,9 +12,11 @@ $cityErrors = is_array($cityErrors ?? null) ? $cityErrors : [];
 $zoneErrors = is_array($zoneErrors ?? null) ? $zoneErrors : [];
 $oldCity    = is_array($oldCity ?? null) ? $oldCity : ['name' => ''];
 $oldZone    = is_array($oldZone ?? null) ? $oldZone : ['city_id' => '', 'neighborhood' => '', 'fee' => ''];
-$title      = 'Taxas de entrega - ' . ($company['name'] ?? '');
-$slug       = rawurlencode((string)($company['slug'] ?? ''));
 
+$title = 'Taxas de entrega - ' . ($company['name'] ?? '');
+$slug  = rawurlencode((string)($company['slug'] ?? ''));
+
+// Contagem de bairros por cidade
 $zoneCountByCity = [];
 foreach ($zones as $zone) {
   $cityId = (int)($zone['city_id'] ?? 0);
@@ -51,6 +53,7 @@ ob_start();
 </header>
 
 <div class="grid gap-6 xl:grid-cols-[1fr_1.1fr]">
+  <!-- Coluna 1: Cidades -->
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-slate-800">1. Cadastrar cidades atendidas</h2>
@@ -77,10 +80,16 @@ ob_start();
 
       <div class="grid gap-2">
         <label for="city-name" class="text-sm font-medium text-slate-700">Nome da cidade <span class="text-red-500">*</span></label>
-        <input type="text" id="city-name" name="name" value="<?= e($oldCity['name'] ?? '') ?>" required
-               maxlength="120"
-               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-               placeholder="Ex.: São Paulo">
+        <input
+          type="text"
+          id="city-name"
+          name="name"
+          value="<?= e($oldCity['name'] ?? '') ?>"
+          required
+          maxlength="120"
+          class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          placeholder="Ex.: Tramandaí"
+        >
       </div>
 
       <div class="flex justify-end">
@@ -111,7 +120,8 @@ ob_start();
                   <?= (int)($zoneCountByCity[(int)($city['id'] ?? 0)] ?? 0) ?> bairro(s) cadastrados
                 </div>
               </div>
-              <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/cities/' . (int)($city['id'] ?? 0) . '/del')) ?>"
+              <form method="post"
+                    action="<?= e(base_url('admin/' . $slug . '/delivery-fees/cities/' . (int)($city['id'] ?? 0) . '/del')) ?>"
                     onsubmit="return confirm('Remover esta cidade? Bairros vinculados também serão excluídos.');">
                 <?php if (function_exists('csrf_field')): ?>
                   <?= csrf_field() ?>
@@ -130,6 +140,7 @@ ob_start();
     </div>
   </section>
 
+  <!-- Coluna 2: Bairros/Taxas -->
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-slate-800">2. Cadastrar bairros e taxas</h2>
@@ -156,10 +167,14 @@ ob_start();
 
       <div class="grid gap-2">
         <label for="zone-city" class="text-sm font-medium text-slate-700">Cidade <span class="text-red-500">*</span></label>
-        <select id="zone-city" name="city_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" <?= $cities ? '' : 'disabled' ?> required>
+        <select id="zone-city" name="city_id"
+                class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                <?= $cities ? '' : 'disabled' ?> required>
           <option value="">Selecione uma cidade</option>
           <?php foreach ($cities as $city): ?>
-            <option value="<?= (int)($city['id'] ?? 0) ?>" <?= ((string)($oldZone['city_id'] ?? '') === (string)($city['id'] ?? '')) ? 'selected' : '' ?>><?= e($city['name'] ?? '') ?></option>
+            <option value="<?= (int)($city['id'] ?? 0) ?>" <?= ((string)($oldZone['city_id'] ?? '') === (string)($city['id'] ?? '')) ? 'selected' : '' ?>>
+              <?= e($city['name'] ?? '') ?>
+            </option>
           <?php endforeach; ?>
         </select>
         <?php if (!$cities): ?>
@@ -169,16 +184,28 @@ ob_start();
 
       <div class="grid gap-2">
         <label for="zone-neighborhood" class="text-sm font-medium text-slate-700">Bairro <span class="text-red-500">*</span></label>
-        <input type="text" id="zone-neighborhood" name="neighborhood" value="<?= e($oldZone['neighborhood'] ?? '') ?>" required maxlength="120"
-               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-               placeholder="Ex.: Centro">
+        <input
+          type="text"
+          id="zone-neighborhood"
+          name="neighborhood"
+          value="<?= e($oldZone['neighborhood'] ?? '') ?>"
+          required
+          maxlength="120"
+          class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          placeholder="Ex.: Centro"
+        >
       </div>
 
       <div class="grid gap-2">
         <label for="zone-fee" class="text-sm font-medium text-slate-700">Taxa de entrega (R$) <span class="text-red-500">*</span></label>
-        <input type="number" min="0" step="0.01" inputmode="decimal" id="zone-fee" name="fee" value="<?= e($oldZone['fee'] ?? '') ?>" required
-               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-               placeholder="Ex.: 8,00">
+        <input
+          type="number" min="0" step="0.01" inputmode="decimal"
+          id="zone-fee" name="fee"
+          value="<?= e($oldZone['fee'] ?? '') ?>"
+          required
+          class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          placeholder="Ex.: 8,00"
+        >
       </div>
 
       <div class="flex justify-end">
@@ -217,7 +244,8 @@ ob_start();
                   <td class="p-3 align-middle text-slate-700"><?= e($zone['neighborhood'] ?? '') ?></td>
                   <td class="p-3 align-middle text-slate-700">R$ <?= number_format((float)($zone['fee'] ?? 0), 2, ',', '.') ?></td>
                   <td class="p-3 align-middle">
-                    <form method="post" action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)($zone['id'] ?? 0) . '/del')) ?>"
+                    <form method="post"
+                          action="<?= e(base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)($zone['id'] ?? 0) . '/del')) ?>"
                           class="flex justify-end"
                           onsubmit="return confirm('Remover esta taxa de entrega?');">
                       <?php if (function_exists('csrf_field')): ?>
