@@ -65,6 +65,7 @@ class AdminDashboardController extends Controller
     $ingredientsCount = Ingredient::countByCompany($companyId);
     $ordersCount = Order::countByCompany($companyId);
     $recentIngredients = Ingredient::listRecentByCompany($companyId, 8);
+    $recentOrders = Order::listRecentByCompany($companyId, 8);
     foreach ($recentIngredients as &$ing) {
       $assigned = Ingredient::assignedProducts((int)$ing['id']);
       $ing['product_names'] = array_column($assigned, 'name');
@@ -82,6 +83,7 @@ class AdminDashboardController extends Controller
       'ingredientsCount',
       'ordersCount',
       'recentIngredients',
+      'recentOrders',
       'activeSlug'
     ));
   }

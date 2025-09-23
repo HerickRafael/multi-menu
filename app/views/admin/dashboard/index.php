@@ -141,11 +141,12 @@ ob_start(); ?>
 
     <ul class="max-h-56 space-y-1.5 overflow-auto pr-1 text-sm thin-scroll">
       <?php foreach ($categories as $c): ?>
-        <li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-          <a class="truncate hover:underline" href="<?= e(base_url('admin/' . $slug . '/categories/' . (int)($c['id'] ?? 0) . '/edit')) ?>">
-            <?= e($c['name'] ?? '') ?>
+        <li>
+          <a class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-transparent transition hover:bg-slate-100 hover:ring-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+             href="<?= e(base_url('admin/' . $slug . '/categories/' . (int)($c['id'] ?? 0) . '/edit')) ?>">
+            <span class="truncate"><?= e($c['name'] ?? '') ?></span>
+            <span class="text-[11px] font-normal text-slate-500">#<?= (int)($c['id'] ?? 0) ?></span>
           </a>
-          <span class="text-[11px] text-slate-500">#<?= (int)($c['id'] ?? 0) ?></span>
         </li>
       <?php endforeach; ?>
       <?php if (!count($categories)): ?>
@@ -232,20 +233,23 @@ ob_start(); ?>
           }
           $iid = (int)($ing['id'] ?? 0);
         ?>
-        <li class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-          <a class="flex items-center justify-between gap-2 hover:underline" href="<?= e(base_url('admin/' . $slug . '/ingredients/' . $iid . '/edit')) ?>">
-            <span class="font-medium text-slate-800"><?= e($ing['name'] ?? '') ?></span>
-            <?php if (!empty($ing['product_name'])): ?>
-              <span class="rounded-lg bg-white px-2 py-0.5 text-[11px] text-slate-600 ring-1 ring-slate-200"><?= e((string)$ing['product_name']) ?></span>
+        <li>
+          <a class="block rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 transition hover:border-slate-200 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+             href="<?= e(base_url('admin/' . $slug . '/ingredients/' . $iid . '/edit')) ?>">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-medium text-slate-800"><?= e($ing['name'] ?? '') ?></span>
+              <?php if (!empty($ing['product_name'])): ?>
+                <span class="rounded-lg bg-white px-2 py-0.5 text-[11px] text-slate-600 ring-1 ring-slate-200"><?= e((string)$ing['product_name']) ?></span>
+              <?php endif; ?>
+            </div>
+            <?php if (!empty($pn)): ?>
+              <div class="mt-1.5 flex flex-wrap gap-1.5">
+                <?php foreach ($pn as $one): ?>
+                  <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 ring-1 ring-amber-100"><?= e($one) ?></span>
+                <?php endforeach; ?>
+              </div>
             <?php endif; ?>
           </a>
-          <?php if (!empty($pn)): ?>
-            <div class="mt-1 flex flex-wrap gap-1.5">
-              <?php foreach ($pn as $one): ?>
-                <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 ring-1 ring-amber-100"><?= e($one) ?></span>
-              <?php endforeach; ?>
-            </div>
-          <?php endif; ?>
         </li>
       <?php endforeach; ?>
       <?php if (!count($recentIngredients)): ?>
@@ -275,8 +279,9 @@ ob_start(); ?>
     ?>
     <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm">
       <?php foreach ($ordersToShow as $o): $oid = (int)($o['id'] ?? 0); ?>
-        <li class="px-3 py-2.5 hover:bg-slate-50">
-          <a class="flex items-center justify-between gap-3" href="<?= e(base_url('admin/' . $slug . '/orders/' . $oid . '/edit')) ?>">
+        <li class="overflow-hidden">
+          <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+             href="<?= e(base_url('admin/' . $slug . '/orders/' . $oid . '/edit')) ?>">
             <div class="min-w-0">
               <div class="truncate font-medium text-slate-800">#<?= $oid ?> · <?= e($o['customer_name'] ?? 'Cliente') ?></div>
               <div class="text-xs text-slate-500">
