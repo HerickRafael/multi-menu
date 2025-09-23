@@ -68,6 +68,11 @@ class Order
     return $st->execute([$status, $orderId, $companyId]);
   }
 
+  public static function delete(PDO $db, int $orderId, int $companyId): bool {
+    $st = $db->prepare("DELETE FROM orders WHERE id = ? AND company_id = ?");
+    return $st->execute([$orderId, $companyId]);
+  }
+
   public static function countByCompany(int $companyId): int
   {
     $pdo = db();

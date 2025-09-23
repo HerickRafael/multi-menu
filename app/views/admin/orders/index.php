@@ -196,11 +196,20 @@ ob_start(); ?>
                       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Zm9.5-3a3 3 0 1 1-3 3 3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       Ver
                     </a>
-                    <a class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                       href="<?= e(base_url('admin/' . $slug . '/orders/create?dup=' . (int)($o['id'] ?? 0))) ?>">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6 17V5a2 2 0 0 1 2-2h8l4 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="1.4"/></svg>
-                      Duplicar
-                    </a>
+                    <form method="post"
+                          action="<?= e(base_url('admin/' . $slug . '/orders/' . (int)($o['id'] ?? 0) . '/del')) ?>"
+                          class="inline"
+                          onsubmit="return confirm('Excluir pedido?');">
+                      <?php if (function_exists('csrf_field')): ?>
+                        <?= csrf_field() ?>
+                      <?php elseif (function_exists('csrf_token')): ?>
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                      <?php endif; ?>
+                      <button class="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-50">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7h12M9 7v11m6-11v11M8 7l1-2h6l1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        Excluir
+                      </button>
+                    </form>
                   </div>
                 </td>
               </tr>
