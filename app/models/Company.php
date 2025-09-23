@@ -62,4 +62,15 @@ class Company
         $st = db()->prepare("DELETE FROM companies WHERE id = ?");
         $st->execute([$id]);
     }
+
+    public static function updateDeliveryOptions(int $id, float $afterHoursFee, bool $freeDelivery): void {
+        $st = db()->prepare(
+            "UPDATE companies SET delivery_after_hours_fee = ?, delivery_free_enabled = ? WHERE id = ?"
+        );
+        $st->execute([
+            number_format($afterHoursFee, 2, '.', ''),
+            $freeDelivery ? 1 : 0,
+            $id,
+        ]);
+    }
 }
