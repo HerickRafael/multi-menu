@@ -41,6 +41,7 @@ class Product
 
     return $promoVal;
   }
+
   /* ========================
    * LISTAGENS / BÁSICO
    * ======================== */
@@ -305,37 +306,38 @@ class Product
 
       $iq->execute([$groupId]);
       $rows = $iq->fetchAll(PDO::FETCH_ASSOC) ?: [];
-      $items = [];
 
+      // Unificação: construir $items completos e coerentes
+      $items = [];
       foreach ($rows as $row) {
         $simpleId = isset($row['simple_id']) ? (int)$row['simple_id'] : (int)($row['simple_product_id'] ?? 0);
         if ($simpleId <= 0) {
           continue;
         }
 
-        $itemId   = isset($row['id']) ? (int)$row['id'] : 0;
-        $delta    = isset($row['delta']) ? (float)$row['delta'] : (float)($row['delta_price'] ?? 0);
-        $base     = isset($row['base_price']) ? (float)$row['base_price'] : null;
-        $isDef    = !empty($row['is_default']);
-        $allowCus = !empty($row['allow_customize']);
-        $sortItem = isset($row['sort']) ? (int)$row['sort'] : 0;
+        $itemId      = isset($row['id']) ? (int)$row['id'] : 0;
+        $delta       = isset($row['delta']) ? (float)$row['delta'] : (float)($row['delta_price'] ?? 0);
+        $base        = isset($row['base_price']) ? (float)$row['base_price'] : null;
+        $isDefault   = !empty($row['is_default']);
+        $allowCus    = !empty($row['allow_customize']);
+        $sortItem    = isset($row['sort']) ? (int)$row['sort'] : 0;
 
         $items[] = [
           'id'                => $itemId > 0 ? $itemId : $simpleId,
           'group_id'          => $groupId,
           'simple_id'         => $simpleId,
           'simple_product_id' => $simpleId,
-          'product_id'        => $simpleId,
+          'product_id'        => $simpleId,                 // compatibilidade com payload esperado
           'name'              => (string)($row['name'] ?? ''),
           'image'             => $row['image'] ?? null,
           'base_price'        => $base,
-          'price'             => $base,
+          'price'             => $base,                      // mantém preço base para UI
           'delta'             => $delta,
           'delta_price'       => $delta,
-          'is_default'        => $isDef ? 1 : 0,
-          'default'           => $isDef ? 1 : 0,
+          'is_default'        => $isDefault ? 1 : 0,
+          'default'           => $isDefault ? 1 : 0,         // flag duplicada p/ consumo no front
           'allow_customize'   => $allowCus ? 1 : 0,
-          'customizable'      => $allowCus ? 1 : 0,
+          'customizable'      => $allowCus ? 1 : 0,          // idem
           'sort'              => $sortItem,
           'sort_order'        => $sortItem,
         ];
