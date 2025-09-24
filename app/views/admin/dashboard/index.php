@@ -124,36 +124,37 @@ ob_start(); ?>
 <!-- COLUNAS -->
 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 
-  <!-- Categorias (bloco clicável, sem botões de + / ver) -->
-  <div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
-       data-href="<?= e(base_url('admin/' . $slug . '/categories')) ?>" role="button" tabindex="0">
-    <div class="mb-3 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
-          </svg>
-        </span>
-        <h2 class="font-semibold text-slate-900">Categorias</h2>
-      </div>
-      <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white"><?= (int)count($categories) ?></span>
+<!-- Categorias -->
+<div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
+     data-href="<?= e(base_url('admin/' . $slug . '/categories')) ?>" role="button" tabindex="0">
+  <div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+        </svg>
+      </span>
+      <h2 class="font-semibold text-slate-900">Categorias</h2>
     </div>
-
-    <ul class="max-h-56 space-y-1.5 overflow-auto pr-1 text-sm thin-scroll">
-      <?php foreach ($categories as $c): ?>
-        <li>
-          <a class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-transparent transition hover:bg-slate-100 hover:ring-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-             href="<?= e(base_url('admin/' . $slug . '/categories/' . (int)($c['id'] ?? 0) . '/edit')) ?>">
-            <span class="truncate"><?= e($c['name'] ?? '') ?></span>
-            <span class="text-[11px] font-normal text-slate-500">#<?= (int)($c['id'] ?? 0) ?></span>
-          </a>
-        </li>
-      <?php endforeach; ?>
-      <?php if (!count($categories)): ?>
-        <li class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">Nenhuma categoria ainda.</li>
-      <?php endif; ?>
-    </ul>
+    <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white"><?= (int)count($categories) ?></span>
   </div>
+
+  <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
+    <?php foreach ($categories as $c): ?>
+      <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
+        <a class="flex w-full items-center justify-between gap-3"
+           href="<?= e(base_url('admin/' . $slug . '/categories/' . (int)($c['id'] ?? 0) . '/edit')) ?>">
+          <div class="truncate font-medium text-slate-800"><?= e($c['name'] ?? '') ?></div>
+          <span class="text-[11px] text-slate-500">#<?= (int)($c['id'] ?? 0) ?></span>
+        </a>
+      </li>
+    <?php endforeach; ?>
+    <?php if (!count($categories)): ?>
+      <li class="px-3 py-3 text-slate-500">Nenhuma categoria ainda.</li>
+    <?php endif; ?>
+  </ul>
+</div>
+
 
   <!-- Produtos (sem botão Editar; item inteiro clicável pro form) -->
   <div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
@@ -203,103 +204,145 @@ ob_start(); ?>
     </ul>
   </div>
 
-  <!-- Ingredientes recentes (sem botões de + / ver; bloco clicável) -->
-  <div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
-       data-href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>" role="button" tabindex="0">
-    <div class="mb-3 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cup-straw" viewBox="0 0 16 16">
-            <path d="M13.902.334a.5.5 0 0 1-.28.65l-2.254.902-.4 1.927c.376.095.715.215.972.367.228.135.56.396.56.82q0 .069-.011.132l-.962 9.068a1.28 1.28 0 0 1-.524.93c-.488.34-1.494.87-3.01.87s-2.522-.53-3.01-.87a1.28 1.28 0 0 1-.524-.93L3.51 5.132A1 1 0 0 1 3.5 5c0-.424.332-.685.56-.82.262-.154.607-.276.99-.372C5.824 3.614 6.867 3.5 8 3.5c.712 0 1.389.045 1.985.127l.464-2.215a.5.5 0 0 1 .303-.356l2.5-1a.5.5 0 0 1 .65.278M9.768 4.607A14 14 0 0 0 8 4.5c-1.076 0-2.033.11-2.707.278A3.3 3.3 0 0 0 4.645 5c.146.073.362.15.648.222C5.967 5.39 6.924 5.5 8 5.5c.571 0 1.109-.03 1.588-.085zm.292 1.756C9.445 6.45 8.742 6.5 8 6.5c-1.133 0-2.176-.114-2.95-.308a6 6 0 0 1-.435-.127l.838 8.03c.013.121.06.186.102.215.357.249 1.168.69 2.438.69s2.081-.441 2.438-.69c.042-.029.09-.094.102-.215l.852-8.03a6 6 0 0 1-.435.127 9 9 0 0 1-.89.17z"/>
-          </svg>
-        </span>
-        <h2 class="font-semibold text-slate-900">Ingredientes</h2>
-      </div>
-      <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white"><?= (int)$ingredientsCount ?></span>
+<!-- Ingredientes -->
+<div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
+     data-href="<?= e(base_url('admin/' . $slug . '/ingredients')) ?>" role="button" tabindex="0">
+  <div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cup-straw" viewBox="0 0 16 16">
+          <path d="M13.902.334a.5.5 0 0 1-.28.65l-2.254.902-.4 1.927c.376.095.715.215.972.367.228.135.56.396.56.82q0 .069-.011.132l-.962 9.068a1.28 1.28 0 0 1-.524.93c-.488.34-1.494.87-3.01.87s-2.522-.53-3.01-.87a1.28 1.28 0 0 1-.524-.93L3.51 5.132A1 1 0 0 1 3.5 5c0-.424.332-.685.56-.82.262-.154.607-.276.99-.372C5.824 3.614 6.867 3.5 8 3.5c.712 0 1.389.045 1.985.127l.464-2.215a.5.5 0 0 1 .303-.356l2.5-1a.5.5 0 0 1 .65.278"/>
+        </svg>
+      </span>
+      <h2 class="font-semibold text-slate-900">Ingredientes</h2>
     </div>
+    <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white"><?= (int)$ingredientsCount ?></span>
+  </div>
 
-    <ul class="max-h-56 space-y-1.5 overflow-auto pr-1 text-sm thin-scroll">
-      <?php foreach ($recentIngredients as $ing): ?>
-        <?php
-          $pnRaw = $ing['product_names'] ?? null;
-          if (is_string($pnRaw) && strpos($pnRaw, '||') !== false) {
-            $pn = array_values(array_filter(array_map('trim', explode('||', $pnRaw))));
-          } elseif (is_string($pnRaw) && $pnRaw !== '') {
-            $pn = [$pnRaw];
-          } elseif (is_array($pnRaw)) {
-            $pn = $pnRaw;
-          } else {
-            $pn = [];
-          }
-          $iid = (int)($ing['id'] ?? 0);
-        ?>
-        <li>
-          <a class="block rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 transition hover:border-slate-200 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-             href="<?= e(base_url('admin/' . $slug . '/ingredients/' . $iid . '/edit')) ?>">
-            <div class="flex items-center justify-between gap-2">
-              <span class="font-medium text-slate-800"><?= e($ing['name'] ?? '') ?></span>
-              <?php if (!empty($ing['product_name'])): ?>
-                <span class="rounded-lg bg-white px-2 py-0.5 text-[11px] text-slate-600 ring-1 ring-slate-200"><?= e((string)$ing['product_name']) ?></span>
-              <?php endif; ?>
-            </div>
+  <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
+    <?php $ingsToShow = array_slice($recentIngredients, 0, 8); ?>
+    <?php foreach ($ingsToShow as $ing): ?>
+      <?php
+        $iid = (int)($ing['id'] ?? 0);
+        $pnRaw = $ing['product_names'] ?? null;
+        if (is_string($pnRaw) && strpos($pnRaw, '||') !== false) {
+          $pn = array_values(array_filter(array_map('trim', explode('||', $pnRaw))));
+        } elseif (is_string($pnRaw) && $pnRaw !== '') {
+          $pn = [$pnRaw];
+        } elseif (is_array($pnRaw)) {
+          $pn = $pnRaw;
+        } else {
+          $pn = [];
+        }
+      ?>
+      <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
+        <a class="flex w-full items-center gap-3" href="<?= e(base_url('admin/' . $slug . '/ingredients/' . $iid . '/edit')) ?>">
+          <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M13.902.334a.5.5 0 0 1-.28.65l-2.254.902-.4 1.927c.376.095.715.215.972.367.228.135.56.396.56.82q0 .069-.011.132l-.962 9.068a1.28 1.28 0 0 1-.524.93c-.488.34-1.494.87-3.01.87s-2.522-.53-3.01-.87a1.28 1.28 0 0 1-.524-.93L3.51 5.132A1 1 0 0 1 3.5 5c0-.424.332-.685.56-.82.262-.154.607-.276.99-.372C5.824 3.614 6.867 3.5 8 3.5c.712 0 1.389.045 1.985.127l.464-2.215a.5.5 0 0 1 .303-.356l2.5-1a.5.5 0 0 1 .65.278"/>
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="truncate font-medium text-slate-800"><?= e($ing['name'] ?? '') ?></div>
             <?php if (!empty($pn)): ?>
-              <div class="mt-1.5 flex flex-wrap gap-1.5">
+              <div class="mt-1 flex flex-wrap gap-1.5">
                 <?php foreach ($pn as $one): ?>
                   <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 ring-1 ring-amber-100"><?= e($one) ?></span>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
-          </a>
-        </li>
-      <?php endforeach; ?>
-      <?php if (!count($recentIngredients)): ?>
-        <li class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">Sem ingredientes cadastrados.</li>
-      <?php endif; ?>
-    </ul>
-  </div>
+          </div>
+        </a>
+      </li>
+    <?php endforeach; ?>
+    <?php if (!count($ingsToShow)): ?>
+      <li class="px-3 py-3 text-slate-500">Sem ingredientes cadastrados.</li>
+    <?php endif; ?>
+  </ul>
+</div>
 
-  <!-- Pedidos (agora com lista de últimos pedidos; bloco clicável) -->
-  <div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
-       data-href="<?= e(base_url('admin/' . $slug . '/orders')) ?>" role="button" tabindex="0">
-    <div class="mb-3 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cart4" viewBox="0 0 16 16">
-            <path d="M0 2.5A.5.5 0 0 1 .5 2H2a.5.5 0 0 1 .485.379L2.89 4H14.5a.5.5 0 0 1 .485.621l-1.5 6A.5.5 0 0 1 13 11H4a.5.5 0 0 1-.485-.379L1.61 3H.5a.5.5 0 0 1-.5-.5M3.14 5l.5 2H5V5zM6 5v2h2V5zm3 0v2h2V5zm3 0v2h1.36l.5-2zm1.11 3H12v2h.61zM11 8H9v2h2zM8 8H6v2h2zM5 8H3.89l.5 2H5zm0 5a1 1 0 1 0 0 2 1 1 0 0 0 0-2m-2 1a2 2 0 1 1 4 0 2 2 0 0 1-4 0m9-1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m-2 1a2 2 0 1 1 4 0 2 2 0 0 1-4 0"/>
-          </svg>
-        </span>
-        <h2 class="font-semibold text-slate-900">Pedidos</h2>
-      </div>
-      <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white"><?= (int)$ordersCount ?></span>
+
+<!-- Pedidos (dashboard) — visual e status iguais ao admin/orders/index.php -->
+<div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
+     data-href="<?= e(base_url('admin/' . $slug . '/orders')) ?>" role="button" tabindex="0">
+
+  <div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cart4" viewBox="0 0 16 16">
+          <path d="M0 2.5A.5.5 0 0 1 .5 2H2l.89 2H14.5a.5.5 0 0 1 .485.621l-1.5 6A.5.5 0 0 1 13 11H4L2 3H.5a.5.5 0 0 1-.5-.5z"/>
+          <path d="M5 12a1 1 0 1 0 0 2 1 1 0 0 0 0-2m6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+        </svg>
+      </span>
+      <h2 class="font-semibold text-slate-900">Pedidos</h2>
     </div>
-
-    <?php
-      // Mostra até 8 últimos pedidos se vierem da controller (id, customer_name, total, status, created_at)
-      $ordersToShow = array_slice($recentOrders, 0, 8);
-    ?>
-    <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm">
-      <?php foreach ($ordersToShow as $o): $oid = (int)($o['id'] ?? 0); ?>
-        <li class="overflow-hidden">
-          <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
-             href="<?= e(base_url('admin/' . $slug . '/orders/' . $oid . '/edit')) ?>">
-            <div class="min-w-0">
-              <div class="truncate font-medium text-slate-800">#<?= $oid ?> · <?= e($o['customer_name'] ?? 'Cliente') ?></div>
-              <div class="text-xs text-slate-500">
-                <?= e($o['created_at'] ?? '') ?> ·
-                <span class="font-semibold"><?= $price($o['total'] ?? 0) ?></span>
-              </div>
-            </div>
-            <span class="whitespace-nowrap rounded-lg bg-slate-50 px-2 py-0.5 text-[11px] text-slate-700 ring-1 ring-slate-200">
-              <?= e(ucfirst((string)($o['status'] ?? ''))) ?>
-            </span>
-          </a>
-        </li>
-      <?php endforeach; ?>
-      <?php if (!count($ordersToShow)): ?>
-        <li class="px-3 py-3 text-slate-500">Sem pedidos ainda.</li>
-      <?php endif; ?>
-    </ul>
+    <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white"><?= (int)$ordersCount ?></span>
   </div>
+
+  <?php
+    // mesmo mapeamento/labels da página orders
+    $statusLabels = [
+      'pending'   => 'Pendente',
+      'paid'      => 'Pago',
+      'completed' => 'Concluído',
+      'canceled'  => 'Cancelado',
+    ];
+    $ordersToShow = array_slice($recentOrders, 0, 8);
+  ?>
+
+  <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
+    <?php foreach ($ordersToShow as $o): $oid = (int)($o['id'] ?? 0); ?>
+      <?php
+        $st    = (string)($o['status'] ?? 'pending');
+        $label = $statusLabels[$st] ?? ucfirst($st);
+
+        // classes do badge iguais ao admin/orders/index.php
+        $badge = match ($st) {
+          'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
+          'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+          'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
+          default     => 'bg-amber-50 text-amber-700 ring-amber-200', // pending
+        };
+
+        // cor do pontinho
+        $dot = match ($st) {
+          'paid'      => 'bg-blue-500',
+          'completed' => 'bg-emerald-500',
+          'canceled'  => 'bg-rose-500',
+          default     => 'bg-amber-500',
+        };
+      ?>
+      <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="<?= e(base_url('admin/' . $slug . '/orders/' . $oid . '/edit')) ?>">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #<?= $oid ?> · <?= e($o['customer_name'] ?? 'Cliente') ?>
+            </div>
+            <div class="text-xs text-slate-500">
+              <?= e($o['created_at'] ?? '') ?>
+            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800"><?= $price($o['total'] ?? 0) ?></strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 <?= $badge ?>">
+            <span class="h-1.5 w-1.5 rounded-full <?= $dot ?>"></span>
+            <?= e($label) ?>
+          </span>
+        </a>
+      </li>
+    <?php endforeach; ?>
+    <?php if (!count($ordersToShow)): ?>
+      <li class="px-3 py-3 text-slate-500">Sem pedidos ainda.</li>
+    <?php endif; ?>
+  </ul>
+</div>
+
+
 
 </div>
 
