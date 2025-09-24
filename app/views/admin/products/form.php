@@ -20,8 +20,8 @@ foreach ($simpleProducts as $spMeta) {
 
 // Personalização
 $customization  = $customization  ?? [];           // ['enabled'=>bool, 'groups'=>[...]]
-$custEnabled    = !empty($customization['enabled']);
 $custGroups     = $customization['groups'] ?? [];
+$custEnabled    = !empty($customization['enabled']) || !empty($custGroups);
 
 // Título / Ação
 $title   = "Produto - " . ($company['name'] ?? '');
