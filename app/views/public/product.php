@@ -145,6 +145,9 @@ if (!function_exists('local_upload_src')) {
   .choice.sel .mark{display:grid}
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
+  .choice-customize{display:none;margin-top:10px;padding:10px 14px;border-radius:14px;background:#eef2ff;color:#3730a3;font-weight:600;font-size:13px;border:none;cursor:pointer;transition:background .18s ease}
+  .choice-customize:active{background:#e0e7ff}
+  .choice.sel .choice-customize{display:block}
 
   /* ===== FOOTER/CTA ===== */
   .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
@@ -277,6 +280,14 @@ if (!function_exists('local_upload_src')) {
 
               // Força imagem do item do combo vir de /uploads
               $comboImg = local_upload_src($opt['image'] ?? null);
+
+              $simpleId = isset($opt['simple_id']) ? (int)$opt['simple_id'] : (int)($opt['id'] ?? 0);
+              $customAllowed = !empty($opt['allow_customize']) && (int)($opt['custom_item_count'] ?? 0) >= 3 && $simpleId > 0;
+              $customUrl = null;
+              if ($customAllowed) {
+                $query = http_build_query(['combo_parent' => $pId, 'group' => $gi, 'component' => $simpleId]);
+                $customUrl = base_url($slug . '/produto/' . $simpleId . '/customizar' . ($query ? ('?' . $query) : ''));
+              }
             ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
@@ -287,6 +298,9 @@ if (!function_exists('local_upload_src')) {
               </button>
               <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
               <div class="choice-price"><?= e($priceLabel) ?></div>
+              <?php if ($customUrl): ?>
+                <button type="button" class="choice-customize" data-url="<?= e($customUrl) ?>">Personalizar</button>
+              <?php endif; ?>
             </div>
           <?php endforeach; ?>
         </div>
@@ -353,6 +367,17 @@ if (!function_exists('local_upload_src')) {
         ring.setAttribute('aria-pressed','true');
         if (hidden) hidden.value = item.dataset.id || '';
       });
+    });
+  });
+
+  document.querySelectorAll('.choice-customize').forEach(btn=>{
+    btn.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      ev.preventDefault();
+      const url = btn.dataset.url;
+      if (url) {
+        window.location.href = url;
+      }
     });
   });
 </script>

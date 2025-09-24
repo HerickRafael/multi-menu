@@ -74,6 +74,46 @@ class Product
     return $st->fetchAll(PDO::FETCH_ASSOC);
   }
 
+  /**
+   * Lista produtos simples ativos da empresa que podem compor combos.
+   * Retorna metadados úteis como quantidade de itens de personalização.
+   */
+  public static function listSimpleForCombo(int $companyId, ?int $excludeProductId = null): array {
+    $sql = "SELECT p.*, COALESCE(custom_data.total_items, 0) AS custom_item_count
+              FROM products p
+         LEFT JOIN (
+                   SELECT pcg.product_id, COUNT(pci.id) AS total_items
+                     FROM product_custom_groups pcg
+               INNER JOIN product_custom_items pci ON pci.group_id = pcg.id
+                    GROUP BY pcg.product_id
+                   ) AS custom_data ON custom_data.product_id = p.id
+             WHERE p.company_id = ?
+               AND p.type = 'simple'
+               AND p.active = 1
+               AND (p.deleted_at IS NULL OR p.deleted_at='0000-00-00 00:00:00')";
+
+    $params = [$companyId];
+    if ($excludeProductId) {
+      $sql .= " AND p.id <> ?";
+      $params[] = $excludeProductId;
+    }
+
+    $sql .= " ORDER BY p.name";
+
+    $st = db()->prepare($sql);
+    $st->execute($params);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    foreach ($rows as &$row) {
+      $count = isset($row['custom_item_count']) ? (int)$row['custom_item_count'] : 0;
+      $row['custom_item_count'] = $count;
+      $row['can_customize'] = $count >= 3;
+    }
+    unset($row);
+
+    return $rows;
+  }
+
   public static function allForCompany(int $companyId): array {
     $sql = "SELECT * FROM products WHERE company_id = ? ORDER BY name";
     $st = db()->prepare($sql);
@@ -281,11 +321,20 @@ class Product
              gi.simple_product_id AS simple_id,
              COALESCE(gi.delta_price,0) AS delta,
              COALESCE(gi.is_default,0)  AS is_default,
+             COALESCE(gi.allow_customize,0) AS allow_customize,
              sp.name,
              sp.image,
-             sp.price AS base_price
+             sp.price AS base_price,
+             COALESCE(custom_data.total_items,0) AS custom_item_count,
+             COALESCE(sp.allow_customize,0) AS product_allow_customize
         FROM combo_group_items gi
   INNER JOIN products sp ON sp.id = gi.simple_product_id
+    LEFT JOIN (
+              SELECT pcg.product_id, COUNT(pci.id) AS total_items
+                FROM product_custom_groups pcg
+          INNER JOIN product_custom_items pci ON pci.group_id = pcg.id
+               GROUP BY pcg.product_id
+             ) AS custom_data ON custom_data.product_id = sp.id
        WHERE gi.group_id = ?
     ORDER BY gi.sort ASC, gi.id ASC
     ");
@@ -297,6 +346,132 @@ class Product
     unset($g);
 
     return $groups;
+  }
+
+  /**
+   * Estrutura grupos/itens do combo para o formulário do admin.
+   */
+  public static function loadComboGroupsForAdmin(int $productId): array {
+    $raw = self::getComboGroupsWithItems($productId);
+    if (!$raw) {
+      return [];
+    }
+
+    $groups = [];
+    foreach ($raw as $group) {
+      $items = [];
+      foreach ($group['items'] ?? [] as $item) {
+        $items[] = [
+          'product_id'   => isset($item['simple_id']) ? (int)$item['simple_id'] : 0,
+          'delta'        => isset($item['delta']) ? (float)$item['delta'] : 0.0,
+          'default'      => !empty($item['is_default']),
+          'customizable' => !empty($item['allow_customize']),
+        ];
+      }
+
+      if (!$items) {
+        continue;
+      }
+
+      $groups[] = [
+        'name'       => $group['name'] ?? '',
+        'type'       => $group['type'] ?? 'single',
+        'min'        => isset($group['min']) ? (int)$group['min'] : 0,
+        'max'        => isset($group['max']) ? (int)$group['max'] : 1,
+        'sort_order' => isset($group['sort']) ? (int)$group['sort'] : 0,
+        'items'      => $items,
+      ];
+    }
+
+    return $groups;
+  }
+
+  /**
+   * Limpa/valida payload vindo do formulário do admin para grupos de combo.
+   */
+  public static function sanitizeComboGroups(array $payload, int $companyId, ?int $excludeProductId = null): array {
+    if (!$payload) {
+      return [];
+    }
+
+    $simpleProducts = self::listSimpleForCombo($companyId, $excludeProductId);
+    if (!$simpleProducts) {
+      return [];
+    }
+
+    $allowed = [];
+    foreach ($simpleProducts as $sp) {
+      $allowed[(int)$sp['id']] = [
+        'can_customize' => !empty($sp['can_customize']),
+      ];
+    }
+
+    $normalized = [];
+    foreach ($payload as $group) {
+      if (!is_array($group)) {
+        continue;
+      }
+
+      $name = trim((string)($group['name'] ?? ''));
+      if ($name === '') {
+        continue;
+      }
+
+      $itemsRaw = $group['items'] ?? [];
+      if (!is_array($itemsRaw) || !$itemsRaw) {
+        continue;
+      }
+
+      $items = [];
+      foreach ($itemsRaw as $item) {
+        if (!is_array($item)) {
+          continue;
+        }
+        $pid = (int)($item['product_id'] ?? 0);
+        if ($pid <= 0 || !isset($allowed[$pid])) {
+          continue;
+        }
+        $items[] = [
+          'product_id'   => $pid,
+          'delta'        => isset($item['delta']) ? (float)$item['delta'] : 0.0,
+          'default'      => !empty($item['default']),
+          'customizable' => !empty($item['customizable']) && !empty($allowed[$pid]['can_customize']),
+        ];
+      }
+
+      if (!$items) {
+        continue;
+      }
+
+      $min = isset($group['min']) ? (int)$group['min'] : 0;
+      $max = isset($group['max']) ? (int)$group['max'] : 1;
+      if ($min < 0) {
+        $min = 0;
+      }
+      if ($max < $min) {
+        $max = $min;
+      }
+      if ($max <= 0) {
+        $max = 1;
+      }
+
+      $type = $group['type'] ?? 'single';
+      $validTypes = ['single','component','addon','extra','remove','add','swap'];
+      if (!in_array($type, $validTypes, true)) {
+        $type = 'single';
+      }
+
+      $normalized[] = [
+        'name'       => $name,
+        'type'       => $type,
+        'min'        => $min,
+        'max'        => $max,
+        'sort_order' => isset($group['sort_order']) ? (int)$group['sort_order'] : count($normalized),
+        'items'      => $items,
+      ];
+    }
+
+    return $normalized;
   }
 
   /**
@@ -329,8 +504,8 @@ class Product
           VALUES (?,?,?,?,?,?,NOW())
         ");
         $insI = $pdo->prepare("
-          INSERT INTO combo_group_items (group_id, simple_product_id, delta_price, is_default, sort, created_at)
-          VALUES (?,?,?,?,?,NOW())
+          INSERT INTO combo_group_items (group_id, simple_product_id, delta_price, is_default, allow_customize, sort, created_at)
+          VALUES (?,?,?,?,?,?,NOW())
         ");
 
         $gSort = 0;
@@ -352,7 +527,8 @@ class Product
             if ($spId <= 0) continue;
             $delta  = (float)($it['delta'] ?? 0);
             $isDef  = !empty($it['default']) ? 1 : 0;
-            $insI->execute([$groupId, $spId, $delta, $isDef, $iSort++]);
+            $allow = !empty($it['customizable']) ? 1 : 0;
+            $insI->execute([$groupId, $spId, $delta, $isDef, $allow, $iSort++]);
           }
         }
       }

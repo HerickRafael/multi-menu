@@ -95,11 +95,16 @@ class AdminProductController extends Controller {
       'active'      => 1,
       'category_id' => null,
       'image'       => null,
+      'type'        => 'simple',
+      'price_mode'  => 'fixed',
     ];
 
     $customization = ['enabled' => false, 'groups' => []];
     $ingredients = Ingredient::allForCompany((int)$company['id']);
-    return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients'));
+    $groups = [];
+    $simpleProducts = Product::listSimpleForCombo((int)$company['id']);
+
+    return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients','groups','simpleProducts'));
   }
 
   /**
@@ -165,6 +170,20 @@ class AdminProductController extends Controller {
     $custPayload = $_POST['customization'] ?? [];
     $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
 
+    $typeRaw   = $_POST['type'] ?? 'simple';
+    $type      = $typeRaw === 'combo' ? 'combo' : 'simple';
+    $priceMode = ($_POST['price_mode'] ?? 'fixed') === 'sum' ? 'sum' : 'fixed';
+
+    $comboPayload = $_POST['groups'] ?? [];
+    $comboGroups  = $type === 'combo'
+      ? Product::sanitizeComboGroups(is_array($comboPayload) ? $comboPayload : [], (int)$company['id'])
+      : [];
+
+    if ($type === 'combo' && !$comboGroups) {
+      $type = 'simple';
+      $priceMode = 'fixed';
+    }
+
     $price = (float)($_POST['price'] ?? 0);
     $promo = $this->sanitizePromoPrice($_POST['promo_price'] ?? null, $price);
 
@@ -179,11 +198,14 @@ class AdminProductController extends Controller {
       'image'       => $img, // pode ser null
       'active'      => isset($_POST['active']) ? 1 : 0,
       'sort_order'  => (int)($_POST['sort_order'] ?? 0),
+      'type'        => $type,
+      'price_mode'  => $priceMode,
       'allow_customize' => !empty($custData['enabled']) && !empty($custData['groups']) ? 1 : 0,
     ];
 
     $productId = Product::create($data);
     ProductCustomization::save($productId, $custData);
+    Product::saveComboGroupsAndItems($productId, $type === 'combo' ? $comboGroups : []);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
     exit;
   }
@@ -201,8 +223,10 @@ class AdminProductController extends Controller {
       'groups'  => ProductCustomization::loadForAdmin((int)$p['id']),
     ];
     $ingredients = Ingredient::allForCompany((int)$company['id']);
+    $groups = Product::loadComboGroupsForAdmin((int)$p['id']);
+    $simpleProducts = Product::listSimpleForCombo((int)$company['id'], (int)$p['id']);
 
-    return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients'));
+    return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients','groups','simpleProducts'));
   } // <-- ESTA CHAVE FALTAVA
 
   /** Persistência da edição */
@@ -219,6 +243,20 @@ class AdminProductController extends Controller {
     $custPayload = $_POST['customization'] ?? [];
     $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
 
+    $typeRaw   = $_POST['type'] ?? ($p['type'] ?? 'simple');
+    $type      = $typeRaw === 'combo' ? 'combo' : 'simple';
+    $priceMode = ($_POST['price_mode'] ?? ($p['price_mode'] ?? 'fixed')) === 'sum' ? 'sum' : 'fixed';
+
+    $comboPayload = $_POST['groups'] ?? [];
+    $comboGroups  = $type === 'combo'
+      ? Product::sanitizeComboGroups(is_array($comboPayload) ? $comboPayload : [], (int)$company['id'], (int)$p['id'])
+      : [];
+
+    if ($type === 'combo' && !$comboGroups) {
+      $type = 'simple';
+      $priceMode = 'fixed';
+    }
+
     $price = (float)($_POST['price'] ?? 0);
     $promo = $this->sanitizePromoPrice($_POST['promo_price'] ?? null, $price);
 
@@ -232,12 +270,15 @@ class AdminProductController extends Controller {
       'image'       => $img,
       'active'      => isset($_POST['active']) ? 1 : 0,
       'sort_order'  => (int)($_POST['sort_order'] ?? 0),
+      'type'        => $type,
+      'price_mode'  => $priceMode,
       'allow_customize' => !empty($custData['enabled']) && !empty($custData['groups']) ? 1 : 0,
     ];
 
     $productId = (int)$params['id'];
     Product::update($productId, $data);
     ProductCustomization::save($productId, $custData);
+    Product::saveComboGroupsAndItems($productId, $type === 'combo' ? $comboGroups : []);
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
     exit;
   }
