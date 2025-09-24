@@ -10,6 +10,20 @@ $simpleProducts = $simpleProducts ?? [];           // p/ combos
 $ingredients    = $ingredients    ?? [];
 $errors         = $errors         ?? [];
 
+// Mapa auxiliar de produtos simples (para decidir “customizável” no form)
+$simpleLookup = [];
+foreach ($simpleProducts as $sp) {
+  $sid = isset($sp['id']) ? (int)$sp['id'] : 0;
+  if ($sid <= 0) { continue; }
+  // aceita tanto custom_item_count quanto ingredient_count
+  $count = isset($sp['custom_item_count']) ? (int)$sp['custom_item_count'] : (int)($sp['ingredient_count'] ?? 0);
+  $allow = !empty($sp['allow_customize']); // campo vindo de simpleProductsForCombo
+  $sp['custom_item_count'] = $count;
+  // can_customize verdadeiro se já vier pronto OU se allow_customize && >=3 ingredientes
+  $sp['can_customize'] = !empty($sp['can_customize']) || ($allow && $count >= 3);
+  $simpleLookup[$sid] = $sp;
+}
+
 // Personalização
 $customization  = $customization  ?? [];           // ['enabled'=>bool, 'groups'=>[...]]
 $custEnabled    = !empty($customization['enabled']);
@@ -75,54 +89,51 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     </div>
   </div>
 
- <!-- CARD: Dados básicos -->
-<fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
-  <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-      <path d="M5 7h14M5 12h10M5 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    </svg>
-    Dados básicos
-  </legend>
+  <!-- CARD: Dados básicos -->
+  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+        <path d="M5 7h14M5 12h10M5 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      Dados básicos
+    </legend>
 
-  <label for="category_id" class="grid gap-1 mb-3">
-    <span class="text-sm text-slate-700">Categoria</span>
-    <select name="category_id" id="category_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400" aria-describedby="help-cat">
-      <option value="">— sem categoria —</option>
-      <?php foreach ($cats as $c): ?>
-        <option value="<?= (int)$c['id'] ?>" <?= (isset($p['category_id']) && (int)$p['category_id'] === (int)$c['id']) ? 'selected' : '' ?>>
-          <?= e($c['name']) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-    <small id="help-cat" class="text-xs text-slate-500">Usado para agrupar o cardápio.</small>
-  </label>
-
-  <div class="grid gap-3 md:grid-cols-2">
-    <label for="name" class="grid gap-1">
-      <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
-      <input required name="name" id="name" value="<?= e($p['name'] ?? '') ?>" autocomplete="off"
-             class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+    <label for="category_id" class="grid gap-1 mb-3">
+      <span class="text-sm text-slate-700">Categoria</span>
+      <select name="category_id" id="category_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400" aria-describedby="help-cat">
+        <option value="">— sem categoria —</option>
+        <?php foreach ($cats as $c): ?>
+          <option value="<?= (int)$c['id'] ?>" <?= (isset($p['category_id']) && (int)$p['category_id'] === (int)$c['id']) ? 'selected' : '' ?>>
+            <?= e($c['name']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <small id="help-cat" class="text-xs text-slate-500">Usado para agrupar o cardápio.</small>
     </label>
 
-    <label for="sku" class="grid gap-1">
-      <span class="text-sm text-slate-700">SKU</span>
-      <div class="sku-lock relative">
-        <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
-               readonly
-               class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
-<button type="button" 
-        class="sku-lock-btn focus:outline-none focus:ring-0" .>
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M8 0a4 4 0 0 1 4 4v2.05a2.5 2.5 0 0 1 2 2.45v5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 13.5v-5a2.5 2.5 0 0 1 2-2.45V4a4 4 0 0 1 4-4m0 1a3 3 0 0 0-3 3v2h6V4a3 3 0 0 0-3-3"/>
-</svg>
-  <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
-</button>
+    <div class="grid gap-3 md:grid-cols-2">
+      <label for="name" class="grid gap-1">
+        <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
+        <input required name="name" id="name" value="<?= e($p['name'] ?? '') ?>" autocomplete="off"
+               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+      </label>
 
-      </div>
-    </label>
-  </div>
-</fieldset>
-
+      <label for="sku" class="grid gap-1">
+        <span class="text-sm text-slate-700">SKU</span>
+        <div class="sku-lock relative">
+          <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
+                 readonly
+                 class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+          <button type="button" class="sku-lock-btn focus:outline-none focus:ring-0" title="Gerado automaticamente">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M8 0a4 4 0 0 1 4 4v2.05a2.5 2.5 0 0 1 2 2.45v5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 13.5v-5a2.5 2.5 0 0 1 2-2.45V4a4 4 0 0 1 4-4m0 1a3 3 0 0 0-3 3v2h6V4a3 3 0 0 0-3-3"/>
+            </svg>
+            <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
+          </button>
+        </div>
+      </label>
+    </div>
+  </fieldset>
 
   <!-- CARD: Tipo & Preço -->
   <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
@@ -217,48 +228,24 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       padding:0;
     }
     .sku-lock-btn:hover,
-    .sku-lock-btn:focus{
-      color:rgba(30,41,59,1);
-    }
-    .sku-lock-btn:focus{
-      outline:2px solid rgba(99,102,241,.4);
-      outline-offset:2px;
-    }
+    .sku-lock-btn:focus{ color:rgba(30,41,59,1); }
+    .sku-lock-btn:focus{ outline:2px solid rgba(99,102,241,.4); outline-offset:2px; }
     .sku-lock-tooltip{
-      position:absolute;
-      bottom:-0.5rem;
-      right:2.5rem;
-      transform:translateY(100%);
-      display:none;
-      max-width:16rem;
-      padding:.5rem .75rem;
-      border-radius:.5rem;
-      background-color:rgba(15,23,42,.92);
-      color:white;
-      font-size:.75rem;
-      line-height:1.1;
-      box-shadow:0 10px 30px -15px rgba(15,23,42,.55);
-      text-align:left;
-      pointer-events:none;
-      z-index:30;
+      position:absolute; bottom:-0.5rem; right:2.5rem; transform:translateY(100%);
+      display:none; max-width:16rem; padding:.5rem .75rem; border-radius:.5rem;
+      background-color:rgba(15,23,42,.92); color:white; font-size:.75rem; line-height:1.1;
+      box-shadow:0 10px 30px -15px rgba(15,23,42,.55); text-align:left; pointer-events:none; z-index:30;
     }
     .sku-lock-btn:hover .sku-lock-tooltip,
     .sku-lock-btn:focus-visible .sku-lock-tooltip,
-    .sku-lock-btn:active .sku-lock-tooltip{
-      display:block;
-    }
-    .form-toolbar{
-      position:sticky;
-    }
+    .sku-lock-btn:active .sku-lock-tooltip{ display:block; }
+
+    .form-toolbar{ position:sticky; }
     @media (max-width: 639px){
-      .form-toolbar{
-        margin:0;
-        border-radius:1rem 1rem 0 0;
-      }
-      .form-toolbar-actions > *{
-        width:100%;
-      }
+      .form-toolbar{ margin:0; border-radius:1rem 1rem 0 0; }
+      .form-toolbar-actions > *{ width:100%; }
     }
+
     /* Personalização */
     #cust-groups-container .cust-group{transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}
     #cust-groups-container .cust-group.dragging{opacity:.85;transform:scale(.985);box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
@@ -268,6 +255,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     #groups-container .group-card{transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}
     #groups-container .group-card.dragging{opacity:.85;transform:scale(.985);box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
     .combo-drag-ghost{box-sizing:border-box;border-radius:.75rem;box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
+
     .combo-customizable-btn{display:inline-flex;align-items:center;gap:.4rem;border:1px solid #cbd5f5;border-radius:.75rem;padding:.45rem .75rem;font-size:.875rem;background:#fff;color:#475569;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
     .combo-customizable-btn:hover{background:#f8fafc}
     .combo-customizable-btn.is-active{border-color:#6366f1;background:#eef2ff;color:#3730a3}
@@ -326,6 +314,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             $ii    = (int)$ii;
             $selId = (int)($it['product_id'] ?? 0);
             $isDef = !empty($it['is_default'] ?? $it['default']);
+            $customMarked = !empty($it['customizable']);
+            $canCustomize = $selId && !empty($simpleLookup[$selId]['can_customize']);
+            $isCustItem   = ($customMarked && $canCustomize);
           ?>
           <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_minmax(0,1fr)_40px] md:items-center" data-item-index="<?= $ii ?>">
             <div>
@@ -942,8 +933,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       });
     }
 
-    // ===== contador descrição & preview imagem (já na Parte 1) =====
-
     // ===== Visibilidade de Combo =====
     const groupsToggle=document.getElementById('groups-toggle');
     const hiddenUse=document.getElementById('use_groups_hidden');
@@ -1095,7 +1084,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       gContainer?.querySelectorAll('.group-card').forEach((g,idx)=>{
         g.dataset.index=idx;
         const inp=g.querySelector('.combo-order-input'); if(inp) inp.value=String(idx);
-        // renumera nomes para manter índices coerentes (opcional: se não quiser, remova)
       });
     }
     gContainer?.addEventListener('dragstart', e=>{
@@ -1226,8 +1214,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       wireCustItem(row); applyCustMode(groupEl);
       return row;
     }
-    custAddGrp?.addEventListener('click', addCustGroup);
-    custCont?.addEventListener('click', e=>{
+    document.getElementById('cust-add-group')?.addEventListener('click', addCustGroup);
+    document.getElementById('cust-groups-container')?.addEventListener('click', e=>{
       const t=e.target;
       if(t.classList.contains('cust-add-item')){ addCustItem(t.closest('.cust-group')); }
       else if(t.classList.contains('cust-add-choice')){ const g=t.closest('.cust-group'); const sel=g?.querySelector('.cust-mode-select'); if(sel){ sel.value='choice'; } applyCustMode(g); addCustItem(g); }
@@ -1246,7 +1234,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       }
       return closest.element;
     }
-    custCont?.addEventListener('dragstart', e=>{
+    document.getElementById('cust-groups-container')?.addEventListener('dragstart', e=>{
       const handle=e.target.closest('.cust-drag-handle'); if(!handle){ e.preventDefault(); return; }
       const group=handle.closest('.cust-group'); if(!group){ e.preventDefault(); return; }
       custDragging=group; group.classList.add('dragging');
@@ -1261,21 +1249,22 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         e.dataTransfer.setDragImage(ghost, offsetX, offsetY);
       }
     });
-    custCont?.addEventListener('dragend', ()=>{
+    document.getElementById('cust-groups-container')?.addEventListener('dragend', ()=>{
       if(custDragging){ custDragging.classList.remove('dragging'); custDragging=null; refreshCustGroupOrder(); }
       if(custGhost){ custGhost.remove(); custGhost=null; }
     });
-    custCont?.addEventListener('dragover', e=>{
+    document.getElementById('cust-groups-container')?.addEventListener('dragover', e=>{
       if(!custDragging) return; e.preventDefault();
-      const after=getCustAfterElement(custCont, e.clientY);
-      if(!after){ custCont.appendChild(custDragging); }
-      else if(after!==custDragging){ custCont.insertBefore(custDragging, after); }
+      const after=getCustAfterElement(document.getElementById('cust-groups-container'), e.clientY);
+      if(!after){ document.getElementById('cust-groups-container').appendChild(custDragging); }
+      else if(after!==custDragging){ document.getElementById('cust-groups-container').insertBefore(custDragging, after); }
     });
-    custCont?.addEventListener('drop', e=>{ if(!custDragging) return; e.preventDefault(); refreshCustGroupOrder(); });
+    document.getElementById('cust-groups-container')?.addEventListener('drop', e=>{ if(!custDragging) return; e.preventDefault(); refreshCustGroupOrder(); });
 
     // ===== toggle Personalização =====
-    function syncCust(){ const on=!!custToggle?.checked; if(custHidden) custHidden.value=on?'1':'0'; toggleBlock(custWrap,on); }
-    custToggle?.addEventListener('change', syncCust); syncCust();
+    const custToggleEl=document.getElementById('customization-enabled');
+    function syncCust(){ const on=!!custToggleEl?.checked; const hidden=document.getElementById('customization-enabled-hidden'); if(hidden) hidden.value=on?'1':'0'; toggleBlock(document.getElementById('customization-wrap'),on); }
+    custToggleEl?.addEventListener('change', syncCust); syncCust();
 
     // ===== validação & normalização no submit =====
     document.getElementById('product-form')?.addEventListener('submit', (e)=>{
@@ -1291,6 +1280,9 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         else if(promo>=price){ e.preventDefault(); alert('O preço promocional deve ser menor que o preço base.'); promoEl.focus(); return; }
       }
 
+      const groupsToggle=document.getElementById('groups-toggle');
+      const gContainer=document.getElementById('groups-container');
+
       if(groupsToggle && groupsToggle.checked){
         const gs=gContainer.querySelectorAll('.group-card');
         if(!gs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de opções do combo.'); return; }
@@ -1305,6 +1297,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         }
       }
 
+      const custToggle=document.getElementById('customization-enabled');
+      const custCont=document.getElementById('cust-groups-container');
       if(custToggle && custToggle.checked){
         const cgs=custCont.querySelectorAll('.cust-group');
         if(!cgs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de personalização.'); return; }

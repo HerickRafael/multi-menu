@@ -14,37 +14,27 @@ class AdminProductController extends Controller {
    * Normaliza o preço promocional garantindo que só valores válidos sejam usados.
    */
   private function sanitizePromoPrice($input, float $basePrice): ?float {
-    if ($input === null) {
-      return null;
-    }
+    if ($input === null) return null;
 
     if (is_array($input)) {
       $input = reset($input);
     }
 
     $raw = trim((string)$input);
-    if ($raw === '') {
-      return null;
-    }
+    if ($raw === '') return null;
 
     $raw = str_replace(' ', '', $raw);
     if (strpos($raw, ',') !== false && strpos($raw, '.') !== false) {
       $raw = str_replace('.', '', $raw);
     }
     $raw = str_replace(',', '.', $raw);
-    if (!is_numeric($raw)) {
-      return null;
-    }
+    if (!is_numeric($raw)) return null;
 
     $promo = (float)$raw;
-    if ($promo <= 0) {
-      return null;
-    }
+    if ($promo <= 0) return null;
 
     $price = (float)$basePrice;
-    if ($price <= 0 || $promo >= $price) {
-      return null;
-    }
+    if ($price <= 0 || $promo >= $price) return null;
 
     return $promo;
   }
@@ -95,12 +85,14 @@ class AdminProductController extends Controller {
       'active'      => 1,
       'category_id' => null,
       'image'       => null,
+      'type'        => 'simple',
+      'price_mode'  => 'fixed',
     ];
 
-    $customization = ['enabled' => false, 'groups' => []];
-    $ingredients = Ingredient::allForCompany((int)$company['id']);
-    $groups = [];
-    $simpleProducts = Product::simpleProductsForCombo((int)$company['id']);
+    $customization  = ['enabled' => false, 'groups' => []];
+    $ingredients    = Ingredient::allForCompany((int)$company['id']);
+    $groups         = [];
+    $simpleProducts = Product::listSimpleForCombo((int)$company['id']);
 
     return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients','groups','simpleProducts'));
   }
@@ -165,40 +157,45 @@ class AdminProductController extends Controller {
     $img = $this->handleUpload($_FILES['image'] ?? null, $imgError);
     if ($imgError) $_SESSION['flash_error'] = $imgError;
 
+    // Customização
     $custPayload = $_POST['customization'] ?? [];
     $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
+
+    // Tipo / modo de preço / grupos (combo)
+    $type       = (isset($_POST['type']) && $_POST['type'] === 'combo') ? 'combo' : 'simple';
+    $priceMode  = (isset($_POST['price_mode']) && $_POST['price_mode'] === 'sum') ? 'sum' : 'fixed';
+    $groupPayload = (isset($_POST['groups']) && is_array($_POST['groups'])) ? $_POST['groups'] : [];
+    $useGroups  = $type === 'combo' && (!empty($_POST['use_groups']) || !empty($groupPayload));
+    $comboGroups = $useGroups ? Product::normalizeComboGroups($groupPayload, (int)$company['id']) : [];
+    if ($type === 'combo' && !$comboGroups) {
+      // se não há grupos válidos, volta para simples
+      $type = 'simple';
+      $priceMode = 'fixed';
+    }
 
     $price = (float)($_POST['price'] ?? 0);
     $promo = $this->sanitizePromoPrice($_POST['promo_price'] ?? null, $price);
 
-    $type = isset($_POST['type']) && $_POST['type'] === 'combo' ? 'combo' : 'simple';
-    $priceMode = isset($_POST['price_mode']) && $_POST['price_mode'] === 'sum' ? 'sum' : 'fixed';
-    $groupPayload = isset($_POST['groups']) && is_array($_POST['groups']) ? $_POST['groups'] : [];
-    $useGroups = $type === 'combo' && (!empty($_POST['use_groups']) || !empty($groupPayload));
-    $comboGroups = $useGroups ? Product::normalizeComboGroups($groupPayload, (int)$company['id']) : [];
-    if (!$comboGroups) {
-      $useGroups = false;
-    }
-
     $data = [
-      'company_id'  => (int)$company['id'],
-      'category_id' => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
-      'name'        => trim($_POST['name'] ?? ''),
-      'description' => trim($_POST['description'] ?? ''),
-      'price'       => $price,
-      'promo_price' => $promo,
-      'sku'         => Product::nextSkuForCompany((int)$company['id']),
-      'image'       => $img, // pode ser null
-      'active'      => isset($_POST['active']) ? 1 : 0,
-      'sort_order'  => (int)($_POST['sort_order'] ?? 0),
-      'type'        => $type,
-      'price_mode'  => $priceMode,
-      'allow_customize' => !empty($custData['enabled']) && !empty($custData['groups']) ? 1 : 0,
+      'company_id'      => (int)$company['id'],
+      'category_id'     => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
+      'name'            => trim($_POST['name'] ?? ''),
+      'description'     => trim($_POST['description'] ?? ''),
+      'price'           => $price,
+      'promo_price'     => $promo,
+      'sku'             => Product::nextSkuForCompany((int)$company['id']),
+      'image'           => $img, // pode ser null
+      'active'          => isset($_POST['active']) ? 1 : 0,
+      'sort_order'      => (int)($_POST['sort_order'] ?? 0),
+      'type'            => $type,
+      'price_mode'      => $priceMode,
+      'allow_customize' => (!empty($custData['enabled']) && !empty($custData['groups'])) ? 1 : 0,
     ];
 
     $productId = Product::create($data);
     ProductCustomization::save($productId, $custData);
     Product::saveComboGroupsAndItems($productId, $type === 'combo' && $useGroups ? $comboGroups : []);
+
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
     exit;
   }
@@ -215,13 +212,12 @@ class AdminProductController extends Controller {
       'enabled' => !empty($p['allow_customize']),
       'groups'  => ProductCustomization::loadForAdmin((int)$p['id']),
     ];
-    $ingredients = Ingredient::allForCompany((int)$company['id']);
-
-    $groups = Product::loadComboGroupsForAdmin((int)$p['id']);
-    $simpleProducts = Product::simpleProductsForCombo((int)$company['id'], (int)$p['id']);
+    $ingredients    = Ingredient::allForCompany((int)$company['id']);
+    $groups         = Product::loadComboGroupsForAdmin((int)$p['id']);
+    $simpleProducts = Product::listSimpleForCombo((int)$company['id'], (int)$p['id']);
 
     return $this->view('admin/products/form', compact('company','cats','p','customization','ingredients','groups','simpleProducts'));
-  } // <-- ESTA CHAVE FALTAVA
+  } // fim edit
 
   /** Persistência da edição */
   public function update($params){
@@ -234,40 +230,49 @@ class AdminProductController extends Controller {
     $img = $uploaded ?: ($p['image'] ?? null);
     if ($imgError) $_SESSION['flash_error'] = $imgError;
 
+    // Customização
     $custPayload = $_POST['customization'] ?? [];
     $custData    = ProductCustomization::sanitizePayload(is_array($custPayload) ? $custPayload : [], (int)$company['id']);
+
+    // Tipo / modo de preço / grupos (combo)
+    $type      = (isset($_POST['type']) && $_POST['type'] === 'combo') ? 'combo' : 'simple';
+    $priceMode = (isset($_POST['price_mode']) && $_POST['price_mode'] === 'sum') ? 'sum' : 'fixed';
+
+    $groupPayload = (isset($_POST['groups']) && is_array($_POST['groups'])) ? $_POST['groups'] : [];
+    $useGroups    = $type === 'combo' && (!empty($_POST['use_groups']) || !empty($groupPayload));
+    $comboGroups  = $useGroups ? Product::normalizeComboGroups($groupPayload, (int)$company['id']) : [];
+    if ($type !== 'combo') {
+      $comboGroups = [];
+    } elseif ($useGroups && !$comboGroups) {
+      // se o usuário marcou combo mas não há grupos válidos, força simples
+      $type = 'simple';
+      $priceMode = 'fixed';
+      $comboGroups = [];
+    }
 
     $price = (float)($_POST['price'] ?? 0);
     $promo = $this->sanitizePromoPrice($_POST['promo_price'] ?? null, $price);
 
-    $type = isset($_POST['type']) && $_POST['type'] === 'combo' ? 'combo' : 'simple';
-    $priceMode = isset($_POST['price_mode']) && $_POST['price_mode'] === 'sum' ? 'sum' : 'fixed';
-    $groupPayload = isset($_POST['groups']) && is_array($_POST['groups']) ? $_POST['groups'] : [];
-    $useGroups = $type === 'combo' && (!empty($_POST['use_groups']) || !empty($groupPayload));
-    $comboGroups = $useGroups ? Product::normalizeComboGroups($groupPayload, (int)$company['id']) : [];
-    if ($type !== 'combo') {
-      $comboGroups = [];
-    }
-
     $data = [
-      'category_id' => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
-      'name'        => trim($_POST['name'] ?? ''),
-      'description' => trim($_POST['description'] ?? ''),
-      'price'       => $price,
-      'promo_price' => $promo,
-      'sku'         => isset($p['sku']) && $p['sku'] !== '' ? $p['sku'] : Product::nextSkuForCompany((int)$company['id']),
-      'image'       => $img,
-      'active'      => isset($_POST['active']) ? 1 : 0,
-      'sort_order'  => (int)($_POST['sort_order'] ?? 0),
-      'type'        => $type,
-      'price_mode'  => $priceMode,
-      'allow_customize' => !empty($custData['enabled']) && !empty($custData['groups']) ? 1 : 0,
+      'category_id'     => $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null,
+      'name'            => trim($_POST['name'] ?? ''),
+      'description'     => trim($_POST['description'] ?? ''),
+      'price'           => $price,
+      'promo_price'     => $promo,
+      'sku'             => isset($p['sku']) && $p['sku'] !== '' ? $p['sku'] : Product::nextSkuForCompany((int)$company['id']),
+      'image'           => $img,
+      'active'          => isset($_POST['active']) ? 1 : 0,
+      'sort_order'      => (int)($_POST['sort_order'] ?? 0),
+      'type'            => $type,
+      'price_mode'      => $priceMode,
+      'allow_customize' => (!empty($custData['enabled']) && !empty($custData['groups'])) ? 1 : 0,
     ];
 
     $productId = (int)$params['id'];
     Product::update($productId, $data);
     ProductCustomization::save($productId, $custData);
-    Product::saveComboGroupsAndItems($productId, $comboGroups);
+    Product::saveComboGroupsAndItems($productId, $type === 'combo' && $useGroups ? $comboGroups : []);
+
     header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/products'));
     exit;
   }
