@@ -145,6 +145,7 @@ if (!function_exists('local_upload_src')) {
   .choice.sel .mark{display:grid}
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
+  .choice-badge{margin-top:6px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#047857;background:#d1fae5}
 
   /* ===== FOOTER/CTA ===== */
   .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
@@ -278,7 +279,7 @@ if (!function_exists('local_upload_src')) {
               // Força imagem do item do combo vir de /uploads
               $comboImg = local_upload_src($opt['image'] ?? null);
             ?>
-            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
+            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>" data-simple="<?= (int)($opt['simple_id'] ?? 0) ?>" data-customizable="<?= !empty($opt['customizable']) ? '1' : '0' ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
@@ -287,6 +288,9 @@ if (!function_exists('local_upload_src')) {
               </button>
               <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
               <div class="choice-price"><?= e($priceLabel) ?></div>
+              <?php if (!empty($opt['customizable'])): ?>
+                <div class="choice-badge">Personalizável</div>
+              <?php endif; ?>
             </div>
           <?php endforeach; ?>
         </div>

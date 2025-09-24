@@ -81,6 +81,41 @@ class Product
     return $st->fetchAll(PDO::FETCH_ASSOC);
   }
 
+  /**
+   * Lista produtos simples elegíveis para compor combos.
+   * Retorna dados básicos + contagem de itens de personalização.
+   */
+  public static function simpleProductsForCombo(int $companyId, ?int $excludeId = null): array {
+    $sql = "SELECT p.id,
+                   p.name,
+                   p.price,
+                   p.image,
+                   p.allow_customize,
+                   COALESCE((
+                     SELECT COUNT(pci.id)
+                       FROM product_custom_groups pcg
+                  LEFT JOIN product_custom_items pci ON pci.group_id = pcg.id
+                      WHERE pcg.product_id = p.id
+                   ), 0) AS custom_item_count
+              FROM products p
+             WHERE p.company_id = :cid
+               AND p.type = 'simple'";
+
+    if ($excludeId !== null) {
+      $sql .= " AND p.id <> :exclude";
+    }
+
+    $sql .= " ORDER BY p.name";
+
+    $st = db()->prepare($sql);
+    $st->bindValue(':cid', $companyId, PDO::PARAM_INT);
+    if ($excludeId !== null) {
+      $st->bindValue(':exclude', $excludeId, PDO::PARAM_INT);
+    }
+    $st->execute();
+    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  }
+
   public static function find(int $id): ?array {
     $st = db()->prepare("SELECT * FROM products WHERE id = ?");
     $st->execute([$id]);
@@ -281,9 +316,17 @@ class Product
              gi.simple_product_id AS simple_id,
              COALESCE(gi.delta_price,0) AS delta,
              COALESCE(gi.is_default,0)  AS is_default,
+             COALESCE(gi.allow_customization,0) AS allow_customization,
              sp.name,
              sp.image,
-             sp.price AS base_price
+             sp.price AS base_price,
+             sp.allow_customize AS simple_allow_customize,
+             COALESCE((
+               SELECT COUNT(pci.id)
+                 FROM product_custom_groups pcg
+            LEFT JOIN product_custom_items pci ON pci.group_id = pcg.id
+                WHERE pcg.product_id = sp.id
+             ), 0) AS custom_item_count
         FROM combo_group_items gi
   INNER JOIN products sp ON sp.id = gi.simple_product_id
        WHERE gi.group_id = ?
@@ -291,8 +334,24 @@ class Product
     ");
 
     foreach ($groups as &$g) {
+      $items = [];
       $iq->execute([$g['id']]);
-      $g['items'] = $iq->fetchAll(PDO::FETCH_ASSOC) ?: [];
+      while ($row = $iq->fetch(PDO::FETCH_ASSOC)) {
+        $items[] = [
+          'id'                   => (int)($row['id'] ?? 0),
+          'product_id'           => (int)($row['simple_id'] ?? 0),
+          'simple_id'            => (int)($row['simple_id'] ?? 0),
+          'name'                 => $row['name'] ?? '',
+          'image'                => $row['image'] ?? null,
+          'base_price'           => isset($row['base_price']) ? (float)$row['base_price'] : 0.0,
+          'delta'                => isset($row['delta']) ? (float)$row['delta'] : 0.0,
+          'default'              => !empty($row['is_default']),
+          'customizable'         => !empty($row['allow_customization']),
+          'custom_item_count'    => isset($row['custom_item_count']) ? (int)$row['custom_item_count'] : 0,
+          'simple_allow_customize' => !empty($row['simple_allow_customize']),
+        ];
+      }
+      $g['items'] = $items;
     }
     unset($g);
 
@@ -329,8 +388,8 @@ class Product
           VALUES (?,?,?,?,?,?,NOW())
         ");
         $insI = $pdo->prepare("
-          INSERT INTO combo_group_items (group_id, simple_product_id, delta_price, is_default, sort, created_at)
-          VALUES (?,?,?,?,?,NOW())
+          INSERT INTO combo_group_items (group_id, simple_product_id, delta_price, is_default, allow_customization, sort, created_at)
+          VALUES (?,?,?,?,?,?,NOW())
         ");
 
         $gSort = 0;
@@ -352,7 +411,8 @@ class Product
             if ($spId <= 0) continue;
             $delta  = (float)($it['delta'] ?? 0);
             $isDef  = !empty($it['default']) ? 1 : 0;
-            $insI->execute([$groupId, $spId, $delta, $isDef, $iSort++]);
+            $allowCust = !empty($it['customizable']) ? 1 : 0;
+            $insI->execute([$groupId, $spId, $delta, $isDef, $allowCust, $iSort++]);
           }
         }
       }
