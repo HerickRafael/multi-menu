@@ -17,9 +17,7 @@ $hasCustomization = isset($hasCustomization) ? (bool)$hasCustomization : (!empty
 $slug     = (string)($company['slug'] ?? '');
 $pId      = (int)($product['id'] ?? 0);
 $homeUrl  = base_url($slug !== '' ? $slug : '');
-
-/** É combo? */
-$isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
+$priceMode = $product['price_mode'] ?? 'fixed';
 
 /** URLs */
 $customizeBase = base_url($slug . '/produto/' . $pId . '/customizar');
@@ -37,44 +35,97 @@ if (!function_exists('local_upload_src')) {
   }
 }
 
-/** ===== DEMO: combo visual de teste quando não há grupos =====
- *  Ativa automaticamente se $comboGroups vier vazio
- *  ou manualmente com ?demo=1
- */
-$isDemoCombo = false;
-if (empty($comboGroups) || isset($_GET['demo'])) {
-  $isCombo     = true;
-  $isDemoCombo = true;
+/** Normaliza grupos de combo vindos do backend */
+$comboGroupsRaw = is_array($comboGroups) ? $comboGroups : [];
+$comboGroups    = [];
+foreach ($comboGroupsRaw as $gIndex => $group) {
+  if (!is_array($group)) {
+    continue;
+  }
 
-  // usa a mesma imagem do produto como thumb dos itens de teste
-  $demoImg = local_upload_src($product['image'] ?? null);
+  $itemsRaw = $group['items'] ?? [];
+  if (!is_array($itemsRaw) || !$itemsRaw) {
+    continue;
+  }
 
-  $comboGroups = [
-    [
-      'name'  => 'Escolha o produto',
-      'items' => [
-        ['id'=>9001,'name'=>'Tasty Turbo (Teste)','image'=>$demoImg,'delta'=>0.00,'default'=>1],
-        ['id'=>9002,'name'=>'Tasty Turbo Duplo (Teste)','image'=>$demoImg,'delta'=>6.50,'default'=>0],
-      ],
-    ],
-    [
-      'name'  => 'Escolha o acompanhamento',
-      'items' => [
-        ['id'=>9011,'name'=>'McFritas Média','image'=>$demoImg,'delta'=>4.45,'default'=>1],
-        ['id'=>9012,'name'=>'McFritas Grande','image'=>$demoImg,'delta'=>7.45,'default'=>0],
-        ['id'=>9013,'name'=>'McFritas Cheddar e Bacon','image'=>$demoImg,'delta'=>8.45,'default'=>0],
-      ],
-    ],
-    [
-      'name'  => 'Escolha a bebida',
-      'items' => [
-        ['id'=>9021,'name'=>'Coca-Cola 500ml','image'=>$demoImg,'delta'=>16.90,'default'=>1],
-        ['id'=>9022,'name'=>'Coca-Cola Zero 500ml','image'=>$demoImg,'delta'=>16.90,'default'=>0],
-        ['id'=>9023,'name'=>'Fanta Guaraná 500ml','image'=>$demoImg,'delta'=>16.90,'default'=>0],
-      ],
-    ],
+  $items = [];
+  foreach ($itemsRaw as $item) {
+    if (!is_array($item)) {
+      continue;
+    }
+
+    $simpleId = isset($item['simple_id'])
+      ? (int)$item['simple_id']
+      : (int)($item['simple_product_id'] ?? $item['product_id'] ?? 0);
+    if ($simpleId <= 0) {
+      continue;
+    }
+
+    $comboItemId = isset($item['id']) ? (int)$item['id'] : $simpleId;
+    $basePrice   = null;
+    if (isset($item['base_price'])) {
+      $basePrice = (float)$item['base_price'];
+    } elseif (isset($item['price'])) {
+      $basePrice = (float)$item['price'];
+    }
+
+    $delta = 0.0;
+    if (isset($item['delta'])) {
+      $delta = (float)$item['delta'];
+    } elseif (isset($item['delta_price'])) {
+      $delta = (float)$item['delta_price'];
+    }
+
+    $isDefault      = !empty($item['default']) || !empty($item['is_default']);
+    $allowCustomize = !empty($item['customizable']) || !empty($item['allow_customize']);
+
+    $items[] = [
+      'id'           => $comboItemId,
+      'simple_id'    => $simpleId,
+      'name'         => (string)($item['name'] ?? ''),
+      'image'        => $item['image'] ?? null,
+      'base_price'   => $basePrice,
+      'delta'        => $delta,
+      'default'      => $isDefault,
+      'customizable' => $allowCustomize,
+    ];
+  }
+
+  if (!$items) {
+    continue;
+  }
+
+  $hasDefault = false;
+  foreach ($items as $opt) {
+    if (!empty($opt['default'])) {
+      $hasDefault = true;
+      break;
+    }
+  }
+  if (!$hasDefault) {
+    $items[0]['default'] = true;
+  }
+
+  $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
+  $maxQty = isset($group['max']) ? (int)$group['max'] : (int)($group['max_qty'] ?? 1);
+  $type   = isset($group['type']) && $group['type'] !== '' ? (string)$group['type'] : 'single';
+  $name   = trim((string)($group['name'] ?? ''));
+  if ($name === '') {
+    $name = 'Grupo ' . ((int)$gIndex + 1);
+  }
+
+  $comboGroups[] = [
+    'id'        => isset($group['id']) ? (int)$group['id'] : null,
+    'name'      => $name,
+    'type'      => $type,
+    'min'       => $minQty,
+    'max'       => $maxQty,
+    'items'     => array_values($items),
   ];
 }
+
+/** É combo? */
+$isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -258,20 +309,38 @@ if (empty($comboGroups) || isset($_GET['demo'])) {
   <?php if ($isCombo): ?>
   <section class="combo" aria-label="Montar combo">
     <?php foreach ($comboGroups as $gi => $group): ?>
-      <?php $gname = (string)($group['name'] ?? ('Etapa '.($gi+1))); $items = $group['items'] ?? []; ?>
+      <?php
+        $gname = (string)($group['name'] ?? ('Etapa '.($gi+1)));
+        $items = $group['items'] ?? [];
+        $gType = $group['type'] ?? 'single';
+        $gMin  = isset($group['min']) ? (int)$group['min'] : 0;
+        $gMax  = isset($group['max']) ? (int)$group['max'] : 1;
+      ?>
       <div class="group">
-        <h2>
-          <?= e($gname) ?>
-          <?php if (!empty($isDemoCombo)): ?>
-            <small style="font-size:12px;color:#6b7280;border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;margin-left:8px;">DEMO</small>
-          <?php endif; ?>
-        </h2>
-        <div class="choice-row" data-group-index="<?= (int)$gi ?>">
+        <h2><?= e($gname) ?></h2>
+        <div class="choice-row"
+             data-group-index="<?= (int)$gi ?>"
+             data-group-type="<?= e($gType) ?>"
+             data-min="<?= $gMin ?>"
+             data-max="<?= $gMax ?>">
           <?php foreach ($items as $ii => $opt): ?>
             <?php
               $isDefault = !empty($opt['default']);
-              $optPrice = (isset($opt['delta']) ? (float)$opt['delta'] : 0.0);
-              $priceLabel = $optPrice != 0.0 ? price_br($optPrice) : 'Incluído';
+              $optDelta  = isset($opt['delta']) ? (float)$opt['delta'] : 0.0;
+              $basePrice = isset($opt['base_price']) && $opt['base_price'] !== null ? (float)$opt['base_price'] : null;
+
+              if ($priceMode === 'sum') {
+                $sum = ($basePrice ?? 0) + $optDelta;
+                $priceLabel = price_br($sum);
+              } else {
+                if ($optDelta > 0) {
+                  $priceLabel = '+ ' . price_br($optDelta);
+                } elseif ($optDelta < 0) {
+                  $priceLabel = '− ' . price_br(abs($optDelta));
+                } else {
+                  $priceLabel = 'Incluído';
+                }
+              }
 
               $comboImg = local_upload_src($opt['image'] ?? null);
               $simpleId = (int)($opt['simple_id'] ?? 0);
@@ -282,6 +351,8 @@ if (empty($comboGroups) || isset($_GET['demo'])) {
                  data-group="<?= (int)$gi ?>"
                  data-id="<?= (int)($opt['id'] ?? 0) ?>"
                  data-simple="<?= $simpleId ?>"
+                 data-delta="<?= e(number_format($optDelta, 2, '.', '')) ?>"
+                 <?php if ($basePrice !== null): ?>data-base-price="<?= e(number_format($basePrice, 2, '.', '')) ?>"<?php endif; ?>
                  data-customizable="<?= $canCustomizeChoice ? '1' : '0' ?>"
                  <?php if ($choiceCustomUrl): ?>data-custom-url="<?= e($choiceCustomUrl) ?>"<?php endif; ?>>
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
@@ -311,8 +382,15 @@ if (empty($comboGroups) || isset($_GET['demo'])) {
       <?php foreach ($comboGroups as $gi => $group): ?>
         <?php
           $selId = null;
-          foreach (($group['items'] ?? []) as $opt) { if (!empty($opt['default'])) { $selId = (int)$opt['id']; break; } }
-          if ($selId === null && !empty($group['items'][0]['id'])) $selId = (int)$group['items'][0]['id'];
+          foreach (($group['items'] ?? []) as $opt) {
+            if (!empty($opt['default'])) {
+              $selId = isset($opt['id']) ? (int)$opt['id'] : null;
+              break;
+            }
+          }
+          if ($selId === null && isset($group['items'][0]['id'])) {
+            $selId = (int)$group['items'][0]['id'];
+          }
         ?>
         <input type="hidden" name="combo[<?= (int)$gi ?>]" id="combo_field_<?= (int)$gi ?>" value="<?= $selId !== null ? (int)$selId : '' ?>">
       <?php endforeach; ?>
