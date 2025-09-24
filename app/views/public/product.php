@@ -65,25 +65,24 @@ if (!function_exists('local_upload_src')) {
   /* ===== HERO ===== */
   .hero-wrap{
     position: relative;
-    height: var(--hero-h); /* área visível do topo */
-    overflow: hidden;      /* o excedente da imagem fica “por trás” */
+    height: var(--hero-h);
+    overflow: hidden;
   }
   .nav-btn{
     position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
     background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer
   }
-  .hero{ /* fundo/gradiente por trás da imagem */
+  .hero{
     position:absolute;inset:0;
     background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);
     z-index:0;
   }
-  /* Imagem: largura total, centralizada (X e Y) e recortada pelos limites do hero */
   .hero-product{
     position:absolute;
     left:50%; top:50%;
-    transform: translate(-50%, -50%); /* centraliza nos dois eixos */
+    transform: translate(-50%, -50%);
     width:100%;
-    height:auto;         /* mantém proporção */
+    height:auto;
     max-height:none;
     display:block;
     z-index:1;
@@ -95,10 +94,10 @@ if (!function_exists('local_upload_src')) {
   /* ===== CARD ===== */
   .card{
     position: relative;
-    z-index: 4;                   /* garante ficar sobre o hero */
+    z-index: 4;
     background:var(--card);
     border-radius:26px 26px 0 0;
-    margin-top:-18px;             /* sobrepõe um pouco a imagem, estilo “app delivery” */
+    margin-top:-18px;
     padding:16px 16px 8px;
     box-shadow:0 -1px 0 var(--border);
     display:flex;flex-direction:column;gap:16px
@@ -145,7 +144,12 @@ if (!function_exists('local_upload_src')) {
   .choice.sel .mark{display:grid}
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
-  .choice-badge{margin-top:6px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#047857;background:#d1fae5}
+  .choice-customize{
+    display:none;margin-top:10px;padding:10px 14px;border-radius:14px;background:#eef2ff;color:#3730a3;
+    font-weight:600;font-size:13px;border:none;cursor:pointer;transition:background .18s ease
+  }
+  .choice-customize:active{background:#e0e7ff}
+  .choice.sel .choice-customize{display:block}
 
   /* ===== FOOTER/CTA ===== */
   .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
@@ -273,23 +277,47 @@ if (!function_exists('local_upload_src')) {
           <?php foreach ($items as $ii => $opt): ?>
             <?php
               $isDefault = !empty($opt['default']);
+
+              // Preço/label do item do combo
               $optPrice = (isset($opt['delta']) ? (float)$opt['delta'] : 0.0);
               $priceLabel = $optPrice != 0.0 ? price_br($optPrice) : 'Incluído';
 
-              // Força imagem do item do combo vir de /uploads
+              // Normalização dos campos de customização vindos do backend
+              $customMarked  = !empty($opt['customizable']); // marcado no grupo
+              $ingCount      = (int)($opt['custom_item_count'] ?? $opt['ingredient_count'] ?? 0);
+              $canCustomizeS = !empty($opt['can_customize']) || $ingCount >= 3;
+
+              // É personalizável?
+              $customizable = $customMarked && $canCustomizeS;
+
+              // ID do produto simples de referência
+              $simpleId = (int)($opt['product_id'] ?? $opt['simple_id'] ?? $opt['id'] ?? 0);
+
+              // URL de customização (com trilha do combo)
+              $customUrl = null;
+              if ($customizable && $simpleId > 0) {
+                $query = http_build_query([
+                  'combo_parent' => $pId,
+                  'group'        => (int)$gi,
+                  'component'    => $simpleId,
+                ]);
+                $customUrl = base_url($slug . '/produto/' . $simpleId . '/customizar' . ($query ? ('?' . $query) : ''));
+              }
+
+              // Imagem do item do combo sempre de /uploads
               $comboImg = local_upload_src($opt['image'] ?? null);
             ?>
-            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>" data-simple="<?= (int)($opt['simple_id'] ?? 0) ?>" data-customizable="<?= !empty($opt['customizable']) ? '1' : '0' ?>">
+            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= $simpleId ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
-               <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
+                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
               </button>
               <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
               <div class="choice-price"><?= e($priceLabel) ?></div>
-              <?php if (!empty($opt['customizable'])): ?>
-                <div class="choice-badge">Personalizável</div>
+              <?php if ($customUrl): ?>
+                <button type="button" class="choice-customize" data-url="<?= e($customUrl) ?>">Personalizar</button>
               <?php endif; ?>
             </div>
           <?php endforeach; ?>
@@ -307,8 +335,10 @@ if (!function_exists('local_upload_src')) {
       <?php foreach ($comboGroups as $gi => $group): ?>
         <?php
           $selId = null;
-          foreach (($group['items'] ?? []) as $opt) { if (!empty($opt['default'])) { $selId = (int)$opt['id']; break; } }
-          if ($selId === null && !empty($group['items'][0]['id'])) $selId = (int)$group['items'][0]['id'];
+          foreach (($group['items'] ?? []) as $opt) { if (!empty($opt['default'])) { $selId = (int)($opt['product_id'] ?? $opt['simple_id'] ?? $opt['id'] ?? 0); break; } }
+          if ($selId === null && !empty($group['items'][0])) {
+            $selId = (int)($group['items'][0]['product_id'] ?? $group['items'][0]['simple_id'] ?? $group['items'][0]['id'] ?? 0);
+          }
         ?>
         <input type="hidden" name="combo[<?= (int)$gi ?>]" id="combo_field_<?= (int)$gi ?>" value="<?= $selId !== null ? (int)$selId : '' ?>">
       <?php endforeach; ?>
@@ -331,7 +361,7 @@ if (!function_exists('local_upload_src')) {
   plus?.addEventListener('click', ()=> setQty(parseInt(qval?.textContent||'1',10)+1));
   function attach(e){ setQty(parseInt(qval?.textContent||'1',10)||1); return true; }
 
-  // Botão Personalizar: acrescenta qty atual na URL (opcional)
+  // Botão Personalizar da página: acrescenta qty atual na URL
   const btnCust = document.getElementById('btn-customize');
   btnCust?.addEventListener('click', (ev)=>{
     const base = btnCust.getAttribute('href') || '<?= e($customizeBase) ?>';
@@ -357,6 +387,18 @@ if (!function_exists('local_upload_src')) {
         ring.setAttribute('aria-pressed','true');
         if (hidden) hidden.value = item.dataset.id || '';
       });
+    });
+  });
+
+  // Botões "Personalizar" dos itens do combo
+  document.querySelectorAll('.choice-customize').forEach(btn=>{
+    btn.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      ev.preventDefault();
+      const url = btn.dataset.url;
+      if (url) {
+        window.location.href = url;
+      }
     });
   });
 </script>
