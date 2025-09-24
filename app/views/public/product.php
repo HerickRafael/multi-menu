@@ -8,15 +8,15 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 if (!function_exists('price_br')) { function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); } }
 
 /** Variáveis básicas */
-$company = $company ?? [];
-$product = $product ?? [];
-$comboGroups = $comboGroups ?? null;
-$mods = $mods ?? [];
+$company      = $company      ?? [];
+$product      = $product      ?? [];
+$comboGroups  = $comboGroups  ?? null;
+$mods         = $mods         ?? [];
 $hasCustomization = isset($hasCustomization) ? (bool)$hasCustomization : (!empty($mods));
 
-$slug  = (string)($company['slug'] ?? '');
-$pId   = (int)($product['id'] ?? 0);
-$homeUrl = base_url($slug !== '' ? $slug : '');
+$slug     = (string)($company['slug'] ?? '');
+$pId      = (int)($product['id'] ?? 0);
+$homeUrl  = base_url($slug !== '' ? $slug : '');
 
 /** É combo? */
 $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($comboGroups));
@@ -29,17 +29,51 @@ $addToCartUrl  = base_url($slug . '/orders/add');
 if (!function_exists('local_upload_src')) {
   function local_upload_src(?string $maybeUrlOrName, string $fallback = 'assets/logo-placeholder.png'): string {
     $raw = trim((string)($maybeUrlOrName ?? ''));
-    if ($raw === '') {
-      return base_url($fallback);
-    }
-    // extrai apenas o caminho/arquivo (ignora domínio e querystring)
+    if ($raw === '') return base_url($fallback);
     $path = parse_url($raw, PHP_URL_PATH);
     $base = basename($path ?: $raw);
-    if ($base === '' || $base === '/' ) {
-      return base_url($fallback);
-    }
+    if ($base === '' || $base === '/') return base_url($fallback);
     return base_url('uploads/' . $base);
   }
+}
+
+/** ===== DEMO: combo visual de teste quando não há grupos =====
+ *  Ativa automaticamente se $comboGroups vier vazio
+ *  ou manualmente com ?demo=1
+ */
+$isDemoCombo = false;
+if (empty($comboGroups) || isset($_GET['demo'])) {
+  $isCombo     = true;
+  $isDemoCombo = true;
+
+  // usa a mesma imagem do produto como thumb dos itens de teste
+  $demoImg = local_upload_src($product['image'] ?? null);
+
+  $comboGroups = [
+    [
+      'name'  => 'Escolha o produto',
+      'items' => [
+        ['id'=>9001,'name'=>'Tasty Turbo (Teste)','image'=>$demoImg,'delta'=>0.00,'default'=>1],
+        ['id'=>9002,'name'=>'Tasty Turbo Duplo (Teste)','image'=>$demoImg,'delta'=>6.50,'default'=>0],
+      ],
+    ],
+    [
+      'name'  => 'Escolha o acompanhamento',
+      'items' => [
+        ['id'=>9011,'name'=>'McFritas Média','image'=>$demoImg,'delta'=>4.45,'default'=>1],
+        ['id'=>9012,'name'=>'McFritas Grande','image'=>$demoImg,'delta'=>7.45,'default'=>0],
+        ['id'=>9013,'name'=>'McFritas Cheddar e Bacon','image'=>$demoImg,'delta'=>8.45,'default'=>0],
+      ],
+    ],
+    [
+      'name'  => 'Escolha a bebida',
+      'items' => [
+        ['id'=>9021,'name'=>'Coca-Cola 500ml','image'=>$demoImg,'delta'=>16.90,'default'=>1],
+        ['id'=>9022,'name'=>'Coca-Cola Zero 500ml','image'=>$demoImg,'delta'=>16.90,'default'=>0],
+        ['id'=>9023,'name'=>'Fanta Guaraná 500ml','image'=>$demoImg,'delta'=>16.90,'default'=>0],
+      ],
+    ],
+  ];
 }
 ?>
 <!doctype html>
@@ -55,7 +89,7 @@ if (!function_exists('local_upload_src')) {
     --bg:#f3f4f6; --card:#fff; --txt:#0f172a; --muted:#6b7280;
     --border:#e5e7eb; --accent:#ef4444; --ring:#fbbf24;
     --cta:#f59e0b; --cta-press:#d97706;
-    --hero-h: 360px; /* altura do hero (ajuste se quiser mais/menos corte) */
+    --hero-h: 360px;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -63,46 +97,13 @@ if (!function_exists('local_upload_src')) {
   @media (min-width:768px){ .app{max-width:375px} }
 
   /* ===== HERO ===== */
-  .hero-wrap{
-    position: relative;
-    height: var(--hero-h); /* área visível do topo */
-    overflow: hidden;      /* o excedente da imagem fica “por trás” */
-  }
-  .nav-btn{
-    position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);
-    background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer
-  }
-  .hero{ /* fundo/gradiente por trás da imagem */
-    position:absolute;inset:0;
-    background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);
-    z-index:0;
-  }
-  /* Imagem: largura total, centralizada (X e Y) e recortada pelos limites do hero */
-  .hero-product{
-    position:absolute;
-    left:50%; top:50%;
-    transform: translate(-50%, -50%); /* centraliza nos dois eixos */
-    width:100%;
-    height:auto;         /* mantém proporção */
-    max-height:none;
-    display:block;
-    z-index:1;
-    filter: drop-shadow(0 18px 34px rgba(0,0,0,.25));
-    pointer-events:none;
-    user-select:none;
-  }
+  .hero-wrap{position:relative;height:var(--hero-h);overflow:hidden}
+  .nav-btn{position:absolute;top:12px;left:12px;z-index:3;width:36px;height:36px;border-radius:999px;border:1px solid var(--border);background:var(--card);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer}
+  .hero{position:absolute;inset:0;background:radial-gradient(140% 90% at 75% 20%, #fff 0%, #eef2f5 55%, #e7ebee 100%);z-index:0;}
+  .hero-product{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:100%;height:auto;display:block;z-index:1;filter:drop-shadow(0 18px 34px rgba(0,0,0,.25));pointer-events:none;user-select:none}
 
   /* ===== CARD ===== */
-  .card{
-    position: relative;
-    z-index: 4;                   /* garante ficar sobre o hero */
-    background:var(--card);
-    border-radius:26px 26px 0 0;
-    margin-top:-18px;             /* sobrepõe um pouco a imagem, estilo “app delivery” */
-    padding:16px 16px 8px;
-    box-shadow:0 -1px 0 var(--border);
-    display:flex;flex-direction:column;gap:16px
-  }
+  .card{position:relative;z-index:4;background:var(--card);border-radius:26px 26px 0 0;margin-top:-18px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px}
   .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:13px}
   h1{margin:2px 0 0;font-size:20px;line-height:1.25;font-weight:700}
   .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
@@ -112,20 +113,17 @@ if (!function_exists('local_upload_src')) {
   .price-current-row{display:flex;align-items:baseline;gap:10px}
   .price-current{font-size:24px;font-weight:800}
   .price-discount{font-size:16px;font-weight:700;color:#059669}
-
   .stepper{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:999px;padding:6px 10px;min-width:104px;justify-content:space-between}
   .st-btn{width:32px;height:32px;border-radius:999px;background:#fff;border:none;display:grid;place-items:center;cursor:pointer}
   .st-btn svg{width:18px;height:18px}
   .st-val{min-width:20px;text-align:center;font-weight:700}
-
   .section h3{margin:8px 0 6px;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
   .body{font-size:14px;color:#374151;line-height:1.5}
 
   /* ===== PERSONALIZAR ===== */
   .customize-wrap{background:var(--card)}
   .customize{padding:24px 16px}
-  .btn-outline{width:100%;background:#fff;color:#111;border:1px solid #d8d8d8;border-radius:12px;padding:18px;font-size:18px;font-weight:500;
-    display:flex;align-items:center;justify-content:space-between;text-decoration:none}
+  .btn-outline{width:100%;background:#fff;color:#111;border:1px solid #d8d8d8;border-radius:12px;padding:18px;font-size:18px;font-weight:500;display:flex;align-items:center;justify-content:space-between;text-decoration:none}
   .btn-outline:active{background:#f9f9f9}
   .btn-outline .chev{display:grid;place-items:center}
   .btn-outline .chev svg{width:22px;height:22px}
@@ -160,12 +158,7 @@ if (!function_exists('local_upload_src')) {
   <div class="hero-wrap">
     <a class="nav-btn" href="<?= e($homeUrl) ?>" aria-label="Voltar">
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-        <path d="M15 19l-7-7 7-7"
-              stroke="#111827"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              transform="scale(0.7) translate(5 5)"></path>
+        <path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="scale(0.7) translate(5 5)"></path>
       </svg>
     </a>
 
@@ -191,7 +184,7 @@ if (!function_exists('local_upload_src')) {
           $price = (float)($product['price'] ?? 0);
           $rawPromo = $product['promo_price'] ?? null;
 
-          // Parse robusto de preço promocional (suporta "1.234,56" e "1234.56")
+          // Parse robusto de preço promocional
           $promo = null;
           if ($rawPromo !== null && $rawPromo !== '') {
             $promoStr = is_array($rawPromo) ? reset($rawPromo) : $rawPromo;
@@ -202,9 +195,7 @@ if (!function_exists('local_upload_src')) {
                 $promoStr = str_replace('.', '', $promoStr);
               }
               $promoStr = str_replace(',', '.', $promoStr);
-              if (is_numeric($promoStr)) {
-                $promo = (float)$promoStr;
-              }
+              if (is_numeric($promoStr)) $promo = (float)$promoStr;
             }
           }
 
@@ -245,7 +236,7 @@ if (!function_exists('local_upload_src')) {
 
   </main>
 
-  <!-- Botão PERSONALIZAR: visível se houver personalização disponível -->
+  <!-- Botão PERSONALIZAR -->
   <?php if ($hasCustomization): ?>
   <div class="customize-wrap">
     <div class="customize">
@@ -269,7 +260,12 @@ if (!function_exists('local_upload_src')) {
     <?php foreach ($comboGroups as $gi => $group): ?>
       <?php $gname = (string)($group['name'] ?? ('Etapa '.($gi+1))); $items = $group['items'] ?? []; ?>
       <div class="group">
-        <h2><?= e($gname) ?></h2>
+        <h2>
+          <?= e($gname) ?>
+          <?php if (!empty($isDemoCombo)): ?>
+            <small style="font-size:12px;color:#6b7280;border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;margin-left:8px;">DEMO</small>
+          <?php endif; ?>
+        </h2>
         <div class="choice-row" data-group-index="<?= (int)$gi ?>">
           <?php foreach ($items as $ii => $opt): ?>
             <?php
@@ -277,7 +273,6 @@ if (!function_exists('local_upload_src')) {
               $optPrice = (isset($opt['delta']) ? (float)$opt['delta'] : 0.0);
               $priceLabel = $optPrice != 0.0 ? price_br($optPrice) : 'Incluído';
 
-              // Força imagem do item do combo vir de /uploads
               $comboImg = local_upload_src($opt['image'] ?? null);
               $simpleId = (int)($opt['simple_id'] ?? 0);
               $canCustomizeChoice = !empty($opt['customizable']) && $simpleId > 0;
@@ -290,7 +285,7 @@ if (!function_exists('local_upload_src')) {
                  data-customizable="<?= $canCustomizeChoice ? '1' : '0' ?>"
                  <?php if ($choiceCustomUrl): ?>data-custom-url="<?= e($choiceCustomUrl) ?>"<?php endif; ?>>
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
-               <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
+                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </span>
