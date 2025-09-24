@@ -209,9 +209,10 @@ class AdminProductController extends Controller {
 
     if (!$p) { echo "Produto não encontrado."; exit; }
 
+    $customGroups = ProductCustomization::loadForAdmin((int)$p['id']);
     $customization = [
-      'enabled' => !empty($p['allow_customize']),
-      'groups'  => ProductCustomization::loadForAdmin((int)$p['id']),
+      'enabled' => !empty($p['allow_customize']) || !empty($customGroups),
+      'groups'  => $customGroups,
     ];
     $ingredients = Ingredient::allForCompany((int)$company['id']);
     $simpleProducts = Product::simpleProductsForCompany((int)$company['id']);

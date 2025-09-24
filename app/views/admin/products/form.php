@@ -20,8 +20,8 @@ foreach ($simpleProducts as $spMeta) {
 
 // Personalização
 $customization  = $customization  ?? [];           // ['enabled'=>bool, 'groups'=>[...]]
-$custEnabled    = !empty($customization['enabled']);
 $custGroups     = $customization['groups'] ?? [];
+$custEnabled    = !empty($customization['enabled']) || !empty($custGroups);
 
 // Título / Ação
 $title   = "Produto - " . ($company['name'] ?? '');
@@ -329,7 +329,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
           <?php if (!empty($gItems)): foreach ($gItems as $ii => $it):
             $ii    = (int)$ii;
-            $selId = (int)($it['product_id'] ?? 0);
+            $selId = (int)($it['product_id'] ?? $it['simple_id'] ?? $it['simple_product_id'] ?? 0);
             $isDef = !empty($it['is_default'] ?? $it['default']);
           ?>
           <?php
@@ -380,7 +380,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             <div class="flex justify-end">
               <button type="button" class="remove-item shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover item">✕</button>
             </div>
-            <input type="hidden" name="groups[<?= $gi ?>][items][<?= $ii ?>][delta]" value="0">
+            <input type="hidden" name="groups[<?= $gi ?>][items][<?= $ii ?>][delta]" value="<?= e($it['delta'] ?? $it['delta_price'] ?? 0) ?>">
           </div>
           <?php endforeach; else: ?>
           <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_minmax(0,180px)_40px] md:items-center" data-item-index="0">
