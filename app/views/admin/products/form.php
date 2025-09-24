@@ -256,7 +256,11 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     #groups-container .group-card.dragging{opacity:.85;transform:scale(.985);box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
     .combo-drag-ghost{box-sizing:border-box;border-radius:.75rem;box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
 
-    .combo-customizable-btn{display:inline-flex;align-items:center;gap:.4rem;border:1px solid #cbd5f5;border-radius:.75rem;padding:.45rem .75rem;font-size:.875rem;background:#fff;color:#475569;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+    .combo-customizable-btn{
+      display:inline-flex;align-items:center;gap:.4rem;border:1px solid #cbd5f5;border-radius:.75rem;
+      padding:.45rem .75rem;font-size:.875rem;background:#fff;color:#475569;
+      transition:background-color .15s ease,border-color .15s ease,color .15s ease
+    }
     .combo-customizable-btn:hover{background:#f8fafc}
     .combo-customizable-btn.is-active{border-color:#6366f1;background:#eef2ff;color:#3730a3}
     .combo-customizable-btn.hidden{display:none!important}
@@ -957,13 +961,14 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     }
     function updateGroupFooter(groupEl){
       let sum=0;
-      groupEl.querySelectorAll('.item-row').forEach(r=>{
-        const def=r.querySelector('input[type=checkbox][name*="[default]"]');
-        if(def?.checked) sum+=updateItemPrice(r);
+      groupEl?.querySelectorAll('.item-row').forEach(r=>{
+        const defChk=r.querySelector('input[type=checkbox][name*="[default]"]');
+        if(defChk?.checked) sum+=updateItemPrice(r);
       });
-      const footer=groupEl.querySelector('.group-base-price');
+      const footer=groupEl?.querySelector('.group-base-price');
       if(footer) footer.textContent=`Preço base: ${formatMoney(sum)}`;
     }
+
     function updateCustomizableControls(row){
       const sel=row.querySelector('.product-select');
       const btn=row.querySelector('.combo-customizable-btn');
@@ -998,11 +1003,14 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         btn.dataset.active='0';
       }
     }
+
     function wireItemRow(row){
+      if(!row) return;
       const sel=row.querySelector('.product-select');
       const def=row.querySelector('input[type=checkbox][name*="[default]"]');
       const btn=row.querySelector('.combo-customizable-btn');
       const flag=row.querySelector('.combo-customizable-flag');
+
       if(sel){
         sel.addEventListener('change',()=>{
           updateItemPrice(row);
@@ -1030,6 +1038,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       }
       updateCustomizableControls(row);
     }
+
     document.querySelectorAll('.group-card').forEach(g=>{ g.querySelectorAll('.item-row').forEach(wireItemRow); updateGroupFooter(g); });
 
     let gIndex=gContainer?Array.from(gContainer.children).length:0;

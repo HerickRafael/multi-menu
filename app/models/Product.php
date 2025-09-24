@@ -115,7 +115,7 @@ class Product
     $sql = "SELECT p.id,
                    p.name,
                    p.price,
-                   p.promo_price,
+                   p.image,
                    p.allow_customize,
                    COALESCE(c.ingredient_count,0) AS ingredient_count
               FROM products p
@@ -128,12 +128,14 @@ class Product
              WHERE p.company_id = :cid
                AND p.type = 'simple'
                AND p.active = 1";
-    if ($excludeId) $sql .= " AND p.id <> :exclude";
+    if ($excludeId !== null) {
+      $sql .= " AND p.id <> :exclude";
+    }
     $sql .= " ORDER BY p.name";
 
     $st = db()->prepare($sql);
     $st->bindValue(':cid', $companyId, PDO::PARAM_INT);
-    if ($excludeId) $st->bindValue(':exclude', $excludeId, PDO::PARAM_INT);
+    if ($excludeId !== null) $st->bindValue(':exclude', $excludeId, PDO::PARAM_INT);
     $st->execute();
 
     return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -314,7 +316,7 @@ class Product
    *   [
    *     'id','name','type','min','max','sort',
    *     'items' => [
-   *        ['simple_id','name','image','base_price','delta','is_default','is_customizable', ...]
+   *        ['simple_id','name','image','base_price','delta','default','customizable', ...]
    *     ]
    *   ], ...
    * ]
@@ -341,9 +343,9 @@ class Product
       SELECT gi.id,
              gi.group_id,
              gi.simple_product_id AS simple_id,
-             COALESCE(gi.delta_price,0)   AS delta,
-             COALESCE(gi.is_default,0)    AS is_default,
-             COALESCE(gi.is_customizable,0) AS is_customizable,
+             COALESCE(gi.delta_price,0)      AS delta,
+             COALESCE(gi.is_default,0)       AS is_default,
+             COALESCE(gi.is_customizable,0)  AS is_customizable,
              sp.name,
              sp.image,
              sp.price AS base_price,
@@ -364,13 +366,15 @@ class Product
     foreach ($groups as &$g) {
       $iq->execute([$g['id']]);
       $items = $iq->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
       foreach ($items as &$item) {
         $item['default']      = !empty($item['is_default']) ? 1 : 0;
         $item['customizable'] = !empty($item['is_customizable']) ? 1 : 0;
-        // id do simples para o form:
-        $item['id'] = isset($item['simple_id']) ? (int)$item['simple_id'] : (int)($item['id'] ?? 0);
+        // manter chave id para o simples no form:
+        $item['id']           = isset($item['simple_id']) ? (int)$item['simple_id'] : (int)($item['id'] ?? 0);
       }
       unset($item);
+
       $g['items'] = $items;
     }
     unset($g);
