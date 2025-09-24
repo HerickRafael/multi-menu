@@ -145,6 +145,8 @@ if (!function_exists('local_upload_src')) {
   .choice.sel .mark{display:grid}
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
+  .choice-customize{display:block;margin-top:6px;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none}
+  .choice-customize.hidden{display:none}
 
   /* ===== FOOTER/CTA ===== */
   .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
@@ -277,8 +279,16 @@ if (!function_exists('local_upload_src')) {
 
               // Força imagem do item do combo vir de /uploads
               $comboImg = local_upload_src($opt['image'] ?? null);
+              $simpleId = (int)($opt['simple_id'] ?? 0);
+              $canCustomizeChoice = !empty($opt['customizable']) && $simpleId > 0;
+              $choiceCustomUrl = $canCustomizeChoice ? base_url($slug . '/produto/' . $simpleId . '/customizar') : null;
             ?>
-            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
+            <div class="choice <?= $isDefault ? 'sel' : '' ?>"
+                 data-group="<?= (int)$gi ?>"
+                 data-id="<?= (int)($opt['id'] ?? 0) ?>"
+                 data-simple="<?= $simpleId ?>"
+                 data-customizable="<?= $canCustomizeChoice ? '1' : '0' ?>"
+                 <?php if ($choiceCustomUrl): ?>data-custom-url="<?= e($choiceCustomUrl) ?>"<?php endif; ?>>
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
@@ -287,6 +297,9 @@ if (!function_exists('local_upload_src')) {
               </button>
               <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
               <div class="choice-price"><?= e($priceLabel) ?></div>
+              <?php if ($canCustomizeChoice): ?>
+                <a class="choice-customize <?= $isDefault ? '' : 'hidden' ?>" data-base-url="<?= e($choiceCustomUrl) ?>" href="<?= e($choiceCustomUrl) ?>">Personalizar</a>
+              <?php endif; ?>
             </div>
           <?php endforeach; ?>
         </div>
@@ -342,6 +355,20 @@ if (!function_exists('local_upload_src')) {
     const gi = row.dataset.groupIndex;
     const hidden = document.getElementById('combo_field_' + gi);
     const items = row.querySelectorAll('.choice');
+    function revealCustomize(target){
+      items.forEach(it=>{
+        const link=it.querySelector('.choice-customize');
+        if(link){
+          link.classList.add('hidden');
+          const base=link.dataset.baseUrl || link.getAttribute('href');
+          if(base) link.setAttribute('href', base);
+        }
+      });
+      if(target){
+        const link=target.querySelector('.choice-customize');
+        if(link){ link.classList.remove('hidden'); }
+      }
+    }
     items.forEach(item=>{
       const ring = item.querySelector('.ring');
       ring?.addEventListener('click', ()=>{
@@ -352,7 +379,21 @@ if (!function_exists('local_upload_src')) {
         item.classList.add('sel');
         ring.setAttribute('aria-pressed','true');
         if (hidden) hidden.value = item.dataset.id || '';
+        revealCustomize(item);
       });
+    });
+    const initial = row.querySelector('.choice.sel');
+    if(initial){ revealCustomize(initial); }
+  });
+
+  document.querySelectorAll('.choice-customize').forEach(link=>{
+    link.addEventListener('click', ()=>{
+      const base=link.dataset.baseUrl || link.getAttribute('href');
+      if(!base) return;
+      const qty=parseInt(qval?.textContent||'1',10)||1;
+      const url=new URL(base, window.location.origin);
+      url.searchParams.set('qty', String(qty));
+      link.setAttribute('href', url.toString());
     });
   });
 </script>
