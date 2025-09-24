@@ -41,6 +41,7 @@ class Product
 
     return $promoVal;
   }
+
   /* ========================
    * LISTAGENS / BÁSICO
    * ======================== */
@@ -265,7 +266,10 @@ class Product
       SELECT id, name, type,
              COALESCE(min_qty,0) AS min,
              COALESCE(max_qty,1) AS max,
-             COALESCE(sort,0)    AS sort
+             COALESCE(sort,0)    AS sort,
+             COALESCE(sort,0)    AS sort_order,
+             COALESCE(min_qty,0) AS min_qty,
+             COALESCE(max_qty,1) AS max_qty
         FROM combo_groups
        WHERE product_id = ?
     ORDER BY sort ASC, id ASC
@@ -282,32 +286,95 @@ class Product
              COALESCE(gi.delta_price,0) AS delta,
              COALESCE(gi.is_default,0)  AS is_default,
              COALESCE(gi.allow_customize,0) AS allow_customize,
+             COALESCE(gi.sort,0) AS sort,
              sp.name,
              sp.image,
-              sp.price AS base_price
+             sp.price AS base_price
         FROM combo_group_items gi
   INNER JOIN products sp ON sp.id = gi.simple_product_id
        WHERE gi.group_id = ?
     ORDER BY gi.sort ASC, gi.id ASC
     ");
 
-    foreach ($groups as &$g) {
-      $iq->execute([$g['id']]);
-      $rows = $iq->fetchAll(PDO::FETCH_ASSOC) ?: [];
-      foreach ($rows as &$row) {
-        $row['default'] = !empty($row['is_default']);
-        $row['customizable'] = !empty($row['allow_customize']);
+    $normalized = [];
 
-        if (!isset($row['product_id'])) {
-          $row['product_id'] = isset($row['simple_id']) ? (int)$row['simple_id'] : null;
-        }
+    foreach ($groups as $g) {
+      $groupId = isset($g['id']) ? (int)$g['id'] : 0;
+      if ($groupId <= 0) {
+        continue;
       }
-      unset($row);
-      $g['items'] = $rows;
-    }
-    unset($g);
 
-    return $groups;
+      $iq->execute([$groupId]);
+      $rows = $iq->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+      // Unificação: construir $items completos e coerentes
+      $items = [];
+      foreach ($rows as $row) {
+        $simpleId = isset($row['simple_id']) ? (int)$row['simple_id'] : (int)($row['simple_product_id'] ?? 0);
+        if ($simpleId <= 0) {
+          continue;
+        }
+
+        $itemId      = isset($row['id']) ? (int)$row['id'] : 0;
+        $delta       = isset($row['delta']) ? (float)$row['delta'] : (float)($row['delta_price'] ?? 0);
+        $base        = isset($row['base_price']) ? (float)$row['base_price'] : null;
+        $isDefault   = !empty($row['is_default']);
+        $allowCus    = !empty($row['allow_customize']);
+        $sortItem    = isset($row['sort']) ? (int)$row['sort'] : 0;
+
+        $items[] = [
+          'id'                => $itemId > 0 ? $itemId : $simpleId,
+          'group_id'          => $groupId,
+          'simple_id'         => $simpleId,
+          'simple_product_id' => $simpleId,
+          'product_id'        => $simpleId,                 // compatibilidade com payload esperado
+          'name'              => (string)($row['name'] ?? ''),
+          'image'             => $row['image'] ?? null,
+          'base_price'        => $base,
+          'price'             => $base,                      // mantém preço base para UI
+          'delta'             => $delta,
+          'delta_price'       => $delta,
+          'is_default'        => $isDefault ? 1 : 0,
+          'default'           => $isDefault ? 1 : 0,         // flag duplicada p/ consumo no front
+          'allow_customize'   => $allowCus ? 1 : 0,
+          'customizable'      => $allowCus ? 1 : 0,          // idem
+          'sort'              => $sortItem,
+          'sort_order'        => $sortItem,
+        ];
+      }
+
+      if (!$items) {
+        continue;
+      }
+
+      $minQty = isset($g['min_qty']) ? (int)$g['min_qty'] : (int)($g['min'] ?? 0);
+      $maxQty = isset($g['max_qty']) ? (int)$g['max_qty'] : (int)($g['max'] ?? 1);
+      $sort   = isset($g['sort']) ? (int)$g['sort'] : (int)($g['sort_order'] ?? 0);
+      $type   = isset($g['type']) && $g['type'] !== '' ? (string)$g['type'] : 'single';
+
+      $normalized[] = [
+        'id'          => $groupId,
+        'name'        => (string)($g['name'] ?? ''),
+        'type'        => $type,
+        'min'         => $minQty,
+        'max'         => $maxQty,
+        'min_qty'     => $minQty,
+        'max_qty'     => $maxQty,
+        'sort'        => $sort,
+        'sort_order'  => $sort,
+        'items'       => array_values($items),
+      ];
+    }
+
+    if (!$normalized) {
+      return [];
+    }
+
+    usort($normalized, static function ($a, $b) {
+      return ($a['sort'] ?? 0) <=> ($b['sort'] ?? 0);
+    });
+
+    return array_values($normalized);
   }
 
   /**
