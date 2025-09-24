@@ -10,20 +10,6 @@ $simpleProducts = $simpleProducts ?? [];           // p/ combos
 $ingredients    = $ingredients    ?? [];
 $errors         = $errors         ?? [];
 
-// Mapa auxiliar de produtos simples (para decidir “customizável” no form)
-$simpleLookup = [];
-foreach ($simpleProducts as $sp) {
-  $sid = isset($sp['id']) ? (int)$sp['id'] : 0;
-  if ($sid <= 0) { continue; }
-  // aceita tanto custom_item_count quanto ingredient_count
-  $count = isset($sp['custom_item_count']) ? (int)$sp['custom_item_count'] : (int)($sp['ingredient_count'] ?? 0);
-  $allow = !empty($sp['allow_customize']); // campo vindo de simpleProductsForCombo
-  $sp['custom_item_count'] = $count;
-  // can_customize verdadeiro se já vier pronto OU se allow_customize && >=3 ingredientes
-  $sp['can_customize'] = !empty($sp['can_customize']) || ($allow && $count >= 3);
-  $simpleLookup[$sid] = $sp;
-}
-
 // Personalização
 $customization  = $customization  ?? [];           // ['enabled'=>bool, 'groups'=>[...]]
 $custEnabled    = !empty($customization['enabled']);
@@ -89,51 +75,54 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     </div>
   </div>
 
-  <!-- CARD: Dados básicos -->
-  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
-    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-        <path d="M5 7h14M5 12h10M5 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-      Dados básicos
-    </legend>
+ <!-- CARD: Dados básicos -->
+<fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+  <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+      <path d="M5 7h14M5 12h10M5 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    Dados básicos
+  </legend>
 
-    <label for="category_id" class="grid gap-1 mb-3">
-      <span class="text-sm text-slate-700">Categoria</span>
-      <select name="category_id" id="category_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400" aria-describedby="help-cat">
-        <option value="">— sem categoria —</option>
-        <?php foreach ($cats as $c): ?>
-          <option value="<?= (int)$c['id'] ?>" <?= (isset($p['category_id']) && (int)$p['category_id'] === (int)$c['id']) ? 'selected' : '' ?>>
-            <?= e($c['name']) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-      <small id="help-cat" class="text-xs text-slate-500">Usado para agrupar o cardápio.</small>
+  <label for="category_id" class="grid gap-1 mb-3">
+    <span class="text-sm text-slate-700">Categoria</span>
+    <select name="category_id" id="category_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400" aria-describedby="help-cat">
+      <option value="">— sem categoria —</option>
+      <?php foreach ($cats as $c): ?>
+        <option value="<?= (int)$c['id'] ?>" <?= (isset($p['category_id']) && (int)$p['category_id'] === (int)$c['id']) ? 'selected' : '' ?>>
+          <?= e($c['name']) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+    <small id="help-cat" class="text-xs text-slate-500">Usado para agrupar o cardápio.</small>
+  </label>
+
+  <div class="grid gap-3 md:grid-cols-2">
+    <label for="name" class="grid gap-1">
+      <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
+      <input required name="name" id="name" value="<?= e($p['name'] ?? '') ?>" autocomplete="off"
+             class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
     </label>
 
-    <div class="grid gap-3 md:grid-cols-2">
-      <label for="name" class="grid gap-1">
-        <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
-        <input required name="name" id="name" value="<?= e($p['name'] ?? '') ?>" autocomplete="off"
-               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
-      </label>
+    <label for="sku" class="grid gap-1">
+      <span class="text-sm text-slate-700">SKU</span>
+      <div class="sku-lock relative">
+        <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
+               readonly
+               class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+<button type="button" 
+        class="sku-lock-btn focus:outline-none focus:ring-0" .>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M8 0a4 4 0 0 1 4 4v2.05a2.5 2.5 0 0 1 2 2.45v5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 13.5v-5a2.5 2.5 0 0 1 2-2.45V4a4 4 0 0 1 4-4m0 1a3 3 0 0 0-3 3v2h6V4a3 3 0 0 0-3-3"/>
+</svg>
+  <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
+</button>
 
-      <label for="sku" class="grid gap-1">
-        <span class="text-sm text-slate-700">SKU</span>
-        <div class="sku-lock relative">
-          <input name="sku" id="sku" value="<?= e($p['sku'] ?? '') ?>" placeholder="Gerado automaticamente" autocomplete="off"
-                 readonly
-                 class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
-          <button type="button" class="sku-lock-btn focus:outline-none focus:ring-0" title="Gerado automaticamente">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
-              <path fill-rule="evenodd" d="M8 0a4 4 0 0 1 4 4v2.05a2.5 2.5 0 0 1 2 2.45v5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 13.5v-5a2.5 2.5 0 0 1 2-2.45V4a4 4 0 0 1 4-4m0 1a3 3 0 0 0-3 3v2h6V4a3 3 0 0 0-3-3"/>
-            </svg>
-            <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
-          </button>
-        </div>
-      </label>
-    </div>
-  </fieldset>
+      </div>
+    </label>
+  </div>
+</fieldset>
+
 
   <!-- CARD: Tipo & Preço -->
   <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
@@ -228,24 +217,48 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       padding:0;
     }
     .sku-lock-btn:hover,
-    .sku-lock-btn:focus{ color:rgba(30,41,59,1); }
-    .sku-lock-btn:focus{ outline:2px solid rgba(99,102,241,.4); outline-offset:2px; }
+    .sku-lock-btn:focus{
+      color:rgba(30,41,59,1);
+    }
+    .sku-lock-btn:focus{
+      outline:2px solid rgba(99,102,241,.4);
+      outline-offset:2px;
+    }
     .sku-lock-tooltip{
-      position:absolute; bottom:-0.5rem; right:2.5rem; transform:translateY(100%);
-      display:none; max-width:16rem; padding:.5rem .75rem; border-radius:.5rem;
-      background-color:rgba(15,23,42,.92); color:white; font-size:.75rem; line-height:1.1;
-      box-shadow:0 10px 30px -15px rgba(15,23,42,.55); text-align:left; pointer-events:none; z-index:30;
+      position:absolute;
+      bottom:-0.5rem;
+      right:2.5rem;
+      transform:translateY(100%);
+      display:none;
+      max-width:16rem;
+      padding:.5rem .75rem;
+      border-radius:.5rem;
+      background-color:rgba(15,23,42,.92);
+      color:white;
+      font-size:.75rem;
+      line-height:1.1;
+      box-shadow:0 10px 30px -15px rgba(15,23,42,.55);
+      text-align:left;
+      pointer-events:none;
+      z-index:30;
     }
     .sku-lock-btn:hover .sku-lock-tooltip,
     .sku-lock-btn:focus-visible .sku-lock-tooltip,
-    .sku-lock-btn:active .sku-lock-tooltip{ display:block; }
-
-    .form-toolbar{ position:sticky; }
-    @media (max-width: 639px){
-      .form-toolbar{ margin:0; border-radius:1rem 1rem 0 0; }
-      .form-toolbar-actions > *{ width:100%; }
+    .sku-lock-btn:active .sku-lock-tooltip{
+      display:block;
     }
-
+    .form-toolbar{
+      position:sticky;
+    }
+    @media (max-width: 639px){
+      .form-toolbar{
+        margin:0;
+        border-radius:1rem 1rem 0 0;
+      }
+      .form-toolbar-actions > *{
+        width:100%;
+      }
+    }
     /* Personalização */
     #cust-groups-container .cust-group{transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}
     #cust-groups-container .cust-group.dragging{opacity:.85;transform:scale(.985);box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
@@ -255,17 +268,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     #groups-container .group-card{transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}
     #groups-container .group-card.dragging{opacity:.85;transform:scale(.985);box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
     .combo-drag-ghost{box-sizing:border-box;border-radius:.75rem;box-shadow:0 18px 35px -20px rgba(15,23,42,.45)}
-
-    .combo-customizable-btn{
-      display:inline-flex;align-items:center;gap:.4rem;border:1px solid #cbd5f5;border-radius:.75rem;
-      padding:.45rem .75rem;font-size:.875rem;background:#fff;color:#475569;
-      transition:background-color .15s ease,border-color .15s ease,color .15s ease
-    }
-    .combo-customizable-btn:hover{background:#f8fafc}
-    .combo-customizable-btn.is-active{border-color:#6366f1;background:#eef2ff;color:#3730a3}
-    .combo-customizable-btn.hidden{display:none!important}
-    .combo-customizable-hint{color:#64748b}
-    .combo-customizable-hint.hidden{display:none!important}
   </style>
 
   <!-- CARD: Grupos (Combo) -->
@@ -318,11 +320,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             $ii    = (int)$ii;
             $selId = (int)($it['product_id'] ?? 0);
             $isDef = !empty($it['is_default'] ?? $it['default']);
-            $customMarked = !empty($it['customizable']);
-            $canCustomize = $selId && !empty($simpleLookup[$selId]['can_customize']);
-            $isCustItem   = ($customMarked && $canCustomize);
           ?>
-          <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_minmax(0,1fr)_40px] md:items-center" data-item-index="<?= $ii ?>">
+          <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_40px] md:items-center" data-item-index="<?= $ii ?>">
             <div>
               <label class="block text-xs text-slate-500">Produto</label>
               <select name="groups[<?= $gi ?>][items][<?= $ii ?>][product_id]"
@@ -330,11 +329,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                       title="Selecione um item da lista." required>
                 <option value="">— Selecione um produto simples —</option>
                 <?php foreach ($simpleProducts as $sp): ?>
-                  <option value="<?= (int)$sp['id'] ?>"
-                          data-price="<?= e((string)($sp['price'] ?? '0')) ?>"
-                          data-allow-customize="<?= !empty($sp['allow_customize']) ? '1' : '0' ?>"
-                          data-ingredients="<?= (int)($sp['ingredient_count'] ?? 0) ?>"
-                          <?= $selId === (int)$sp['id'] ? 'selected' : '' ?>>
+                  <option value="<?= (int)$sp['id'] ?>" data-price="<?= e((string)($sp['price'] ?? '0')) ?>" <?= $selId === (int)$sp['id'] ? 'selected' : '' ?>>
                     <?= e($sp['name']) ?><?= isset($sp['price']) ? ' — R$ ' . number_format((float)$sp['price'], 2, ',', '.') : '' ?>
                   </option>
                 <?php endforeach; ?>
@@ -354,34 +349,21 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             </div>
             <label class="inline-flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" name="groups[<?= $gi ?>][items][<?= $ii ?>][default]" value="1" <?= $isDef ? 'checked' : '' ?> class="h-4 w-4 rounded border-slate-300 text-indigo-600">
-              <span>Acompanhamento padrão</span>
+              <span>Default</span>
             </label>
-            <div class="combo-customizable flex flex-col items-start gap-1 text-sm">
-              <input type="hidden" class="combo-customizable-flag" name="groups[<?= $gi ?>][items][<?= $ii ?>][customizable]" value="<?= $isCustItem ? '1' : '0' ?>">
-              <button type="button"
-                      class="combo-customizable-btn<?= $isCustItem ? ' is-active' : '' ?>"
-                      data-active="<?= $isCustItem ? '1' : '0' ?>"
-                      aria-pressed="<?= $isCustItem ? 'true' : 'false' ?>">
-                Produto personalizável
-              </button>
-              <small class="combo-customizable-hint text-xs text-slate-500 hidden">Disponível para itens com personalização ativa.</small>
-            </div>
             <div class="flex justify-end">
               <button type="button" class="remove-item shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover item">✕</button>
             </div>
             <input type="hidden" name="groups[<?= $gi ?>][items][<?= $ii ?>][delta]" value="0">
           </div>
           <?php endforeach; else: ?>
-          <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_minmax(0,1fr)_40px] md:items-center" data-item-index="0">
+          <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_40px] md:items-center" data-item-index="0">
             <div>
               <label class="block text-xs text-slate-500">Produto</label>
               <select name="groups[<?= $gi ?>][items][0][product_id]" class="product-select w-full rounded-lg border border-slate-300 bg-white px-3 py-2" title="Selecione um item da lista." required>
                 <option value="">— Selecione um produto simples —</option>
                 <?php foreach ($simpleProducts as $sp): ?>
-                  <option value="<?= (int)$sp['id'] ?>"
-                          data-price="<?= e((string)($sp['price'] ?? '0')) ?>"
-                          data-allow-customize="<?= !empty($sp['allow_customize']) ? '1' : '0' ?>"
-                          data-ingredients="<?= (int)($sp['ingredient_count'] ?? 0) ?>">
+                  <option value="<?= (int)$sp['id'] ?>" data-price="<?= e((string)($sp['price'] ?? '0')) ?>">
                     <?= e($sp['name']) ?><?= isset($sp['price']) ? ' — R$ ' . number_format((float)$sp['price'], 2, ',', '.') : '' ?>
                   </option>
                 <?php endforeach; ?>
@@ -401,18 +383,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
             </div>
             <label class="inline-flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" name="groups[<?= $gi ?>][items][0][default]" value="1" class="h-4 w-4 rounded border-slate-300 text-indigo-600">
-              <span>Acompanhamento padrão</span>
+              <span>Default</span>
             </label>
-            <div class="combo-customizable flex flex-col items-start gap-1 text-sm">
-              <input type="hidden" class="combo-customizable-flag" name="groups[<?= $gi ?>][items][0][customizable]" value="0">
-              <button type="button"
-                      class="combo-customizable-btn"
-                      data-active="0"
-                      aria-pressed="false">
-                Produto personalizável
-              </button>
-              <small class="combo-customizable-hint text-xs text-slate-500 hidden">Disponível para itens com personalização ativa.</small>
-            </div>
             <div class="flex justify-end">
               <button type="button" class="remove-item shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover item">✕</button>
             </div>
@@ -685,16 +657,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <button type="button" class="remove-group shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover grupo">✕</button>
       </div>
 
-      <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_minmax(0,1fr)_40px] md:items-center" data-item-index="0">
+      <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_40px] md:items-center" data-item-index="0">
         <div>
           <label class="block text-xs text-slate-500">Produto</label>
           <select name="groups[__GI__][items][0][product_id]" class="product-select w-full rounded-lg border border-slate-300 bg-white px-3 py-2" title="Selecione um item da lista." required>
             <option value="">— Selecione um produto simples —</option>
             <?php foreach ($simpleProducts as $sp): ?>
-              <option value="<?= (int)$sp['id'] ?>"
-                      data-price="<?= e((string)($sp['price'] ?? '0')) ?>"
-                      data-allow-customize="<?= !empty($sp['allow_customize']) ? '1' : '0' ?>"
-                      data-ingredients="<?= (int)($sp['ingredient_count'] ?? 0) ?>">
+              <option value="<?= (int)$sp['id'] ?>" data-price="<?= e((string)($sp['price'] ?? '0')) ?>">
                 <?= e($sp['name']) ?><?= isset($sp['price']) ? ' — R$ ' . number_format((float)$sp['price'], 2, ',', '.') : '' ?>
               </option>
             <?php endforeach; ?>
@@ -718,18 +687,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
         <label class="inline-flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-indigo-600" name="groups[__GI__][items][0][default]" value="1">
-          <span>Acompanhamento padrão</span>
+          <span>Default</span>
         </label>
-        <div class="combo-customizable flex flex-col items-start gap-1 text-sm">
-          <input type="hidden" class="combo-customizable-flag" name="groups[__GI__][items][0][customizable]" value="0">
-          <button type="button"
-                  class="combo-customizable-btn"
-                  data-active="0"
-                  aria-pressed="false">
-            Produto personalizável
-          </button>
-          <small class="combo-customizable-hint text-xs text-slate-500 hidden">Disponível para itens com personalização ativa.</small>
-        </div>
 
         <div class="flex justify-end">
           <button type="button" class="remove-item shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover item">✕</button>
@@ -746,16 +705,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
   </template>
 
   <template id="tpl-item">
-    <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_minmax(0,1fr)_40px] md:items-center" data-item-index="__II__">
+    <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_auto_40px] md:items-center" data-item-index="__II__">
       <div>
         <label class="block text-xs text-slate-500">Produto</label>
         <select name="groups[__GI__][items][__II__][product_id]" class="product-select w-full rounded-lg border border-slate-300 bg-white px-3 py-2" title="Selecione um item da lista." required>
           <option value="">— Selecione um produto simples —</option>
           <?php foreach ($simpleProducts as $sp): ?>
-            <option value="<?= (int)$sp['id'] ?>"
-                    data-price="<?= e((string)($sp['price'] ?? '0')) ?>"
-                    data-allow-customize="<?= !empty($sp['allow_customize']) ? '1' : '0' ?>"
-                    data-ingredients="<?= (int)($sp['ingredient_count'] ?? 0) ?>">
+            <option value="<?= (int)$sp['id'] ?>" data-price="<?= e((string)($sp['price'] ?? '0')) ?>">
               <?= e($sp['name']) ?><?= isset($sp['price']) ? ' — R$ ' . number_format((float)$sp['price'], 2, ',', '.') : '' ?>
             </option>
           <?php endforeach; ?>
@@ -779,18 +735,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
       <label class="inline-flex items-center gap-2 text-sm text-slate-700">
         <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-indigo-600" name="groups[__GI__][items][__II__][default]" value="1">
-        <span>Acompanhamento padrão</span>
+        <span>Default</span>
       </label>
-      <div class="combo-customizable flex flex-col items-start gap-1 text-sm">
-        <input type="hidden" class="combo-customizable-flag" name="groups[__GI__][items][__II__][customizable]" value="0">
-        <button type="button"
-                class="combo-customizable-btn"
-                data-active="0"
-                aria-pressed="false">
-          Produto personalizável
-        </button>
-        <small class="combo-customizable-hint text-xs text-slate-500 hidden">Disponível para itens com personalização ativa.</small>
-      </div>
 
       <div class="flex justify-end">
         <button type="button" class="remove-item shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover item">✕</button>
@@ -937,6 +883,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       });
     }
 
+    // ===== contador descrição & preview imagem (já na Parte 1) =====
+
     // ===== Visibilidade de Combo =====
     const groupsToggle=document.getElementById('groups-toggle');
     const hiddenUse=document.getElementById('use_groups_hidden');
@@ -961,84 +909,19 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     }
     function updateGroupFooter(groupEl){
       let sum=0;
-      groupEl?.querySelectorAll('.item-row').forEach(r=>{
-        const defChk=r.querySelector('input[type=checkbox][name*="[default]"]');
-        if(defChk?.checked) sum+=updateItemPrice(r);
+      groupEl.querySelectorAll('.item-row').forEach(r=>{
+        const def=r.querySelector('input[type=checkbox][name*="[default]"]');
+        if(def?.checked) sum+=updateItemPrice(r);
       });
-      const footer=groupEl?.querySelector('.group-base-price');
+      const footer=groupEl.querySelector('.group-base-price');
       if(footer) footer.textContent=`Preço base: ${formatMoney(sum)}`;
     }
-
-    function updateCustomizableControls(row){
-      const sel=row.querySelector('.product-select');
-      const btn=row.querySelector('.combo-customizable-btn');
-      const flag=row.querySelector('.combo-customizable-flag');
-      const hint=row.querySelector('.combo-customizable-hint');
-      if(!btn || !flag){ return; }
-      const opt=sel?.selectedOptions?.[0];
-      const allow=opt?.dataset?.allowCustomize==='1';
-      const count=Number(opt?.dataset?.ingredients ?? '0');
-      const eligible=allow && count>=3;
-      if(!eligible){
-        btn.classList.add('hidden');
-        btn.classList.remove('is-active');
-        btn.setAttribute('aria-pressed','false');
-        btn.dataset.active='0';
-        flag.value='0';
-        hint?.classList.add('hidden');
-        return;
-      }
-      btn.classList.remove('hidden');
-      hint?.classList.remove('hidden');
-      const active = flag.value==='1' || btn.dataset.active==='1';
-      if(active){
-        btn.classList.add('is-active');
-        btn.setAttribute('aria-pressed','true');
-        flag.value='1';
-        btn.dataset.active='1';
-      }else{
-        btn.classList.remove('is-active');
-        btn.setAttribute('aria-pressed','false');
-        flag.value='0';
-        btn.dataset.active='0';
-      }
-    }
-
     function wireItemRow(row){
-      if(!row) return;
       const sel=row.querySelector('.product-select');
       const def=row.querySelector('input[type=checkbox][name*="[default]"]');
-      const btn=row.querySelector('.combo-customizable-btn');
-      const flag=row.querySelector('.combo-customizable-flag');
-
-      if(sel){
-        sel.addEventListener('change',()=>{
-          updateItemPrice(row);
-          updateGroupFooter(row.closest('.group-card'));
-          if(flag){ flag.value='0'; }
-          if(btn){
-            btn.classList.remove('is-active');
-            btn.setAttribute('aria-pressed','false');
-            btn.dataset.active='0';
-          }
-          updateCustomizableControls(row);
-        });
-        updateItemPrice(row);
-      }
+      if(sel){ sel.addEventListener('change',()=>{ updateItemPrice(row); updateGroupFooter(row.closest('.group-card')); }); updateItemPrice(row); }
       if(def){ def.addEventListener('change',()=>updateGroupFooter(row.closest('.group-card'))); }
-      if(btn && flag){
-        btn.addEventListener('click',()=>{
-          if(btn.classList.contains('hidden')) return;
-          const nowActive = !btn.classList.contains('is-active');
-          btn.classList.toggle('is-active', nowActive);
-          btn.setAttribute('aria-pressed', nowActive ? 'true' : 'false');
-          flag.value = nowActive ? '1' : '0';
-          btn.dataset.active = nowActive ? '1' : '0';
-        });
-      }
-      updateCustomizableControls(row);
     }
-
     document.querySelectorAll('.group-card').forEach(g=>{ g.querySelectorAll('.item-row').forEach(wireItemRow); updateGroupFooter(g); });
 
     let gIndex=gContainer?Array.from(gContainer.children).length:0;
@@ -1093,6 +976,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       gContainer?.querySelectorAll('.group-card').forEach((g,idx)=>{
         g.dataset.index=idx;
         const inp=g.querySelector('.combo-order-input'); if(inp) inp.value=String(idx);
+        // renumera nomes para manter índices coerentes (opcional: se não quiser, remova)
       });
     }
     gContainer?.addEventListener('dragstart', e=>{
@@ -1223,8 +1107,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       wireCustItem(row); applyCustMode(groupEl);
       return row;
     }
-    document.getElementById('cust-add-group')?.addEventListener('click', addCustGroup);
-    document.getElementById('cust-groups-container')?.addEventListener('click', e=>{
+    custAddGrp?.addEventListener('click', addCustGroup);
+    custCont?.addEventListener('click', e=>{
       const t=e.target;
       if(t.classList.contains('cust-add-item')){ addCustItem(t.closest('.cust-group')); }
       else if(t.classList.contains('cust-add-choice')){ const g=t.closest('.cust-group'); const sel=g?.querySelector('.cust-mode-select'); if(sel){ sel.value='choice'; } applyCustMode(g); addCustItem(g); }
@@ -1243,7 +1127,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       }
       return closest.element;
     }
-    document.getElementById('cust-groups-container')?.addEventListener('dragstart', e=>{
+    custCont?.addEventListener('dragstart', e=>{
       const handle=e.target.closest('.cust-drag-handle'); if(!handle){ e.preventDefault(); return; }
       const group=handle.closest('.cust-group'); if(!group){ e.preventDefault(); return; }
       custDragging=group; group.classList.add('dragging');
@@ -1258,22 +1142,21 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         e.dataTransfer.setDragImage(ghost, offsetX, offsetY);
       }
     });
-    document.getElementById('cust-groups-container')?.addEventListener('dragend', ()=>{
+    custCont?.addEventListener('dragend', ()=>{
       if(custDragging){ custDragging.classList.remove('dragging'); custDragging=null; refreshCustGroupOrder(); }
       if(custGhost){ custGhost.remove(); custGhost=null; }
     });
-    document.getElementById('cust-groups-container')?.addEventListener('dragover', e=>{
+    custCont?.addEventListener('dragover', e=>{
       if(!custDragging) return; e.preventDefault();
-      const after=getCustAfterElement(document.getElementById('cust-groups-container'), e.clientY);
-      if(!after){ document.getElementById('cust-groups-container').appendChild(custDragging); }
-      else if(after!==custDragging){ document.getElementById('cust-groups-container').insertBefore(custDragging, after); }
+      const after=getCustAfterElement(custCont, e.clientY);
+      if(!after){ custCont.appendChild(custDragging); }
+      else if(after!==custDragging){ custCont.insertBefore(custDragging, after); }
     });
-    document.getElementById('cust-groups-container')?.addEventListener('drop', e=>{ if(!custDragging) return; e.preventDefault(); refreshCustGroupOrder(); });
+    custCont?.addEventListener('drop', e=>{ if(!custDragging) return; e.preventDefault(); refreshCustGroupOrder(); });
 
     // ===== toggle Personalização =====
-    const custToggleEl=document.getElementById('customization-enabled');
-    function syncCust(){ const on=!!custToggleEl?.checked; const hidden=document.getElementById('customization-enabled-hidden'); if(hidden) hidden.value=on?'1':'0'; toggleBlock(document.getElementById('customization-wrap'),on); }
-    custToggleEl?.addEventListener('change', syncCust); syncCust();
+    function syncCust(){ const on=!!custToggle?.checked; if(custHidden) custHidden.value=on?'1':'0'; toggleBlock(custWrap,on); }
+    custToggle?.addEventListener('change', syncCust); syncCust();
 
     // ===== validação & normalização no submit =====
     document.getElementById('product-form')?.addEventListener('submit', (e)=>{
@@ -1289,9 +1172,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         else if(promo>=price){ e.preventDefault(); alert('O preço promocional deve ser menor que o preço base.'); promoEl.focus(); return; }
       }
 
-      const groupsToggle=document.getElementById('groups-toggle');
-      const gContainer=document.getElementById('groups-container');
-
       if(groupsToggle && groupsToggle.checked){
         const gs=gContainer.querySelectorAll('.group-card');
         if(!gs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de opções do combo.'); return; }
@@ -1306,8 +1186,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         }
       }
 
-      const custToggle=document.getElementById('customization-enabled');
-      const custCont=document.getElementById('cust-groups-container');
       if(custToggle && custToggle.checked){
         const cgs=custCont.querySelectorAll('.cust-group');
         if(!cgs.length){ e.preventDefault(); alert('Adicione pelo menos um grupo de personalização.'); return; }

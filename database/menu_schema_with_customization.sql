@@ -199,12 +199,10 @@ CREATE TABLE `combo_group_items` (
   `simple_product_id` int(11) NOT NULL,
   `delta_price` decimal(10,2) DEFAULT 0.00,
   `is_default` tinyint(1) DEFAULT 0,
-  `allow_customize` tinyint(1) NOT NULL DEFAULT 0,
   `sort` int(11) DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 
 -- --------------------------------------------------------
 -- Estrutura da tabela `order_items`
