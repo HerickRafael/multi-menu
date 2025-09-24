@@ -297,6 +297,10 @@ class Product
       foreach ($rows as &$row) {
         $row['default'] = !empty($row['is_default']);
         $row['customizable'] = !empty($row['allow_customize']);
+
+        if (!isset($row['product_id'])) {
+          $row['product_id'] = isset($row['simple_id']) ? (int)$row['simple_id'] : null;
+        }
       }
       unset($row);
       $g['items'] = $rows;
