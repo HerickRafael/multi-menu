@@ -145,6 +145,8 @@ if (!function_exists('local_upload_src')) {
   .choice.sel .mark{display:grid}
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
+  .choice-customize{margin-top:8px;display:inline-flex;align-items:center;justify-content:center;width:100%;padding:6px 10px;border-radius:12px;border:1px solid #d1d5db;background:#fff;color:#1f2937;font-size:13px;font-weight:600;cursor:pointer;transition:background-color .15s ease}
+  .choice-customize:hover{background:#f3f4f6}
 
   /* ===== FOOTER/CTA ===== */
   .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
@@ -274,11 +276,14 @@ if (!function_exists('local_upload_src')) {
               $isDefault = !empty($opt['default']);
               $optPrice = (isset($opt['delta']) ? (float)$opt['delta'] : 0.0);
               $priceLabel = $optPrice != 0.0 ? price_br($optPrice) : 'Incluído';
+              $customizable = !empty($opt['customizable']) && !empty($opt['allow_customize']) && (int)($opt['ingredient_count'] ?? 0) >= 3;
+              $customSimpleId = (int)($opt['id'] ?? 0);
+              $customUrl = ($customizable && $customSimpleId > 0) ? base_url($slug . '/produto/' . $customSimpleId . '/customizar') : null;
 
               // Força imagem do item do combo vir de /uploads
               $comboImg = local_upload_src($opt['image'] ?? null);
             ?>
-            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= (int)($opt['id'] ?? 0) ?>">
+            <div class="choice <?= $isDefault ? 'sel' : '' ?>" data-group="<?= (int)$gi ?>" data-id="<?= $customSimpleId ?>">
               <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
@@ -287,6 +292,9 @@ if (!function_exists('local_upload_src')) {
               </button>
               <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
               <div class="choice-price"><?= e($priceLabel) ?></div>
+              <?php if ($customizable && $customUrl): ?>
+                <button type="button" class="choice-customize" data-url="<?= e($customUrl) ?>">Personalizar</button>
+              <?php endif; ?>
             </div>
           <?php endforeach; ?>
         </div>
@@ -353,6 +361,13 @@ if (!function_exists('local_upload_src')) {
         ring.setAttribute('aria-pressed','true');
         if (hidden) hidden.value = item.dataset.id || '';
       });
+    });
+  });
+  document.querySelectorAll('.choice-customize').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const url = btn.dataset.url;
+      if(!url) return;
+      window.open(url, '_blank', 'noopener');
     });
   });
 </script>
