@@ -281,9 +281,10 @@ class Product
              gi.simple_product_id AS simple_id,
              COALESCE(gi.delta_price,0) AS delta,
              COALESCE(gi.is_default,0)  AS is_default,
+             COALESCE(gi.allow_customize,0) AS allow_customize,
              sp.name,
              sp.image,
-             sp.price AS base_price
+              sp.price AS base_price
         FROM combo_group_items gi
   INNER JOIN products sp ON sp.id = gi.simple_product_id
        WHERE gi.group_id = ?
@@ -292,7 +293,13 @@ class Product
 
     foreach ($groups as &$g) {
       $iq->execute([$g['id']]);
-      $g['items'] = $iq->fetchAll(PDO::FETCH_ASSOC) ?: [];
+      $rows = $iq->fetchAll(PDO::FETCH_ASSOC) ?: [];
+      foreach ($rows as &$row) {
+        $row['default'] = !empty($row['is_default']);
+        $row['customizable'] = !empty($row['allow_customize']);
+      }
+      unset($row);
+      $g['items'] = $rows;
     }
     unset($g);
 
@@ -329,8 +336,8 @@ class Product
           VALUES (?,?,?,?,?,?,NOW())
         ");
         $insI = $pdo->prepare("
-          INSERT INTO combo_group_items (group_id, simple_product_id, delta_price, is_default, sort, created_at)
-          VALUES (?,?,?,?,?,NOW())
+          INSERT INTO combo_group_items (group_id, simple_product_id, delta_price, is_default, allow_customize, sort, created_at)
+          VALUES (?,?,?,?,?,?,NOW())
         ");
 
         $gSort = 0;
@@ -352,7 +359,8 @@ class Product
             if ($spId <= 0) continue;
             $delta  = (float)($it['delta'] ?? 0);
             $isDef  = !empty($it['default']) ? 1 : 0;
-            $insI->execute([$groupId, $spId, $delta, $isDef, $iSort++]);
+            $allowCust = !empty($it['customizable']) ? 1 : 0;
+            $insI->execute([$groupId, $spId, $delta, $isDef, $allowCust, $iSort++]);
           }
         }
       }
@@ -362,6 +370,122 @@ class Product
       $pdo->rollBack();
       throw $e;
     }
+  }
+
+  /**
+   * Lista produtos simples disponíveis para uso nos combos de uma empresa.
+   * Retorna dados básicos + contagem de ingredientes vinculados (personalização).
+   */
+  public static function simpleProductsForCompany(int $companyId, bool $onlyActive = true): array {
+    $pdo = db();
+    $sql = "SELECT p.id, p.name, p.price, p.image, p.allow_customize,
+                   COALESCE(COUNT(pci.id), 0) AS ingredient_count
+              FROM products p
+         LEFT JOIN product_custom_groups pcg ON pcg.product_id = p.id
+         LEFT JOIN product_custom_items pci ON pci.group_id = pcg.id
+             WHERE p.company_id = :cid
+               AND p.type = 'simple'";
+    if ($onlyActive) {
+      $sql .= " AND p.active = 1";
+    }
+    $sql .= " GROUP BY p.id
+              ORDER BY p.name";
+
+    $st = $pdo->prepare($sql);
+    $st->bindValue(':cid', $companyId, PDO::PARAM_INT);
+    $st->execute();
+    return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  }
+
+  /**
+   * Normaliza os dados dos grupos de combo vindos do formulário do admin.
+   * Garante índices, produtos válidos e flags coerentes.
+   */
+  public static function sanitizeComboGroupsPayload(array $payload, int $companyId): array {
+    if (!$payload) {
+      return [];
+    }
+
+    $simpleProducts = self::simpleProductsForCompany($companyId, false);
+    $simpleMap = [];
+    foreach ($simpleProducts as $sp) {
+      $simpleMap[(int)$sp['id']] = $sp;
+    }
+
+    $groups = [];
+    $ordered = [];
+    foreach ($payload as $group) {
+      if (!is_array($group)) {
+        continue;
+      }
+      $group['_order'] = isset($group['sort_order']) ? (int)$group['sort_order'] : count($ordered);
+      $ordered[] = $group;
+    }
+
+    usort($ordered, function ($a, $b) {
+      return ($a['_order'] ?? 0) <=> ($b['_order'] ?? 0);
+    });
+
+    foreach ($ordered as $gIndex => $group) {
+      $name = trim((string)($group['name'] ?? ''));
+      if ($name === '') {
+        continue;
+      }
+
+      $itemsRaw = isset($group['items']) && is_array($group['items']) ? $group['items'] : [];
+      $items = [];
+      $iSort = 0;
+
+      foreach ($itemsRaw as $item) {
+        if (!is_array($item)) {
+          continue;
+        }
+        $spId = isset($item['product_id']) ? (int)$item['product_id'] : 0;
+        if ($spId <= 0 || !isset($simpleMap[$spId])) {
+          continue;
+        }
+
+        $delta = isset($item['delta']) ? (float)$item['delta'] : 0.0;
+        $isDefault = !empty($item['default']);
+        $customizable = !empty($item['customizable']);
+
+        $simpleInfo = $simpleMap[$spId];
+        $ingredientCount = (int)($simpleInfo['ingredient_count'] ?? 0);
+        $allowsCustomization = !empty($simpleInfo['allow_customize']);
+        if ($customizable && (!$allowsCustomization || $ingredientCount <= 2)) {
+          $customizable = false;
+        }
+
+        $items[] = [
+          'product_id'   => $spId,
+          'delta'        => $delta,
+          'default'      => $isDefault ? 1 : 0,
+          'customizable' => $customizable ? 1 : 0,
+          'sort_order'   => $iSort++,
+        ];
+      }
+
+      if (!$items) {
+        continue;
+      }
+
+      $min = isset($group['min']) ? max(0, (int)$group['min']) : 0;
+      $max = isset($group['max']) ? (int)$group['max'] : 1;
+      if ($max > 0 && $max < $min) {
+        $max = $min;
+      }
+
+      $groups[] = [
+        'name'  => $name,
+        'type'  => 'component',
+        'min'   => $min,
+        'max'   => $max,
+        'items' => $items,
+        'sort_order' => $gIndex,
+      ];
+    }
+
+    return $groups;
   }
 
   /* ========================
