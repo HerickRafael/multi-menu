@@ -40,10 +40,19 @@ env:
 		cp .env.example .env; \
 	fi; \
 	if [ -n "$(PHP_BIN)" ]; then \
-		php bin/generate-key; \
+		if [ -f bin/generate-key ]; then \
+			php bin/generate-key; \
+		elif [ -f artisan ]; then \
+			php artisan key:generate --force; \
+		else \
+			echo 'Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan).'; \
+		fi; \
 	elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
 		echo 'Gerando APP_KEY dentro do container...'; \
-		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php /var/www/html/bin/generate-key; \
+		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
+			if [ -f bin/generate-key ]; then php bin/generate-key; \
+			elif [ -f artisan ]; then php artisan key:generate --force; \
+			else echo "Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan)."; exit 1; fi'; \
 	else \
 		echo 'PHP não encontrado para gerar APP_KEY.'; \
 		exit 1; \
@@ -80,22 +89,27 @@ npm-install:
 docker-up:
 	$(DOCKER_COMPOSE_SCRIPT) up -d --build
 
+# ---------- Macro para migrar/semear com auto-detecção no container ----------
 define run_app_task
 	cmd=''; \
+	# 1) Scripts próprios
 	if $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/bin/$(1); then \
 		cmd='php /var/www/html/bin/$(1)'; \
+	# 2) Laravel (artisan)
 	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/artisan; then \
 		if [ "$(1)" = "migrate" ]; then \
 			cmd='php /var/www/html/artisan migrate --force'; \
 		else \
 			cmd='php /var/www/html/artisan db:seed --force'; \
 		fi; \
-	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -x /var/www/html/vendor/bin/phinx; then \
+	# 3) Phinx
+	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -x /var/www/html/vendor/bin/phinx || $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/vendor/bin/phinx; then \
 		if [ "$(1)" = "migrate" ]; then \
-			cmd='php /var/www/html/vendor/bin/phinx migrate'; \
+			cmd='/var/www/html/vendor/bin/phinx migrate || /var/www/html/vendor/bin/phinx migrate -e production'; \
 		else \
-			cmd='php /var/www/html/vendor/bin/phinx seed:run'; \
+			cmd='/var/www/html/vendor/bin/phinx seed:run'; \
 		fi; \
+	# 4) Symfony/Doctrine via bin/console
 	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/bin/console; then \
 		if [ "$(1)" = "migrate" ]; then \
 			cmd='php /var/www/html/bin/console doctrine:migrations:migrate --no-interaction'; \
@@ -107,11 +121,13 @@ define run_app_task
 		echo '❌ Nenhuma rotina de $(1) encontrada (bin/$(1), artisan, phinx, doctrine).'; \
 		exit 1; \
 	fi; \
-	if ! $(DOCKER_COMPOSE_SCRIPT) exec -T app bash -lc "$$cmd"; then \
+	# Tenta em container já rodando; se falhar, roda em container temporário
+	if ! $(DOCKER_COMPOSE_SCRIPT) exec -T app sh -lc "$$cmd"; then \
 		echo 'Fallback: executando $(1) em um container temporário...'; \
-		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app bash -lc "$$cmd"; \
+		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc "$$cmd"; \
 	fi
 endef
+# ---------------------------------------------------------------------------
 
 migrate:
 	@$(call run_app_task,migrate)
