@@ -1219,6 +1219,12 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       else if(t.classList.contains('cust-remove-group')){ t.closest('.cust-group')?.remove(); refreshCustGroupOrder(); }
       else if(t.classList.contains('cust-remove-item')){ t.closest('.cust-item')?.remove(); }
     });
+    custCont?.addEventListener('change', e=>{
+      const t=e.target;
+      if(t.classList.contains('cust-mode-select')){ applyCustMode(t.closest('.cust-group')); }
+      else if(t.classList.contains('cust-default-toggle')){ const item=t.closest('.cust-item'); const flag=item?.querySelector('.cust-default-flag'); if(flag) flag.value=t.checked?'1':'0'; updateCustItem(item); }
+      else if(t.classList.contains('cust-min-input')||t.classList.contains('cust-max-input')||t.classList.contains('cust-default-qty')){ updateCustItem(t.closest('.cust-item')); }
+    });
 
     // DRAG & DROP — PERSONALIZAÇÃO
     let custDragging=null, custGhost=null;
