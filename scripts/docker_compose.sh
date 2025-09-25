@@ -7,14 +7,17 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-# Prepara variáveis de ambiente caso não haja buildx (evita falhas em alguns ambientes)
+# Prepara variáveis de ambiente conforme presença do buildx
 build_env=()
-if ! docker buildx version >/dev/null 2>&1; then
+if docker buildx version >/dev/null 2>&1; then
+  build_env+=(DOCKER_BUILDKIT=1)
+  build_env+=(COMPOSE_DOCKER_CLI_BUILD=1)
+else
   build_env+=(DOCKER_BUILDKIT=0)
   build_env+=(COMPOSE_DOCKER_CLI_BUILD=0)
 fi
 
-# Usa Compose V2 se disponível, senão fallback para docker-compose (V1)
+# Usa Compose V2 se disponível; fallback para docker-compose (V1)
 if docker compose version >/dev/null 2>&1; then
   exec env "${build_env[@]}" docker compose "$@"
 elif command -v docker-compose >/dev/null 2>&1; then

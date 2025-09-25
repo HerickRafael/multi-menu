@@ -40,10 +40,19 @@ env:
 		cp .env.example .env; \
 	fi; \
 	if [ -n "$(PHP_BIN)" ]; then \
-		php bin/generate-key; \
+		if [ -f bin/generate-key ]; then \
+			php bin/generate-key; \
+		elif [ -f artisan ]; then \
+			php artisan key:generate --force; \
+		else \
+			echo 'Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan).'; \
+		fi; \
 	elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
 		echo 'Gerando APP_KEY dentro do container...'; \
-		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php bin/generate-key; \
+		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
+			if [ -f bin/generate-key ]; then php bin/generate-key; \
+			elif [ -f artisan ]; then php artisan key:generate --force; \
+			else echo "Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan)."; exit 1; fi'; \
 	else \
 		echo 'PHP não encontrado para gerar APP_KEY.'; \
 		exit 1; \
@@ -81,10 +90,34 @@ docker-up:
 	$(DOCKER_COMPOSE_SCRIPT) up -d --build
 
 migrate:
-	$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php bin/migrate
+	@$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
+		set -e; \
+		if [ -f bin/migrate ]; then \
+			echo "▶ Executando php bin/migrate"; php bin/migrate; \
+		elif [ -f artisan ]; then \
+			echo "▶ Executando php artisan migrate --force"; php artisan migrate --force; \
+		elif [ -x vendor/bin/phinx ] || [ -f vendor/bin/phinx ]; then \
+			echo "▶ Executando vendor/bin/phinx migrate"; vendor/bin/phinx migrate || vendor/bin/phinx migrate -e production; \
+		elif [ -x vendor/bin/doctrine-migrations ] || [ -f vendor/bin/doctrine-migrations ]; then \
+			echo "▶ Executando doctrine-migrations"; vendor/bin/doctrine-migrations migrate --no-interaction; \
+		else \
+			echo "❌ Nenhuma rotina de migração encontrada (bin/migrate, artisan, phinx, doctrine)."; \
+			exit 1; \
+		fi'
 
 seed:
-	$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php bin/seed
+	@$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
+		set -e; \
+		if [ -f bin/seed ]; then \
+			echo "▶ Executando php bin/seed"; php bin/seed; \
+		elif [ -f artisan ]; then \
+			echo "▶ Executando php artisan db:seed --force"; php artisan db:seed --force; \
+		elif [ -x vendor/bin/phinx ] || [ -f vendor/bin/phinx ]; then \
+			echo "▶ Executando phinx seed:run"; vendor/bin/phinx seed:run; \
+		else \
+			echo "❌ Nenhuma rotina de seed encontrada (bin/seed, artisan, phinx)."; \
+			exit 1; \
+		fi'
 
 hooks:
 	@if [ -f vendor/bin/grumphp ]; then \

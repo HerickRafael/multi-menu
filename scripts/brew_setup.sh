@@ -18,13 +18,13 @@ run_bundle() {
   "${bundle_cmd[@]}"
 }
 
-# Tenta ajustar permissões com base na saída do `brew link`
+# Ajusta permissões com base na saída do `brew link`
 fix_node_permissions() {
   local link_output="$1"
   local fixed=0
   local handled_paths=()
 
-  # Procura linhas do tipo: "/usr/local/lib/node_modules is not writable."
+  # Linhas do tipo: "/usr/local/lib/node_modules is not writable."
   while IFS= read -r line; do
     if [[ $line =~ ^/.+\ is\ not\ writable\.$ ]]; then
       local path="${line% is not writable.}"
@@ -32,7 +32,7 @@ fix_node_permissions() {
       # Evita tratar o mesmo path repetidamente
       local already_handled=0
       for handled in "${handled_paths[@]:-}"; do
-        if [[ $handled == "$path" ]]; then
+        if [[ "$handled" == "$path" ]]; then
           already_handled=1
           break
         fi
@@ -52,7 +52,7 @@ fix_node_permissions() {
   (( fixed )) && return 0 || return 1
 }
 
-# (Re)cria links do Node e tenta corrigir permissões; repete até sucesso ou não haver mais o que corrigir
+# (Re)cria links do Node e tenta corrigir permissões até sucesso
 relink_node() {
   if ! brew list --versions node >/dev/null 2>&1; then
     return 1
