@@ -14,11 +14,7 @@ setup: brew docker-env env composer-install npm-install docker-up migrate seed h
 
 brew:
 	@if [ "$(OS)" = "Darwin" ]; then \
-	if ! command -v brew >/dev/null 2>&1; then \
-	echo 'Instalando Homebrew...'; \
-	/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
-	fi; \
-	brew bundle --no-lock; \
+	bash $(CURDIR)/scripts/brew_setup.sh; \
 	else \
 	echo 'Homebrew não é necessário neste sistema. Pulando etapa.'; \
 	fi
