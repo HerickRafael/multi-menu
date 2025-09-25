@@ -89,35 +89,51 @@ npm-install:
 docker-up:
 	$(DOCKER_COMPOSE_SCRIPT) up -d --build
 
-migrate:
-	@$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
-		set -e; \
-		if [ -f bin/migrate ]; then \
-			echo "▶ Executando php bin/migrate"; php bin/migrate; \
-		elif [ -f artisan ]; then \
-			echo "▶ Executando php artisan migrate --force"; php artisan migrate --force; \
-		elif [ -x vendor/bin/phinx ] || [ -f vendor/bin/phinx ]; then \
-			echo "▶ Executando vendor/bin/phinx migrate"; vendor/bin/phinx migrate || vendor/bin/phinx migrate -e production; \
-		elif [ -x vendor/bin/doctrine-migrations ] || [ -f vendor/bin/doctrine-migrations ]; then \
-			echo "▶ Executando doctrine-migrations"; vendor/bin/doctrine-migrations migrate --no-interaction; \
+# ---------- Macro para migrar/semear com auto-detecção no container ----------
+define run_app_task
+	cmd=''; \
+	# 1) Scripts próprios
+	if $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/bin/$(1); then \
+		cmd='php /var/www/html/bin/$(1)'; \
+	# 2) Laravel (artisan)
+	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/artisan; then \
+		if [ "$(1)" = "migrate" ]; then \
+			cmd='php /var/www/html/artisan migrate --force'; \
 		else \
-			echo "❌ Nenhuma rotina de migração encontrada (bin/migrate, artisan, phinx, doctrine)."; \
-			exit 1; \
-		fi'
+			cmd='php /var/www/html/artisan db:seed --force'; \
+		fi; \
+	# 3) Phinx
+	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -x /var/www/html/vendor/bin/phinx || $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/vendor/bin/phinx; then \
+		if [ "$(1)" = "migrate" ]; then \
+			cmd='/var/www/html/vendor/bin/phinx migrate || /var/www/html/vendor/bin/phinx migrate -e production'; \
+		else \
+			cmd='/var/www/html/vendor/bin/phinx seed:run'; \
+		fi; \
+	# 4) Symfony/Doctrine via bin/console
+	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/bin/console; then \
+		if [ "$(1)" = "migrate" ]; then \
+			cmd='php /var/www/html/bin/console doctrine:migrations:migrate --no-interaction'; \
+		else \
+			cmd='php /var/www/html/bin/console doctrine:fixtures:load --no-interaction'; \
+		fi; \
+	fi; \
+	if [ -z "$$cmd" ]; then \
+		echo '❌ Nenhuma rotina de $(1) encontrada (bin/$(1), artisan, phinx, doctrine).'; \
+		exit 1; \
+	fi; \
+	# Tenta em container já rodando; se falhar, roda em container temporário
+	if ! $(DOCKER_COMPOSE_SCRIPT) exec -T app sh -lc "$$cmd"; then \
+		echo 'Fallback: executando $(1) em um container temporário...'; \
+		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc "$$cmd"; \
+	fi
+endef
+# ---------------------------------------------------------------------------
+
+migrate:
+	@$(call run_app_task,migrate)
 
 seed:
-	@$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
-		set -e; \
-		if [ -f bin/seed ]; then \
-			echo "▶ Executando php bin/seed"; php bin/seed; \
-		elif [ -f artisan ]; then \
-			echo "▶ Executando php artisan db:seed --force"; php artisan db:seed --force; \
-		elif [ -x vendor/bin/phinx ] || [ -f vendor/bin/phinx ]; then \
-			echo "▶ Executando phinx seed:run"; vendor/bin/phinx seed:run; \
-		else \
-			echo "❌ Nenhuma rotina de seed encontrada (bin/seed, artisan, phinx)."; \
-			exit 1; \
-		fi'
+	@$(call run_app_task,seed)
 
 hooks:
 	@if [ -f vendor/bin/grumphp ]; then \
