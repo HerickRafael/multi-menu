@@ -18,7 +18,11 @@ brew:
 	echo 'Instalando Homebrew...'; \
 	/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
 	fi; \
-	brew bundle --no-lock; \
+	if brew bundle --help 2>&1 | grep -q -- "--no-lock"; then \
+		brew bundle --no-lock; \
+	else \
+		brew bundle; \
+	fi; \
 	else \
 	echo 'Homebrew não é necessário neste sistema. Pulando etapa.'; \
 	fi
