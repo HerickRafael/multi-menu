@@ -1,0 +1,17 @@
+parameters:
+    level: 8
+    paths:
+        - app/Application
+        - app/Core
+        - app/Support
+        - tests
+    tmpDir: var/cache/phpstan
+    bootstrapFiles:
+        - tests/bootstrap.php
+    excludePaths:
+        - app/Views
+        - app/Domain
+
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    checkExplicitMixed: false

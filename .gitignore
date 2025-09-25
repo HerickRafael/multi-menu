@@ -1,0 +1,7 @@
+/vendor/
+/.env
+/.phpunit.result.cache
+/.php-cs-fixer.cache
+/var/cache/*
+!/var/cache/.gitignore
+/storage/logs/*.log
