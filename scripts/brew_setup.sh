@@ -22,11 +22,24 @@ run_bundle() {
 fix_node_permissions() {
   local link_output="$1"
   local fixed=0
+  local handled_paths=()
 
   # Procura linhas do tipo: "/usr/local/lib/node_modules is not writable."
   while IFS= read -r line; do
     if [[ $line =~ ^/.+\ is\ not\ writable\.$ ]]; then
       local path="${line% is not writable.}"
+
+      # Evita tratar o mesmo path repetidamente
+      local already_handled=0
+      for handled in "${handled_paths[@]:-}"; do
+        if [[ $handled == "$path" ]]; then
+          already_handled=1
+          break
+        fi
+      done
+      (( already_handled )) && continue
+      handled_paths+=("$path")
+
       echo "Tentando ajustar permissões em ${path}..."
       if sudo chown -R "$(whoami)" "$path"; then
         fixed=1
@@ -39,10 +52,14 @@ fix_node_permissions() {
   (( fixed )) && return 0 || return 1
 }
 
-# (Re)cria links do Node e tenta corrigir permissões se necessário
+# (Re)cria links do Node e tenta corrigir permissões; reitera até sucesso ou até não haver mais o que corrigir
 relink_node() {
-  if brew list --versions node >/dev/null 2>&1; then
-    echo 'Corrigindo links do Node...'
+  if ! brew list --versions node >/dev/null 2>&1; then
+    return 1
+  fi
+
+  echo 'Corrigindo links do Node...'
+  while true; do
     local link_output
     if link_output="$(brew link --overwrite --force node 2>&1)"; then
       printf '%s\n' "$link_output"
@@ -50,21 +67,19 @@ relink_node() {
       return 0
     fi
 
-    # Se falhou, mostra a saída e tenta corrigir permissões
+    # Mostra a saída de erro e tenta corrigir permissões
     printf '%s\n' "$link_output"
 
-    if fix_node_permissions "$link_output"; then
-      echo 'Reexecutando brew link node após corrigir permissões...'
-      if brew link --overwrite --force node; then
-        brew postinstall node || true
-        return 0
-      fi
+    if ! fix_node_permissions "$link_output"; then
+      # Nada a corrigir ou falha ao corrigir -> aborta
+      return 1
     fi
-  fi
-  return 1
+
+    echo 'Reexecutando brew link node após corrigir permissões...'
+  done
 }
 
-# Executa o Brewfile; em caso de erro, tenta consertar o Node e tenta novamente
+# Executa o Brewfile; se falhar, tenta consertar o Node e tenta novamente
 if ! run_bundle; then
   if relink_node; then
     run_bundle || exit 1
