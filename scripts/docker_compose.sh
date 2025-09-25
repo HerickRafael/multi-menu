@@ -14,7 +14,7 @@ if ! docker buildx version >/dev/null 2>&1; then
   build_env+=(COMPOSE_DOCKER_CLI_BUILD=0)
 fi
 
-# Usa Compose V2 se disponível, senão faz fallback para docker-compose (V1)
+# Usa Compose V2 se disponível, senão fallback para docker-compose (V1)
 if docker compose version >/dev/null 2>&1; then
   exec env "${build_env[@]}" docker compose "$@"
 elif command -v docker-compose >/dev/null 2>&1; then
