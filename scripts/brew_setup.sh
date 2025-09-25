@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Instala o Homebrew se não existir
-if ! command -v brew >/dev/null 2>&1; then
+if ! command -v brew >/devnull 2>&1; then
   echo 'Instalando Homebrew...'
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
@@ -18,7 +18,7 @@ run_bundle() {
   "${bundle_cmd[@]}"
 }
 
-# Tenta ajustar permissões com base na saída do brew link
+# Tenta ajustar permissões com base na saída do `brew link`
 fix_node_permissions() {
   local link_output="$1"
   local fixed=0
@@ -52,7 +52,7 @@ fix_node_permissions() {
   (( fixed )) && return 0 || return 1
 }
 
-# (Re)cria links do Node e tenta corrigir permissões; reitera até sucesso ou até não haver mais o que corrigir
+# (Re)cria links do Node e tenta corrigir permissões; repete até sucesso ou não haver mais o que corrigir
 relink_node() {
   if ! brew list --versions node >/dev/null 2>&1; then
     return 1
@@ -67,7 +67,7 @@ relink_node() {
       return 0
     fi
 
-    # Mostra a saída de erro e tenta corrigir permissões
+    # Mostra a saída e tenta corrigir permissões
     printf '%s\n' "$link_output"
 
     if ! fix_node_permissions "$link_output"; then
