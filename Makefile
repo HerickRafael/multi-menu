@@ -36,6 +36,7 @@ brew:
 		else \
 			exit 1; \
 		fi; \
+
 	fi; \
 	else \
 	echo 'Homebrew não é necessário neste sistema. Pulando etapa.'; \
