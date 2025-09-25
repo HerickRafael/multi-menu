@@ -13,7 +13,9 @@
     "phpstan/phpstan": "^1.10",
     "friendsofphp/php-cs-fixer": "^3.65",
     "nunomaduro/phpinsights": "^2.8",
-    "phpstan/phpstan-strict-rules": "^1.6"
+    "phpstan/phpstan-strict-rules": "^1.6",
+    "phpro/grumphp": "^2.15"
+
   },
   "autoload": {
     "psr-4": {
@@ -54,7 +56,9 @@
   "prefer-stable": true,
   "config": {
     "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpro/grumphp": true
+
     }
   }
 }

@@ -1,0 +1,97 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Dotenv\Dotenv;
+use PDO;
+use PDOException;
+use RuntimeException;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$rootPath = dirname(__DIR__);
+if (file_exists($rootPath . '/.env')) {
+    Dotenv::createImmutable($rootPath)->safeLoad();
+}
+
+$dbHost = $_ENV['DB_HOST'] ?? '127.0.0.1';
+$dbPort = (int) ($_ENV['DB_PORT'] ?? 3306);
+$dbName = $_ENV['DB_DATABASE'] ?? 'menu';
+$dbUser = $_ENV['DB_USERNAME'] ?? 'root';
+$dbPassword = $_ENV['DB_PASSWORD'] ?? '';
+
+try {
+    $pdo = new PDO(
+        sprintf('mysql:host=%s;port=%d;charset=utf8mb4', $dbHost, $dbPort),
+        $dbUser,
+        $dbPassword,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => true,
+        ]
+    );
+} catch (PDOException $exception) {
+    fwrite(STDERR, 'Não foi possível conectar ao banco de dados: ' . $exception->getMessage() . PHP_EOL);
+    exit(1);
+}
+
+$pdo->exec(sprintf('CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci', $dbName));
+$pdo->exec(sprintf('USE `%s`', $dbName));
+$pdo->exec('CREATE TABLE IF NOT EXISTS migrations (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL UNIQUE,
+    migrated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+$migrationPath = $rootPath . '/database/migrations';
+if (! is_dir($migrationPath)) {
+    fwrite(STDERR, 'Diretório de migrações não encontrado.' . PHP_EOL);
+    exit(1);
+}
+
+$migrationFiles = glob($migrationPath . '/*.sql');
+sort($migrationFiles);
+
+foreach ($migrationFiles as $file) {
+    $name = basename($file);
+    $statement = $pdo->prepare('SELECT COUNT(*) FROM migrations WHERE filename = :filename');
+    $statement->execute(['filename' => $name]);
+
+    if ((int) $statement->fetchColumn() > 0) {
+        continue;
+    }
+
+    echo sprintf('> Executando migração: %s%s', $name, PHP_EOL);
+    runSqlFile($pdo, $file);
+    $insert = $pdo->prepare('INSERT INTO migrations (filename) VALUES (:filename)');
+    $insert->execute(['filename' => $name]);
+}
+
+echo '> Migrações concluídas.' . PHP_EOL;
+
+function runSqlFile(PDO $pdo, string $path): void
+{
+    $sql = file_get_contents($path);
+
+    if ($sql === false) {
+        throw new RuntimeException(sprintf('Não foi possível ler o arquivo de migração "%s".', $path));
+    }
+
+    $normalized = preg_replace('/^--.*$/m', '', $sql) ?? $sql;
+    $statements = array_filter(
+        array_map(
+            static fn (string $statement): string => trim($statement),
+            preg_split('/;\s*(?:\R|$)/', $normalized) ?: []
+        )
+    );
+
+    foreach ($statements as $statement) {
+        if ($statement === '') {
+            continue;
+        }
+
+        $pdo->exec($statement);
+    }
+}
