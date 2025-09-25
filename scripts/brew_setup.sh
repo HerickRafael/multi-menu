@@ -16,16 +16,20 @@ run_bundle() {
   "${bundle_cmd[@]}"
 }
 
-if ! run_bundle; then
-  if brew list --formula node >/dev/null 2>&1 \
-     && brew info node 2>/dev/null | grep -Eqi 'not (currently )?linked'; then
+relink_node() {
+  if brew list --versions node >/dev/null 2>&1; then
     echo 'Corrigindo links do Node...'
     if brew link --overwrite --force node; then
       brew postinstall node || true
-      run_bundle || exit 1
-    else
-      exit 1
+      return 0
     fi
+  fi
+  return 1
+}
+
+if ! run_bundle; then
+  if relink_node; then
+    run_bundle || exit 1
   else
     exit 1
   fi
