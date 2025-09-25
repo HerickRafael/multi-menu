@@ -1,69 +1,83 @@
 <?php
+
+declare(strict_types=1);
+
+use App\Application\Services\ProductCustomizationService;
+
 session_start();
+
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../bootstrap/app.php';
 
 if (!isset($_SESSION['customizations'])) {
     $_SESSION['customizations'] = [];
 }
 
-require_once __DIR__ . '/../app/models/ProductCustomization.php';
+$service = new ProductCustomizationService();
 
-$productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+$productId = isset($_POST['product_id']) ? (int) $_POST['product_id'] : 0;
 $mods = [];
+
 if ($productId > 0) {
     try {
-        $mods = ProductCustomization::loadForPublic($productId);
-    } catch (Throwable $e) {
+        $mods = $service->loadForPublic($productId);
+    } catch (Throwable) {
         $mods = [];
     }
 }
 
 $customSingle = [];
 if (isset($_POST['custom_single']) && is_array($_POST['custom_single'])) {
-    foreach ($_POST['custom_single'] as $g => $idx) {
-        $gi = (int)$g;
-        $sel = (int)$idx;
-        if (!isset($mods[$gi]['items']) || !is_array($mods[$gi]['items'])) {
+    foreach ($_POST['custom_single'] as $groupIndex => $selectedIndex) {
+        $groupKey = (int) $groupIndex;
+        $selectedKey = (int) $selectedIndex;
+        if (!isset($mods[$groupKey]['items']) || !is_array($mods[$groupKey]['items'])) {
             continue;
         }
-        $maxIdx = count($mods[$gi]['items']) - 1;
-        if ($sel < 0 || $sel > $maxIdx) {
+
+        $maxIndex = count($mods[$groupKey]['items']) - 1;
+        if ($selectedKey < 0 || $selectedKey > $maxIndex) {
             continue;
         }
-        $customSingle[$gi] = $sel;
+
+        $customSingle[$groupKey] = $selectedKey;
     }
 }
 
 $customQty = [];
 if (isset($_POST['custom_qty']) && is_array($_POST['custom_qty'])) {
-    foreach ($_POST['custom_qty'] as $g => $items) {
-        if (is_array($items)) {
-            foreach ($items as $i => $qty) {
-                $gi = (int)$g;
-                $ii = (int)$i;
-                if (!isset($mods[$gi]) || ($mods[$gi]['type'] ?? 'extra') === 'single') {
-                    continue;
-                }
-                if (!isset($mods[$gi]['items'][$ii])) {
-                    continue;
-                }
+    foreach ($_POST['custom_qty'] as $groupIndex => $items) {
+        if (!is_array($items)) {
+            continue;
+        }
 
-                $item = $mods[$gi]['items'][$ii];
-                $min = isset($item['min']) ? (int)$item['min'] : 0;
-                $max = isset($item['max']) ? (int)$item['max'] : $min;
-                if ($max <= 0) {
-                    $max = max($min, 99);
-                }
+        $groupKey = (int) $groupIndex;
+        if (!isset($mods[$groupKey]) || ($mods[$groupKey]['type'] ?? 'extra') === 'single') {
+            continue;
+        }
 
-                $val = (int)$qty;
-                if ($val < $min) {
-                    $val = $min;
-                }
-                if ($max > 0 && $val > $max) {
-                    $val = $max;
-                }
-
-                $customQty[$gi][$ii] = $val;
+        foreach ($items as $itemIndex => $qty) {
+            $itemKey = (int) $itemIndex;
+            if (!isset($mods[$groupKey]['items'][$itemKey])) {
+                continue;
             }
+
+            $item = $mods[$groupKey]['items'][$itemKey];
+            $min = isset($item['min']) ? (int) $item['min'] : 0;
+            $max = isset($item['max']) ? (int) $item['max'] : $min;
+            if ($max <= 0) {
+                $max = max($min, 99);
+            }
+
+            $value = (int) $qty;
+            if ($value < $min) {
+                $value = $min;
+            }
+            if ($max > 0 && $value > $max) {
+                $value = $max;
+            }
+
+            $customQty[$groupKey][$itemKey] = $value;
         }
     }
 }
@@ -71,7 +85,7 @@ if (isset($_POST['custom_qty']) && is_array($_POST['custom_qty'])) {
 if ($productId > 0) {
     $_SESSION['customizations'][$productId] = [
         'single' => $customSingle,
-        'qty'    => $customQty,
+        'qty' => $customQty,
     ];
     $message = 'Personalização salva!';
 } else {
