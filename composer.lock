@@ -2471,6 +2471,37 @@
                 }
             ],
             "time": "2024-11-03T15:59:21+00:00"
+=======
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                },
+                {
+                    "name": "Dariusz Rumiński",
+                    "email": "dariusz.ruminski@gmail.com"
+                }
+            ],
+            "description": "A tool to automatically fix PHP code style",
+            "keywords": [
+                "Static code analysis",
+                "fixer",
+                "standards",
+                "static analysis"
+            ],
+            "support": {
+                "issues": "https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/issues",
+                "source": "https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/tree/v3.88.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/keradus",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-09-24T21:31:42+00:00"
         },
         {
             "name": "justinrainbow/json-schema",
@@ -2667,6 +2698,7 @@
             "time": "2025-09-22T17:29:40+00:00"
         },
         {
+
             "name": "league/container",
             "version": "5.1.0",
             "source": {
@@ -2924,6 +2956,7 @@
             "time": "2024-12-08T08:18:47+00:00"
         },
         {
+
             "name": "marc-mabe/php-enum",
             "version": "v4.7.2",
             "source": {
@@ -3288,6 +3321,7 @@
             "time": "2024-03-12T13:22:30+00:00"
         },
         {
+
             "name": "phar-io/manifest",
             "version": "2.0.4",
             "source": {
@@ -3583,6 +3617,7 @@
                 "source": "https://github.com/phpro/grumphp/tree/v2.15.0"
             },
             "time": "2025-08-28T11:50:51+00:00"
+
         },
         {
             "name": "phpstan/phpdoc-parser",
@@ -6491,6 +6526,7 @@
                 },
                 {
                     "url": "https://github.com/nicolas-grekas",
+
                     "type": "github"
                 },
                 {
@@ -6499,6 +6535,7 @@
                 }
             ],
             "time": "2025-07-26T13:55:06+00:00"
+
         },
         {
             "name": "symfony/console",
@@ -7056,6 +7093,7 @@
             "time": "2025-07-10T08:29:33+00:00"
         },
         {
+
             "name": "symfony/filesystem",
             "version": "v7.3.2",
             "source": {
@@ -8308,6 +8346,7 @@
             "time": "2025-08-27T11:34:33+00:00"
         },
         {
+
             "name": "theseer/tokenizer",
             "version": "1.2.3",
             "source": {

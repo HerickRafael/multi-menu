@@ -80,6 +80,7 @@ Quando terminar o trabalho, desligue o ambiente com `make down` seguido de `coli
 
 > Para ambientes XAMPP/MAMP basta apontar o DocumentRoot para o diretório `public/` e garantir que o PHP CLI utilize as mesmas extensões configuradas no servidor.
 
+
 ## Qualidade de código
 
 - `composer lint` — verifica estilo com PHP-CS-Fixer (PSR-12)
@@ -88,7 +89,6 @@ Quando terminar o trabalho, desligue o ambiente com `make down` seguido de `coli
 - `composer quality` — executa todos os comandos acima em sequência
 
 Os hooks configurados via GrumPHP rodam `composer lint`, `composer analyse` e `composer test` automaticamente antes de cada commit.
-
 ## Estrutura
 
 ```
