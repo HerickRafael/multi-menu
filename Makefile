@@ -43,7 +43,7 @@ env:
 		php bin/generate-key; \
 	elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
 		echo 'Gerando APP_KEY dentro do container...'; \
-		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php /var/www/html/bin/generate-key; \
+		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php bin/generate-key; \
 	else \
 		echo 'PHP não encontrado para gerar APP_KEY.'; \
 		exit 1; \
@@ -81,10 +81,10 @@ docker-up:
 	$(DOCKER_COMPOSE_SCRIPT) up -d --build
 
 migrate:
-	$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php /var/www/html/bin/migrate
+	$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php bin/migrate
 
 seed:
-	$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php /var/www/html/bin/seed
+	$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app php bin/seed
 
 hooks:
 	@if [ -f vendor/bin/grumphp ]; then \
