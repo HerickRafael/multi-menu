@@ -126,6 +126,10 @@ Os logs são enviados para `storage/logs/app.log` via Monolog. Certifique-se de 
 - Todas as consultas utilizam `PDO` com prepared statements
 - Sanitização básica e validações com `respect/validation`
 
+### Gerador de hash de senha
+
+- Acesse [`http://localhost:8000/admin/hash`](http://localhost:8000/admin/hash) para utilizar a ferramenta que gera valores para o campo `password_hash` dos usuários.
+
 ## Documentação adicional
 
 - `.env.example` descreve as variáveis suportadas
