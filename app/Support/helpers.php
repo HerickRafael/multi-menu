@@ -283,6 +283,7 @@ if (!function_exists('base_url')) {
 
         if ($basePath !== '') {
             $base .= $basePath;
+
         }
 
         $base = rtrim($base, '/');
