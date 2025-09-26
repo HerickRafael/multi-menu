@@ -29,12 +29,14 @@ if (!function_exists('base_url')) {
                 return ['', null];
             }
 
+            // remove aspas e espaços
             $value = trim($value, " \t\n\r\0\x0B\"'");
 
             if ($value === '') {
                 return ['', null];
             }
 
+            // usa só o primeiro item caso venha "a,b,c"
             $value = explode(',', $value, 2)[0];
             $value = trim($value);
 
@@ -42,18 +44,17 @@ if (!function_exists('base_url')) {
                 return ['', null];
             }
 
+            // garante formato parseável por parse_url()
             if (strncmp($value, '//', 2) !== 0) {
                 $value = '//' . ltrim($value, '/');
             }
 
             $parsed = parse_url($value);
-
             if ($parsed === false) {
                 return ['', null];
             }
 
             $host = $parsed['host'] ?? '';
-
             if ($host === '' && isset($parsed['path'])) {
                 $host = $parsed['path'];
             }
@@ -65,15 +66,16 @@ if (!function_exists('base_url')) {
 
         $formatHost = static function (string $host): string {
             $host = trim($host);
-
             if ($host === '') {
                 return '';
             }
 
+            // IPv6 já com colchetes
             if (strncmp($host, '[', 1) === 0 && substr($host, -1) === ']') {
                 return $host;
             }
 
+            // IPv6 sem colchetes
             if (str_contains($host, ':')) {
                 return '[' . trim($host, '[]') . ']';
             }
@@ -87,56 +89,47 @@ if (!function_exists('base_url')) {
             }
 
             $normalizedScheme = strtolower($scheme);
-
             if (($normalizedScheme === 'http' && $port === 80)
-                || ($normalizedScheme === 'https' && $port === 443)) {
+             || ($normalizedScheme === 'https' && $port === 443)) {
                 return '';
             }
 
             return ':' . $port;
         };
 
+        // --- Descoberta de scheme/host/port a partir dos headers/server ---
         $detectedScheme = '';
         $hasDetectedScheme = false;
         $detectedHost = '';
         $detectedPort = null;
 
+        // RFC 7239: Forwarded
         if (!empty($_SERVER['HTTP_FORWARDED'])) {
             $forwardedValues = explode(',', (string) $_SERVER['HTTP_FORWARDED']);
             $firstForwarded = trim($forwardedValues[0]);
 
             if ($firstForwarded !== '') {
                 $pairs = preg_split('/;\s*/', $firstForwarded);
-
                 if (is_array($pairs)) {
                     foreach ($pairs as $pair) {
-                        if ($pair === '') {
-                            continue;
-                        }
+                        if ($pair === '') continue;
 
                         $kv = explode('=', $pair, 2);
-
-                        if (count($kv) !== 2) {
-                            continue;
-                        }
+                        if (count($kv) !== 2) continue;
 
                         $key = strtolower(trim($kv[0]));
                         $value = trim($kv[1], " \t\n\r\0\x0B\"'");
 
-                        if ($value === '') {
-                            continue;
-                        }
+                        if ($value === '') continue;
 
                         if ($key === 'proto') {
                             $detectedScheme = strtolower($value);
                             $hasDetectedScheme = true;
                         } elseif ($key === 'host') {
                             [$forwardHost, $forwardPort] = $parseHostPort($value);
-
                             if ($forwardHost !== '') {
                                 $detectedHost = $forwardHost;
                             }
-
                             if ($forwardPort !== null) {
                                 $detectedPort = $forwardPort;
                             }
@@ -146,44 +139,42 @@ if (!function_exists('base_url')) {
             }
         }
 
+        // X-Forwarded-Host
         if ($detectedHost === '' && !empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
             [$candidateHost, $candidatePort] = $parseHostPort((string) $_SERVER['HTTP_X_FORWARDED_HOST']);
-
             if ($candidateHost !== '') {
                 $detectedHost = $candidateHost;
-
                 if ($detectedPort === null && $candidatePort !== null) {
                     $detectedPort = $candidatePort;
                 }
             }
         }
 
+        // Host direto
         if ($detectedHost === '' && !empty($_SERVER['HTTP_HOST'])) {
             [$candidateHost, $candidatePort] = $parseHostPort((string) $_SERVER['HTTP_HOST']);
-
             if ($candidateHost !== '') {
                 $detectedHost = $candidateHost;
-
                 if ($detectedPort === null && $candidatePort !== null) {
                     $detectedPort = $candidatePort;
                 }
             }
         }
 
+        // SERVER_NAME como último recurso para host
         if ($detectedHost === '' && !empty($_SERVER['SERVER_NAME'])) {
             $detectedHost = (string) $_SERVER['SERVER_NAME'];
         }
 
+        // X-Forwarded-Proto / Scheme / HTTPS
         if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
             $candidate = trim((string) $_SERVER['HTTP_X_FORWARDED_PROTO']);
-
             if ($candidate !== '') {
                 $detectedScheme = strtolower(explode(',', $candidate, 2)[0]);
                 $hasDetectedScheme = true;
             }
         } elseif (!empty($_SERVER['HTTP_X_FORWARDED_SCHEME'])) {
             $candidate = trim((string) $_SERVER['HTTP_X_FORWARDED_SCHEME']);
-
             if ($candidate !== '') {
                 $detectedScheme = strtolower(explode(',', $candidate, 2)[0]);
                 $hasDetectedScheme = true;
@@ -196,14 +187,15 @@ if (!function_exists('base_url')) {
             $hasDetectedScheme = true;
         }
 
+        // Portas encaminhadas/diretas
         if ($detectedPort === null && !empty($_SERVER['HTTP_X_FORWARDED_PORT'])) {
             $detectedPort = (int) $_SERVER['HTTP_X_FORWARDED_PORT'];
         }
-
         if ($detectedPort === null && !empty($_SERVER['SERVER_PORT'])) {
             $detectedPort = (int) $_SERVER['SERVER_PORT'];
         }
 
+        // --- Considera app.url do config, mas sem quebrar detecção dinâmica ---
         $configUrl = (string) config('app.url');
         $parsedConfig = $configUrl !== '' ? parse_url($configUrl) : false;
 
@@ -211,22 +203,23 @@ if (!function_exists('base_url')) {
             $detectedScheme = 'http';
         }
 
-        $scheme = $detectedScheme;
-        $host = $detectedHost;
-        $port = $detectedPort;
-        $auth = '';
+        $scheme = $detectedScheme;  // se já detectamos, prioriza
+        $host   = $detectedHost;
+        $port   = $detectedPort;
+        $auth   = '';
         $basePath = '';
         $configHost = '';
         $configPort = null;
 
         if ($parsedConfig !== false) {
+            // se NÃO detectamos scheme por headers, deixa o do config prevalecer
             if (!empty($parsedConfig['scheme']) && !$hasDetectedScheme) {
                 $scheme = $parsedConfig['scheme'];
             }
 
             if (!empty($parsedConfig['host'])) {
                 $configHost = $parsedConfig['host'];
-
+                // se host não foi detectado ou coincide, usa o do config
                 if ($host === '' || strcasecmp($configHost, $host) === 0) {
                     $host = $configHost;
                 }
@@ -234,7 +227,7 @@ if (!function_exists('base_url')) {
 
             if (isset($parsedConfig['port'])) {
                 $configPort = (int) $parsedConfig['port'];
-
+                // porta do config prevalece quando host é o do config ou não há porta detectada
                 if ($port === null
                     || ($configHost !== '' && strcasecmp($configHost, $host) === 0 && $detectedPort === null)) {
                     $port = $configPort;
@@ -244,16 +237,15 @@ if (!function_exists('base_url')) {
                 && $detectedHost !== ''
                 && strcasecmp($configHost, $detectedHost) === 0
                 && $detectedPort !== null) {
+                // se não há porta no config, mas host bate com detectado, use a detectada
                 $port = $detectedPort;
             }
 
             if (!empty($parsedConfig['user'])) {
                 $auth = $parsedConfig['user'];
-
                 if (!empty($parsedConfig['pass'])) {
                     $auth .= ':' . $parsedConfig['pass'];
                 }
-
                 $auth .= '@';
             }
 
@@ -261,11 +253,13 @@ if (!function_exists('base_url')) {
                 $basePath = (string) $parsedConfig['path'];
             }
         } else {
+            // se config('app.url') tem só um path base
             if ($configUrl !== '') {
                 $basePath = $configUrl;
             }
         }
 
+        // fallback para host/porta caso ainda vazio
         if ($host === '') {
             if ($detectedHost !== '') {
                 $host = $detectedHost;
@@ -284,35 +278,31 @@ if (!function_exists('base_url')) {
             }
         }
 
+        // basePath: tenta derivar da pasta do script se não definido
         if ($basePath === '') {
             $dir = rtrim((string) dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
-
             if ($dir === '.') {
                 $dir = '';
             }
-
             if ($configUrl === '' && $dir !== '') {
                 $basePath = $dir;
             }
         }
 
         $basePath = trim($basePath);
-
         if ($basePath !== '') {
             $basePath = '/' . ltrim($basePath, '/');
             $basePath = rtrim($basePath, '/');
         }
 
-        $scheme = strtolower($scheme);
+        $scheme = $scheme !== '' ? strtolower($scheme) : 'http';
 
         $formattedHost = $formatHost($host);
-
         if ($formattedHost === '') {
             $formattedHost = 'localhost';
         }
 
         $portSegment = $formatPort($port, $scheme);
-
         $base = sprintf('%s://%s%s%s', $scheme, $auth, $formattedHost, $portSegment);
 
         if ($basePath !== '') {
@@ -376,7 +366,6 @@ if (!function_exists('admin_theme_primary_color')) {
     function admin_theme_primary_color(?array $company, string $default = '#5B21B6'): string
     {
         $color = $company['menu_header_bg_color'] ?? ($company['menu_logo_bg_color'] ?? $default);
-
         return normalize_color_hex($color, $default);
     }
 }
@@ -386,7 +375,6 @@ if (!function_exists('admin_theme_gradient')) {
     {
         $base = admin_theme_primary_color($company);
         $soft = hex_to_rgba($base, $opacity, $base);
-
         return sprintf('linear-gradient(%s, %s 0%%, %s 100%%)', $direction, $base, $soft);
     }
 }
@@ -395,14 +383,8 @@ if (!function_exists('is_new_product')) {
     function is_new_product(array $product): bool
     {
         $days = (int) (config('app.novidades_days') ?? 14);
-
-        if ($days <= 0) {
-            return false;
-        }
-
-        if (empty($product['created_at'])) {
-            return false;
-        }
+        if ($days <= 0) return false;
+        if (empty($product['created_at'])) return false;
 
         return strtotime($product['created_at']) >= strtotime("-{$days} days");
     }
@@ -412,13 +394,13 @@ if (!function_exists('normalize_whatsapp_e164')) {
     function normalize_whatsapp_e164(string $raw, string $defaultCountry = '55'): string
     {
         $digits = preg_replace('/\D+/', '', $raw);
-
         if ($digits === null || $digits === '') {
             return '';
         }
 
         $digits = ltrim($digits, '0');
 
+        // Brasil (55) com 10-11 dígitos
         if (preg_match('/^55\d{10,11}$/', $digits)) {
             return $digits;
         }
