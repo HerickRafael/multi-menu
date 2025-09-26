@@ -6,25 +6,6 @@ declare(strict_types=1);
 $router->get('/admin/hash', 'AdminHashController@show');
 $router->post('/admin/hash', 'AdminHashController@generate');
 
-/* ========= Rotas públicas (cardápio) ========= */
-$router->get('/{slug}', 'PublicHomeController@index');
-$router->get('/{slug}/buscar', 'PublicHomeController@buscar');
-$router->get('/{slug}/produto/{id}', 'PublicProductController@show');
-$router->get('/{slug}/product/{id}', 'PublicProductController@show');
-
-/* Personalização de produto */
-$router->get('/{slug}/produto/{id}/customizar', 'PublicProductController@customize');
-$router->post('/{slug}/produto/{id}/customizar', 'PublicProductController@saveCustomization');
-
-/* Carrinho */
-$router->get('/{slug}/cart', 'PublicCartController@index');
-$router->post('/{slug}/cart/add', 'PublicCartController@add');
-
-/* ========= Rotas cliente ========= */
-$router->post('/{slug}/customer-login', 'CustomerAuthController@login');
-$router->post('/{slug}/customer-logout', 'CustomerAuthController@logout');
-$router->get('/{slug}/customer-me', 'CustomerAuthController@me');
-
 /* ========= Rotas admin ========= */
 $router->get('/admin/{slug}/login', 'AdminAuthController@loginForm');
 $router->post('/admin/{slug}/login', 'AdminAuthController@login');
@@ -69,3 +50,22 @@ $router->post('/admin/{slug}/delivery-fees/zones/{id}', 'AdminDeliveryFeeControl
 $router->post('/admin/{slug}/delivery-fees/zones/{id}/delete', 'AdminDeliveryFeeController@destroyZone');
 $router->post('/admin/{slug}/delivery-fees/zones-adjust', 'AdminDeliveryFeeController@adjustZones');
 $router->post('/admin/{slug}/delivery-fees/options', 'AdminDeliveryFeeController@updateOptions');
+
+/* ========= Rotas públicas (cardápio) ========= */
+$router->get('/{slug}', 'PublicHomeController@index');
+$router->get('/{slug}/buscar', 'PublicHomeController@buscar');
+$router->get('/{slug}/produto/{id}', 'PublicProductController@show');
+$router->get('/{slug}/product/{id}', 'PublicProductController@show');
+
+/* Personalização de produto */
+$router->get('/{slug}/produto/{id}/customizar', 'PublicProductController@customize');
+$router->post('/{slug}/produto/{id}/customizar', 'PublicProductController@saveCustomization');
+
+/* Carrinho */
+$router->get('/{slug}/cart', 'PublicCartController@index');
+$router->post('/{slug}/cart/add', 'PublicCartController@add');
+
+/* ========= Rotas cliente ========= */
+$router->post('/{slug}/customer-login', 'CustomerAuthController@login');
+$router->post('/{slug}/customer-logout', 'CustomerAuthController@logout');
+$router->get('/{slug}/customer-me', 'CustomerAuthController@me');
