@@ -1,6 +1,7 @@
 /vendor/
 /.env
 /.phpunit.result.cache
+/.phpunit.cache/
 /.php-cs-fixer.cache
 /var/cache/*
 !/var/cache/.gitignore

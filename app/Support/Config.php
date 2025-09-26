@@ -52,6 +52,24 @@ final class Config
         self::$items = $items;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public static function all(): array
+    {
+        self::ensureLoaded();
+
+        return self::$items ?? [];
+    }
+
+    /**
+     * @param array<string, mixed>|null $items
+     */
+    public static function replace(?array $items): void
+    {
+        self::$items = $items;
+    }
+
     public static function get(string $key, mixed $default = null): mixed
     {
         self::ensureLoaded();
