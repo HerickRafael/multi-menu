@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Application\Services;
 
 use App\Domain\Models\Company;
+use PDOException;
+use RuntimeException;
 
 final class CompanyService
 {
@@ -20,7 +22,14 @@ final class CompanyService
 
     public function all(): array
     {
-        return Company::all();
+        try {
+            return Company::all();
+        } catch (PDOException|RuntimeException $exception) {
+            // Quando o banco de dados ainda não está acessível (ex.: containers subindo)
+            // evitamos propagar o erro para a camada HTTP. A tela inicial continua
+            // disponível e o log já registra o problema via Router::dispatch().
+            return [];
+        }
     }
 
     public function update(int $id, array $data): void
