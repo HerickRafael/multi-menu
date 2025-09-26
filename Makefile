@@ -1,123 +1,49 @@
-SHELL := /bin/bash
-OS := $(shell uname)
-DOCKER_COMPOSE_SCRIPT := $(CURDIR)/scripts/docker_compose.sh
-COMPOSER_BIN := $(shell command -v composer 2>/dev/null)
-NPM_BIN := $(shell command -v npm 2>/dev/null)
-PHP_BIN := $(shell command -v php 2>/dev/null)
+#!/usr/bin/env bash
+set -euo pipefail
 
-.PHONY: setup brew docker-env env composer-install npm-install docker-up migrate seed hooks down logs xampp
+task="${1:-}"
+if [[ "$task" != "migrate" && "$task" != "seed" ]]; then
+  echo "Uso: $0 {migrate|seed}" >&2
+  exit 1
+fi
 
-setup: brew docker-env env composer-install npm-install docker-up migrate seed hooks
+# Resolve paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+DOCKER_COMPOSE_SCRIPT="${ROOT_DIR}/scripts/docker_compose.sh"
 
-brew:
-	@if [ "$(OS)" = "Darwin" ]; then \
-		bash $(CURDIR)/scripts/brew_setup.sh; \
-	else \
-		echo 'Homebrew não é necessário neste sistema. Pulando etapa.'; \
-	fi
+if [[ ! -x "${DOCKER_COMPOSE_SCRIPT}" ]]; then
+  echo "Erro: ${DOCKER_COMPOSE_SCRIPT} não encontrado ou sem permissão de execução." >&2
+  echo "Dê:  chmod +x ${DOCKER_COMPOSE_SCRIPT}" >&2
+  exit 1
+fi
 
-docker-env:
-	@if ! command -v docker >/dev/null 2>&1; then \
-		echo 'Docker CLI não encontrado. Instale Docker Desktop ou use brew install docker.'; \
-		exit 1; \
-	fi; \
-	if ! docker info >/dev/null 2>&1; then \
-		if command -v colima >/dev/null 2>&1; then \
-			echo 'Inicializando Colima...'; \
-			colima start --cpu 4 --memory 4 --disk 40; \
-		else \
-			echo 'Docker não está em execução. Inicie o Docker Desktop e rode make setup novamente.'; \
-			exit 1; \
-		fi; \
-	else \
-		echo 'Docker engine disponível.'; \
-	fi; \
-	$(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1 && echo 'Docker Compose disponível.'
+# Comandos candidatos no container (WORKDIR costuma ser /var/www/html)
+php_bin_task="php /var/www/html/bin/${task}"
+artisan_migrate="php /var/www/html/artisan migrate --force"
+artisan_seed="php /var/www/html/artisan db:seed --force"
+phinx_migrate="/var/www/html/vendor/bin/phinx migrate || /var/www/html/vendor/bin/phinx migrate -e production"
+phinx_seed="/var/www/html/vendor/bin/phinx seed:run"
+doctrine_migrate="php /var/www/html/bin/console doctrine:migrations:migrate --no-interaction"
+doctrine_seed="php /var/www/html/bin/console doctrine:fixtures:load --no-interaction"
 
-env:
-	@if [ ! -f .env ]; then \
-		echo 'Copiando .env.example para .env'; \
-		cp .env.example .env; \
-	fi; \
-	if [ -n "$(PHP_BIN)" ]; then \
-		if [ -f bin/generate-key ]; then \
-			php bin/generate-key; \
-		elif [ -f artisan ]; then \
-			php artisan key:generate --force; \
-		else \
-			echo 'Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan).'; \
-		fi; \
-	elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
-		echo 'Gerando APP_KEY dentro do container...'; \
-		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
-			if [ -f bin/generate-key ]; then php bin/generate-key; \
-			elif [ -f artisan ]; then php artisan key:generate --force; \
-			else echo "Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan)."; exit 1; fi'; \
-	else \
-		echo 'PHP não encontrado para gerar APP_KEY.'; \
-		exit 1; \
-	fi
+# Escolhe comando
+cmd=""
+if "${DOCKER_COMPOSE_SCRIPT}" exec -T app test -f /var/www/html/bin/"${task}"; then
+  cmd="${php_bin_task}"
+elif "${DOCKER_COMPOSE_SCRIPT}" exec -T app test -f /var/www/html/artisan; then
+  if [[ "$task" == "migrate" ]]; then cmd="${artisan_migrate}"; else cmd="${artisan_seed}"; fi
+elif "${DOCKER_COMPOSE_SCRIPT}" exec -T app sh -lc 'test -x /var/www/html/vendor/bin/phinx || test -f /var/www/html/vendor/bin/phinx'; then
+  if [[ "$task" == "migrate" ]]; then cmd="${phinx_migrate}"; else cmd="${phinx_seed}"; fi
+elif "${DOCKER_COMPOSE_SCRIPT}" exec -T app test -f /var/www/html/bin/console; then
+  if [[ "$task" == "migrate" ]]; then cmd="${doctrine_migrate}"; else cmd="${doctrine_seed}"; fi
+else
+  echo "❌ Nenhuma rotina de ${task} encontrada (bin/${task}, artisan, phinx, doctrine)." >&2
+  exit 1
+fi
 
-composer-install:
-	@if [ -f composer.json ]; then \
-		if [ -n "$(COMPOSER_BIN)" ]; then \
-			$(COMPOSER_BIN) install --no-interaction --prefer-dist; \
-		elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
-			echo 'Executando composer install via container...'; \
-			$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app composer install --no-interaction --prefer-dist; \
-		else \
-			echo 'Composer não encontrado.'; \
-			exit 1; \
-		fi; \
-	fi
-
-npm-install:
-	@if [ -f package.json ]; then \
-		if [ -n "$(NPM_BIN)" ]; then \
-			$(NPM_BIN) install; \
-		elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
-			echo 'Executando npm install via container Node...'; \
-			$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps node npm install; \
-		else \
-			echo 'npm não encontrado. Instale Node.js ou utilize Docker.'; \
-			exit 1; \
-		fi; \
-	else \
-		echo 'package.json não encontrado. Pulando npm install.'; \
-	fi
-
-docker-up:
-	$(DOCKER_COMPOSE_SCRIPT) up -d --build
-
-# Rotina para migração/seed via script auxiliar
-RUN_APP_TASK_SCRIPT := $(CURDIR)/scripts/run_app_task.sh
-
-# ---------------------------------------------------------------------------
-
-migrate:
-	@$(RUN_APP_TASK_SCRIPT) migrate
-
-seed:
-	@$(RUN_APP_TASK_SCRIPT) seed
-
-hooks:
-	@if [ -f vendor/bin/grumphp ]; then \
-		vendor/bin/grumphp git:init; \
-	else \
-		echo 'GrumPHP não encontrado. Certifique-se de que o composer install foi executado.'; \
-		exit 1; \
-	fi
-
-down:
-	$(DOCKER_COMPOSE_SCRIPT) down
-
-logs:
-	$(DOCKER_COMPOSE_SCRIPT) logs -f
-
-xampp: env composer-install
-	@if [ -n "$(PHP_BIN)" ]; then \
-		php -S 127.0.0.1:8000 -t public; \
-	else \
-		echo 'PHP CLI não encontrado. Instale PHP para executar make xampp.'; \
-		exit 1; \
-	fi
+# Tenta em container já rodando; se falhar, usa container temporário
+if ! "${DOCKER_COMPOSE_SCRIPT}" exec -T app sh -lc "${cmd}"; then
+  echo "Fallback: executando ${task} em um container temporário..."
+  "${DOCKER_COMPOSE_SCRIPT}" run --rm --no-deps app sh -lc "${cmd}"
+fi
