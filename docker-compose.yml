@@ -45,14 +45,17 @@ services:
       - redis_data:/data
 
   phpmyadmin:
-    image: phpmyadmin:5
+    image: phpmyadmin:5.2
     restart: unless-stopped
     ports:
       - "${FORWARD_PHPMYADMIN_PORT:-8081}:80"
     environment:
-      PMA_HOST: mysql
+      PMA_HOST: ${DB_HOST:-mysql}
+      PMA_PORT: ${DB_PORT:-3306}
       PMA_USER: ${DB_USERNAME:-menu}
       PMA_PASSWORD: ${DB_PASSWORD:-secret}
+      PMA_ARBITRARY: 0
+      PMA_ABSOLUTE_URI: "http://localhost:${FORWARD_PHPMYADMIN_PORT:-8081}/"
     depends_on:
       - mysql
 

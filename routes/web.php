@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+/* ========= Ferramentas ========= */
+$router->get('/admin/hash', 'AdminHashController@show');
+$router->post('/admin/hash', 'AdminHashController@generate');
+
 /* ========= Rotas públicas (cardápio) ========= */
 $router->get('/{slug}', 'PublicHomeController@index');
 $router->get('/{slug}/buscar', 'PublicHomeController@buscar');
