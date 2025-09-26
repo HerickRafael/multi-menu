@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+$router->get('/', 'WelcomeController@index');
+
 /* ========= Ferramentas ========= */
 $router->get('/admin/hash', 'AdminHashController@show');
 $router->post('/admin/hash', 'AdminHashController@generate');
