@@ -33,6 +33,16 @@ class AdminDashboardController extends Controller
         $this->ingredients = new IngredientService();
     }
 
+    private function ensureCompanyContext(int $companyId, string $slug): void
+    {
+        Auth::setActiveCompany($companyId, $slug);
+    }
+
+    private function currentCompanySlug(): ?string
+    {
+        return Auth::activeCompanySlug();
+    }
+
     /**
    * Garante autenticação e contexto de empresa pelo slug.
    * Retorna [ $user, $company ].
