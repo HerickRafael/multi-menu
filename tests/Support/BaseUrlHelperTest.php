@@ -9,7 +9,6 @@ use App\Support\Config;
 use function base_url;
 
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
 
 final class BaseUrlHelperTest extends TestCase
 {
@@ -111,12 +110,7 @@ final class BaseUrlHelperTest extends TestCase
      */
     private function getConfigItems(): array
     {
-        $configRef = new ReflectionClass(Config::class);
-        $itemsProp = $configRef->getProperty('items');
-        $itemsProp->setAccessible(true);
-        $items = $itemsProp->getValue();
-
-        return is_array($items) ? $items : [];
+        return Config::all();
     }
 
     /**
@@ -124,9 +118,6 @@ final class BaseUrlHelperTest extends TestCase
      */
     private function setConfigItems(array $items): void
     {
-        $configRef = new ReflectionClass(Config::class);
-        $itemsProp = $configRef->getProperty('items');
-        $itemsProp->setAccessible(true);
-        $itemsProp->setValue($items);
+        Config::replace($items);
     }
 }
