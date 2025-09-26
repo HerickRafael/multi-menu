@@ -89,51 +89,16 @@ npm-install:
 docker-up:
 	$(DOCKER_COMPOSE_SCRIPT) up -d --build
 
-# ---------- Macro para migrar/semear com auto-detecção no container ----------
-define run_app_task
-	cmd=''; \
-	# 1) Scripts próprios
-	if $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/bin/$(1); then \
-		cmd='php /var/www/html/bin/$(1)'; \
-	# 2) Laravel (artisan)
-	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/artisan; then \
-		if [ "$(1)" = "migrate" ]; then \
-			cmd='php /var/www/html/artisan migrate --force'; \
-		else \
-			cmd='php /var/www/html/artisan db:seed --force'; \
-		fi; \
-	# 3) Phinx
-	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -x /var/www/html/vendor/bin/phinx || $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/vendor/bin/phinx; then \
-		if [ "$(1)" = "migrate" ]; then \
-			cmd='/var/www/html/vendor/bin/phinx migrate || /var/www/html/vendor/bin/phinx migrate -e production'; \
-		else \
-			cmd='/var/www/html/vendor/bin/phinx seed:run'; \
-		fi; \
-	# 4) Symfony/Doctrine via bin/console
-	elif $(DOCKER_COMPOSE_SCRIPT) exec -T app test -f /var/www/html/bin/console; then \
-		if [ "$(1)" = "migrate" ]; then \
-			cmd='php /var/www/html/bin/console doctrine:migrations:migrate --no-interaction'; \
-		else \
-			cmd='php /var/www/html/bin/console doctrine:fixtures:load --no-interaction'; \
-		fi; \
-	fi; \
-	if [ -z "$$cmd" ]; then \
-		echo '❌ Nenhuma rotina de $(1) encontrada (bin/$(1), artisan, phinx, doctrine).'; \
-		exit 1; \
-	fi; \
-	# Tenta em container já rodando; se falhar, roda em container temporário
-	if ! $(DOCKER_COMPOSE_SCRIPT) exec -T app sh -lc "$$cmd"; then \
-		echo 'Fallback: executando $(1) em um container temporário...'; \
-		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc "$$cmd"; \
-	fi
-endef
+# Rotina para migração/seed via script auxiliar
+RUN_APP_TASK_SCRIPT := $(CURDIR)/scripts/run_app_task.sh
+
 # ---------------------------------------------------------------------------
 
 migrate:
-	@$(call run_app_task,migrate)
+	@$(RUN_APP_TASK_SCRIPT) migrate
 
 seed:
-	@$(call run_app_task,seed)
+	@$(RUN_APP_TASK_SCRIPT) seed
 
 hooks:
 	@if [ -f vendor/bin/grumphp ]; then \
