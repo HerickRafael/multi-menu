@@ -1,119 +1,119 @@
 SHELL := /bin/bash
-OS := $(shell uname)
-DOCKER_COMPOSE_SCRIPT := $(CURDIR)/scripts/docker_compose.sh
-RUN_APP_TASK := $(CURDIR)/scripts/run_app_task.sh
-COMPOSER_BIN := $(shell command -v composer 2>/dev/null)
-NPM_BIN := $(shell command -v npm 2>/dev/null)
-PHP_BIN := $(shell command -v php 2>/dev/null)
+SO := $( shell uname)
+DOCKER_COMPOSE_SCRIPT := $(CURDIR) /scripts/docker_compose.sh
+EXECUTAR_TAREFA_APP := $(CURDIR) /scripts/run_app_task.sh
+COMPOSER_BIN := $( comando shell -v composer 2>/dev/null)
+NPM_BIN := $( comando shell -v npm 2>/dev/null)
+PHP_BIN := $( comando shell -v php 2>/dev/null)
 
-.PHONY: setup brew docker-env env composer-install npm-install docker-up migrate seed hooks down logs xampp
+.PHONY : configuração brew docker-env env composer-install npm-install docker-up migrate seed hooks down logs xampp
 
-setup: brew docker-env env composer-install npm-install docker-up migrate seed hooks
+configuração: brew docker-env env composer-install npm-install docker-up migrate seed hooks
 
-brew:
-	@if [ "$(OS)" = "Darwin" ]; then \
-		bash $(CURDIR)/scripts/brew_setup.sh; \
-	else \
+infusão:
+	@if [ " $(OS) " = "Darwin" ]; então \
+		bash $(CURDIR) /scripts/brew_setup.sh; \
+	outro \
 		echo 'Homebrew não é necessário neste sistema. Pulando etapa.'; \
-	fi
+	ser
 
-docker-env:
-	@if ! command -v docker >/dev/null 2>&1; then \
+ambiente docker:
+	@if ! comando -v docker >/dev/null 2>&1; então \
 		echo 'Docker CLI não encontrado. Instale Docker Desktop ou use brew install docker.'; \
-		exit 1; \
-	fi; \
-	if ! docker info >/dev/null 2>&1; then \
-		if command -v colima >/dev/null 2>&1; then \
+		saída 1; \
+	ser; \
+	se ! docker info >/dev/null 2>&1; então \
+		se comando -v colima >/dev/null 2>&1; então \
 			echo 'Inicializando Colima...'; \
-			colima start --cpu 4 --memory 4 --disk 40; \
-		else \
+			colima start --cpu 4 --memória 4 --disco 40; \
+		outro \
 			echo 'Docker não está em execução. Inicie o Docker Desktop e rode make setup novamente.'; \
-			exit 1; \
-		fi; \
-	else \
+			saída 1; \
+		ser; \
+	outro \
 		echo 'Docker engine disponível.'; \
-	fi; \
-	$(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1 && echo 'Docker Compose disponível.'
+	ser; \
+	$(DOCKER_COMPOSE_SCRIPT) versão >/dev/null 2>&1 && echo 'Docker Compose disponível.'
 
-env:
-	@if [ ! -f .env ]; then \
+ambiente:
+	@if [ ! -f .env ]; então \
 		echo 'Copiando .env.example para .env'; \
-		cp .env.example .env; \
-	fi; \
-	if [ -n "$(PHP_BIN)" ]; then \
-		if [ -f bin/generate-key ]; then \
-			php bin/generate-key; \
-		elif [ -f artisan ]; then \
-			php artisan key:generate --force; \
-		else \
+		cp .env.exemplo .env; \
+	ser; \
+	se [ -n " ​​$(PHP_BIN) " ]; então \
+		se [ -f bin/generate-key ]; então \
+			php bin/gerar-chave; \
+		elif [ -f artesão ]; então \
+			chave php artisan:generate --force; \
+		outro \
 			echo 'Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan).'; \
-		fi; \
-	elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
+		ser; \
+	elif $(DOCKER_COMPOSE_SCRIPT) versão >/dev/null 2>&1; então \
 		echo 'Gerando APP_KEY dentro do container...'; \
-		$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app sh -lc '\
-			if [ -f bin/generate-key ]; then php bin/generate-key; \
-			elif [ -f artisan ]; then php artisan key:generate --force; \
+		$(DOCKER_COMPOSE_SCRIPT) execute --rm --no-deps aplicativo sh -lc '\
+			se [ -f bin/gerar-chave ]; então php bin/gerar-chave; \
+			elif [ -f artisan ]; então chave php artisan:generate --force; \
 			else echo "Nenhuma rotina de geração de chave encontrada (bin/generate-key ou artisan)."; exit 1; fi'; \
-	else \
+	outro \
 		echo 'PHP não encontrado para gerar APP_KEY.'; \
-		exit 1; \
-	fi
+		saída 1; \
+	ser
 
-composer-install:
-	@if [ -f composer.json ]; then \
-		if [ -n "$(COMPOSER_BIN)" ]; then \
-			$(COMPOSER_BIN) install --no-interaction --prefer-dist; \
-		elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
+compositor-instalação:
+	@if [ -f composer.json ]; então \
+		se [ -n " ​​$(COMPOSER_BIN) " ]; então \
+			$(COMPOSER_BIN) instalar --no-interaction --prefer-dist; \
+		elif $(DOCKER_COMPOSE_SCRIPT) versão >/dev/null 2>&1; então \
 			echo 'Executando composer install via container...'; \
-			$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps app composer install --no-interaction --prefer-dist; \
-		else \
+			$(DOCKER_COMPOSE_SCRIPT) execute --rm --no-deps app composer install --no-interaction --prefer-dist; \
+		outro \
 			echo 'Composer não encontrado.'; \
-			exit 1; \
-		fi; \
-	fi
+			saída 1; \
+		ser; \
+	ser
 
-npm-install:
-	@if [ -f package.json ]; then \
-		if [ -n "$(NPM_BIN)" ]; then \
-			$(NPM_BIN) install; \
-		elif $(DOCKER_COMPOSE_SCRIPT) version >/dev/null 2>&1; then \
+npm-instalação:
+	@if [ -f pacote.json ]; então \
+		se [ -n " ​​$(NPM_BIN) " ]; então \
+			$(NPM_BIN) instalar; \
+		elif $(DOCKER_COMPOSE_SCRIPT) versão >/dev/null 2>&1; então \
 			echo 'Executando npm install via container Node...'; \
-			$(DOCKER_COMPOSE_SCRIPT) run --rm --no-deps node npm install; \
-		else \
-			echo 'npm não encontrado. Instale Node.js ou utilize Docker.'; \
-			exit 1; \
-		fi; \
-	else \
+			$(DOCKER_COMPOSE_SCRIPT) execute --rm --no-deps node npm install; \
+		outro \
+			echo 'npm não encontrado. Instale Node.js ou use Docker.'; \
+			saída 1; \
+		ser; \
+	outro \
 		echo 'package.json não encontrado. Pulando npm install.'; \
-	fi
+	ser
 
 docker-up:
 	$(DOCKER_COMPOSE_SCRIPT) up -d --build
 
-migrate:
-	@$(RUN_APP_TASK) migrate
+migrar:
+	@ $(RUN_APP_TASK) migrar
 
-seed:
-	@$(RUN_APP_TASK) seed
+semente:
+	@ $(RUN_APP_TASK) semente
 
-hooks:
-	@if [ -f vendor/bin/grumphp ]; then \
-		vendor/bin/grumphp git:init; \
-	else \
+ganchos:
+	@if [ -f fornecedor/bin/grumphp ]; então \
+		fornecedor/bin/grumphp git:init; \
+	outro \
 		echo 'GrumPHP não encontrado. Certifique-se de que o composer install foi executado.'; \
-		exit 1; \
-	fi
+		saída 1; \
+	ser
 
-down:
-	$(DOCKER_COMPOSE_SCRIPT) down
+abaixo:
+	$(DOCKER_COMPOSE_SCRIPT) inativo
 
-logs:
-	$(DOCKER_COMPOSE_SCRIPT) logs -f
+registros:
+	$(DOCKER_COMPOSE_SCRIPT) registros -f
 
-xampp: env composer-install
-	@if [ -n "$(PHP_BIN)" ]; then \
-		php -S 127.0.0.1:8000 -t public; \
-	else \
+xampp: ambiente compositor-instalação
+	@if [ -n " ​​$(PHP_BIN) " ]; então \
+		php -S 127.0.0.1:8000 -t público; \
+	outro \
 		echo 'PHP CLI não encontrado. Instale PHP para executar make xampp.'; \
-		exit 1; \
-	fi
+		saída 1; \
+	ser
