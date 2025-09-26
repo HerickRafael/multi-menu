@@ -118,7 +118,7 @@ define run_app_task
 		fi; \
 	fi; \
 	if [ -z "$$cmd" ]; then \
-		echo '❌ Nenhuma rotina de $(1) encontrada (bin/$(1), artisan, phinx, doctrine).'; \
+		echo 'Nenhuma rotina de $(1) encontrada (bin/$(1), artisan, phinx, doctrine).'; \
 		exit 1; \
 	fi; \
 	# Tenta em container já rodando; se falhar, roda em container temporário

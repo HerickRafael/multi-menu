@@ -4,9 +4,6 @@
 declare(strict_types=1);
 
 use Dotenv\Dotenv;
-use PDO;
-use PDOException;
-use RuntimeException;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -22,17 +19,17 @@ $dbUser = $_ENV['DB_USERNAME'] ?? 'root';
 $dbPassword = $_ENV['DB_PASSWORD'] ?? '';
 
 try {
-    $pdo = new PDO(
+    $pdo = new \PDO(
         sprintf('mysql:host=%s;port=%d;charset=utf8mb4', $dbHost, $dbPort),
         $dbUser,
         $dbPassword,
         [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => true,
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+            \PDO::ATTR_EMULATE_PREPARES => true,
         ]
     );
-} catch (PDOException $exception) {
+} catch (\PDOException $exception) {
     fwrite(STDERR, 'Não foi possível conectar ao banco de dados: ' . $exception->getMessage() . PHP_EOL);
     exit(1);
 }
@@ -71,12 +68,12 @@ foreach ($migrationFiles as $file) {
 
 echo '> Migrações concluídas.' . PHP_EOL;
 
-function runSqlFile(PDO $pdo, string $path): void
+function runSqlFile(\PDO $pdo, string $path): void
 {
     $sql = file_get_contents($path);
 
     if ($sql === false) {
-        throw new RuntimeException(sprintf('Não foi possível ler o arquivo de migração "%s".', $path));
+        throw new \RuntimeException(sprintf('Não foi possível ler o arquivo de migração "%s".', $path));
     }
 
     $normalized = preg_replace('/^--.*$/m', '', $sql) ?? $sql;
