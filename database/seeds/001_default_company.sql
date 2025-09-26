@@ -24,8 +24,8 @@ INSERT INTO companies (
   created_at
 ) VALUES (
   1,
-  'demo-burger',
-  'Demo Burger',
+  'wollburger',
+  'WollBurger',
   '11999998888',
   'Av. Central, 123, São Paulo - SP',
   'Peça os clássicos da casa!',
