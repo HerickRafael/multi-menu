@@ -82,6 +82,13 @@ Quando terminar o trabalho, desligue o ambiente com `make down` seguido de `coli
 
    O alvo utiliza o servidor embutido do PHP (`php -S 127.0.0.1:8000 -t public`).
 
+   Se preferir executar o servidor manualmente a partir da raiz do projeto, utilize o roteador
+   `server.php` adicionado para o servidor embutido do PHP:
+
+   ```bash
+   php -S 127.0.0.1:8000 server.php
+   ```
+
 > Para ambientes XAMPP/MAMP basta apontar o DocumentRoot para o diretório `public/` e garantir que o PHP CLI utilize as mesmas extensões configuradas no servidor.
 
 
