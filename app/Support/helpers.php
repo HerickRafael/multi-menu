@@ -24,6 +24,35 @@ if (!function_exists('base_url')) {
     {
         $base = (string) config('app.url');
 
+        if ($base !== '') {
+            $hostHeader = $_SERVER['HTTP_HOST'] ?? '';
+
+            if ($hostHeader !== '') {
+                $parsed = parse_url($base);
+
+                if ($parsed !== false && isset($parsed['host'])) {
+                    $headerHost = $hostHeader;
+                    $headerPort = null;
+
+                    if (str_contains($hostHeader, ':')) {
+                        [$headerHost, $headerPort] = explode(':', $hostHeader, 2);
+                    }
+
+                    if ($headerPort !== null
+                        && !isset($parsed['port'])
+                        && strcasecmp($parsed['host'], $headerHost) === 0) {
+                        $scheme = $parsed['scheme'] ?? 'http';
+                        $user = $parsed['user'] ?? '';
+                        $pass = $parsed['pass'] ?? '';
+                        $auth = $user !== '' ? $user . ($pass !== '' ? ':' . $pass : '') . '@' : '';
+                        $basePath = $parsed['path'] ?? '';
+
+                        $base = sprintf('%s://%s%s%s', $scheme, $auth, $hostHeader, $basePath);
+                    }
+                }
+            }
+        }
+
         if ($base === '') {
             $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
