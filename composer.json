@@ -44,7 +44,7 @@
       "phpstan analyse --memory-limit=512M"
     ],
     "test": [
-      "phpunit"
+      "@php vendor/bin/phpunit"
     ],
     "quality": [
       "@lint",
