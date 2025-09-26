@@ -22,42 +22,301 @@ if (!function_exists('config')) {
 if (!function_exists('base_url')) {
     function base_url(string $path = ''): string
     {
-        $base = (string) config('app.url');
+        $parseHostPort = static function (?string $value): array {
+            $value = trim((string) ($value ?? ''));
 
-        if ($base !== '') {
-            $hostHeader = $_SERVER['HTTP_HOST'] ?? '';
+            if ($value === '') {
+                return ['', null];
+            }
 
-            if ($hostHeader !== '') {
-                $parsed = parse_url($base);
+            $value = trim($value, " \t\n\r\0\x0B\"'");
 
-                if ($parsed !== false && isset($parsed['host'])) {
-                    $headerHost = $hostHeader;
-                    $headerPort = null;
+            if ($value === '') {
+                return ['', null];
+            }
 
-                    if (str_contains($hostHeader, ':')) {
-                        [$headerHost, $headerPort] = explode(':', $hostHeader, 2);
-                    }
+            $value = explode(',', $value, 2)[0];
+            $value = trim($value);
 
-                    if ($headerPort !== null
-                        && !isset($parsed['port'])
-                        && strcasecmp($parsed['host'], $headerHost) === 0) {
-                        $scheme = $parsed['scheme'] ?? 'http';
-                        $user = $parsed['user'] ?? '';
-                        $pass = $parsed['pass'] ?? '';
-                        $auth = $user !== '' ? $user . ($pass !== '' ? ':' . $pass : '') . '@' : '';
-                        $basePath = $parsed['path'] ?? '';
+            if ($value === '') {
+                return ['', null];
+            }
 
-                        $base = sprintf('%s://%s%s%s', $scheme, $auth, $hostHeader, $basePath);
+            if (strncmp($value, '//', 2) !== 0) {
+                $value = '//' . ltrim($value, '/');
+            }
+
+            $parsed = parse_url($value);
+
+            if ($parsed === false) {
+                return ['', null];
+            }
+
+            $host = $parsed['host'] ?? '';
+
+            if ($host === '' && isset($parsed['path'])) {
+                $host = $parsed['path'];
+            }
+
+            $port = isset($parsed['port']) ? (int) $parsed['port'] : null;
+
+            return [$host, $port];
+        };
+
+        $formatHost = static function (string $host): string {
+            $host = trim($host);
+
+            if ($host === '') {
+                return '';
+            }
+
+            if (strncmp($host, '[', 1) === 0 && substr($host, -1) === ']') {
+                return $host;
+            }
+
+            if (str_contains($host, ':')) {
+                return '[' . trim($host, '[]') . ']';
+            }
+
+            return $host;
+        };
+
+        $formatPort = static function (?int $port, string $scheme): string {
+            if ($port === null) {
+                return '';
+            }
+
+            $normalizedScheme = strtolower($scheme);
+
+            if (($normalizedScheme === 'http' && $port === 80)
+                || ($normalizedScheme === 'https' && $port === 443)) {
+                return '';
+            }
+
+            return ':' . $port;
+        };
+
+        $detectedScheme = '';
+        $hasDetectedScheme = false;
+        $detectedHost = '';
+        $detectedPort = null;
+
+        if (!empty($_SERVER['HTTP_FORWARDED'])) {
+            $forwardedValues = explode(',', (string) $_SERVER['HTTP_FORWARDED']);
+            $firstForwarded = trim($forwardedValues[0]);
+
+            if ($firstForwarded !== '') {
+                $pairs = preg_split('/;\s*/', $firstForwarded);
+
+                if (is_array($pairs)) {
+                    foreach ($pairs as $pair) {
+                        if ($pair === '') {
+                            continue;
+                        }
+
+                        $kv = explode('=', $pair, 2);
+
+                        if (count($kv) !== 2) {
+                            continue;
+                        }
+
+                        $key = strtolower(trim($kv[0]));
+                        $value = trim($kv[1], " \t\n\r\0\x0B\"'");
+
+                        if ($value === '') {
+                            continue;
+                        }
+
+                        if ($key === 'proto') {
+                            $detectedScheme = strtolower($value);
+                            $hasDetectedScheme = true;
+                        } elseif ($key === 'host') {
+                            [$forwardHost, $forwardPort] = $parseHostPort($value);
+
+                            if ($forwardHost !== '') {
+                                $detectedHost = $forwardHost;
+                            }
+
+                            if ($forwardPort !== null) {
+                                $detectedPort = $forwardPort;
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if ($base === '') {
-            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $dir    = rtrim((string) dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
-            $base   = $scheme . '://' . $host . ($dir ? $dir : '');
+        if ($detectedHost === '' && !empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+            [$candidateHost, $candidatePort] = $parseHostPort((string) $_SERVER['HTTP_X_FORWARDED_HOST']);
+
+            if ($candidateHost !== '') {
+                $detectedHost = $candidateHost;
+
+                if ($detectedPort === null && $candidatePort !== null) {
+                    $detectedPort = $candidatePort;
+                }
+            }
+        }
+
+        if ($detectedHost === '' && !empty($_SERVER['HTTP_HOST'])) {
+            [$candidateHost, $candidatePort] = $parseHostPort((string) $_SERVER['HTTP_HOST']);
+
+            if ($candidateHost !== '') {
+                $detectedHost = $candidateHost;
+
+                if ($detectedPort === null && $candidatePort !== null) {
+                    $detectedPort = $candidatePort;
+                }
+            }
+        }
+
+        if ($detectedHost === '' && !empty($_SERVER['SERVER_NAME'])) {
+            $detectedHost = (string) $_SERVER['SERVER_NAME'];
+        }
+
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            $candidate = trim((string) $_SERVER['HTTP_X_FORWARDED_PROTO']);
+
+            if ($candidate !== '') {
+                $detectedScheme = strtolower(explode(',', $candidate, 2)[0]);
+                $hasDetectedScheme = true;
+            }
+        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_SCHEME'])) {
+            $candidate = trim((string) $_SERVER['HTTP_X_FORWARDED_SCHEME']);
+
+            if ($candidate !== '') {
+                $detectedScheme = strtolower(explode(',', $candidate, 2)[0]);
+                $hasDetectedScheme = true;
+            }
+        } elseif (!empty($_SERVER['REQUEST_SCHEME'])) {
+            $detectedScheme = strtolower((string) $_SERVER['REQUEST_SCHEME']);
+            $hasDetectedScheme = true;
+        } elseif (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            $detectedScheme = 'https';
+            $hasDetectedScheme = true;
+        }
+
+        if ($detectedPort === null && !empty($_SERVER['HTTP_X_FORWARDED_PORT'])) {
+            $detectedPort = (int) $_SERVER['HTTP_X_FORWARDED_PORT'];
+        }
+
+        if ($detectedPort === null && !empty($_SERVER['SERVER_PORT'])) {
+            $detectedPort = (int) $_SERVER['SERVER_PORT'];
+        }
+
+        $configUrl = (string) config('app.url');
+        $parsedConfig = $configUrl !== '' ? parse_url($configUrl) : false;
+
+        if ($detectedScheme === '') {
+            $detectedScheme = 'http';
+        }
+
+        $scheme = $detectedScheme;
+        $host = $detectedHost;
+        $port = $detectedPort;
+        $auth = '';
+        $basePath = '';
+        $configHost = '';
+        $configPort = null;
+
+        if ($parsedConfig !== false) {
+            if (!empty($parsedConfig['scheme']) && !$hasDetectedScheme) {
+                $scheme = $parsedConfig['scheme'];
+            }
+
+            if (!empty($parsedConfig['host'])) {
+                $configHost = $parsedConfig['host'];
+
+                if ($host === '' || strcasecmp($configHost, $host) === 0) {
+                    $host = $configHost;
+                }
+            }
+
+            if (isset($parsedConfig['port'])) {
+                $configPort = (int) $parsedConfig['port'];
+
+                if ($port === null
+                    || ($configHost !== '' && strcasecmp($configHost, $host) === 0 && $detectedPort === null)) {
+                    $port = $configPort;
+                }
+            } elseif ($port === null
+                && $configHost !== ''
+                && $detectedHost !== ''
+                && strcasecmp($configHost, $detectedHost) === 0
+                && $detectedPort !== null) {
+                $port = $detectedPort;
+            }
+
+            if (!empty($parsedConfig['user'])) {
+                $auth = $parsedConfig['user'];
+
+                if (!empty($parsedConfig['pass'])) {
+                    $auth .= ':' . $parsedConfig['pass'];
+                }
+
+                $auth .= '@';
+            }
+
+            if (isset($parsedConfig['path'])) {
+                $basePath = (string) $parsedConfig['path'];
+            }
+        } else {
+            if ($configUrl !== '') {
+                $basePath = $configUrl;
+            }
+        }
+
+        if ($host === '') {
+            if ($detectedHost !== '') {
+                $host = $detectedHost;
+            } elseif ($configHost !== '') {
+                $host = $configHost;
+            } else {
+                $host = 'localhost';
+            }
+
+            if ($port === null) {
+                if ($host === $detectedHost && $detectedPort !== null) {
+                    $port = $detectedPort;
+                } elseif ($configPort !== null) {
+                    $port = $configPort;
+                }
+            }
+        }
+
+        if ($basePath === '') {
+            $dir = rtrim((string) dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+
+            if ($dir === '.') {
+                $dir = '';
+            }
+
+            if ($configUrl === '' && $dir !== '') {
+                $basePath = $dir;
+            }
+        }
+
+        $basePath = trim($basePath);
+
+        if ($basePath !== '') {
+            $basePath = '/' . ltrim($basePath, '/');
+            $basePath = rtrim($basePath, '/');
+        }
+
+        $scheme = strtolower($scheme);
+
+        $formattedHost = $formatHost($host);
+
+        if ($formattedHost === '') {
+            $formattedHost = 'localhost';
+        }
+
+        $portSegment = $formatPort($port, $scheme);
+
+        $base = sprintf('%s://%s%s%s', $scheme, $auth, $formattedHost, $portSegment);
+
+        if ($basePath !== '') {
+            $base .= $basePath;
         }
 
         $base = rtrim($base, '/');
