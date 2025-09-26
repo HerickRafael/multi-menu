@@ -24,7 +24,7 @@ Após o `make setup` a aplicação estará disponível em [http://localhost:8000
 
 - O cardápio de demonstração pode ser acessado diretamente em [`http://localhost:8000/wollburger`](http://localhost:8000/wollburger).
 
-O stack também sobe um phpMyAdmin em [http://localhost:8081](http://localhost:8081) (configure `FORWARD_PHPMYADMIN_PORT` para alterar a porta) já apontando para o container MySQL.
+O stack também sobe um phpMyAdmin em [http://localhost:8081](http://localhost:8081) (configure `FORWARD_PHPMYADMIN_PORT` para alterar a porta) já apontando para o container MySQL utilizando as credenciais `DB_USERNAME`/`DB_PASSWORD` definidas no `.env` (por padrão `menu`/`secret`).
 
 > **Observação:** em máquinas sem Docker Desktop o `make setup` tentará iniciar o Colima automaticamente. Caso nenhum engine esteja ativo, o comando instruirá a iniciar o serviço manualmente.
 
@@ -125,6 +125,10 @@ Os logs são enviados para `storage/logs/app.log` via Monolog. Certifique-se de 
 - Uso obrigatório de `password_hash()` e `password_verify()`
 - Todas as consultas utilizam `PDO` com prepared statements
 - Sanitização básica e validações com `respect/validation`
+
+### Gerador de hash de senha
+
+- Acesse [`http://localhost:8000/hash.php`](http://localhost:8000/hash.php) para utilizar a ferramenta pública que gera valores para o campo `password_hash` dos usuários.
 
 ## Documentação adicional
 
