@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Core\Exceptions\DatabaseConnectionException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -65,8 +66,14 @@ final class Router
                     'pattern' => $pattern,
                     'uri' => $uri,
                 ]);
-                http_response_code(500);
-                echo 'Erro interno';
+
+                if ($throwable instanceof DatabaseConnectionException) {
+                    http_response_code(503);
+                    echo 'Serviço temporariamente indisponível.';
+                } else {
+                    http_response_code(500);
+                    echo 'Erro interno';
+                }
             }
 
             return;

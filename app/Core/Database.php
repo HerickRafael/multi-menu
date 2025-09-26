@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Core\Exceptions\DatabaseConnectionException;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -54,7 +55,7 @@ final class Database
                 ]
             );
         } catch (PDOException $exception) {
-            throw new RuntimeException('Não foi possível conectar ao banco de dados.', 0, $exception);
+            throw new DatabaseConnectionException('Não foi possível conectar ao banco de dados.', 0, $exception);
         }
 
         return self::$connection;
