@@ -128,7 +128,8 @@ Os logs são enviados para `storage/logs/app.log` via Monolog. Certifique-se de 
 
 ### Gerador de hash de senha
 
-- Acesse [`http://localhost:8000/admin/hash`](http://localhost:8000/admin/hash) para utilizar a ferramenta que gera valores para o campo `password_hash` dos usuários.
+- Acesse [`http://localhost:8000/hash.php`](http://localhost:8000/hash.php) para utilizar a ferramenta pública que gera valores para o campo `password_hash` dos usuários.
+
 
 ## Documentação adicional
 
