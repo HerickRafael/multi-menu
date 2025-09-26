@@ -11,6 +11,7 @@ RUN apt-get update \
         libssl-dev \
         libicu-dev \
         zip \
+        default-mysql-client \
     && docker-php-ext-install pdo pdo_mysql intl \
     && rm -rf /var/lib/apt/lists/*
 

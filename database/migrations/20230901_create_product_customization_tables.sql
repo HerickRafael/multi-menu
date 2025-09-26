@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS ingredients (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  company_id  INT(11)      NOT NULL,
+  company_id  INT UNSIGNED NOT NULL,
   name        VARCHAR(200) NOT NULL,
   min_qty     INT          NOT NULL DEFAULT 0,
   max_qty     INT          NOT NULL DEFAULT 1,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS ingredients (
 
 CREATE TABLE IF NOT EXISTS product_custom_groups (
   id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  product_id INT(11) NOT NULL,
+  product_id INT UNSIGNED NOT NULL,
   name       VARCHAR(200) NOT NULL,
   type       ENUM('single','extra','addon','component') NOT NULL DEFAULT 'extra',
   min_qty    INT NOT NULL DEFAULT 0,
