@@ -22,6 +22,8 @@ O alvo `setup` cuida das seguintes etapas:
 
 Após o `make setup` a aplicação estará disponível em [http://localhost:8000](http://localhost:8000).
 
+- O cardápio de demonstração pode ser acessado diretamente em [`http://localhost:8000/wollburger`](http://localhost:8000/wollburger).
+
 O stack também sobe um phpMyAdmin em [http://localhost:8081](http://localhost:8081) (configure `FORWARD_PHPMYADMIN_PORT` para alterar a porta) já apontando para o container MySQL.
 
 > **Observação:** em máquinas sem Docker Desktop o `make setup` tentará iniciar o Colima automaticamente. Caso nenhum engine esteja ativo, o comando instruirá a iniciar o serviço manualmente.
