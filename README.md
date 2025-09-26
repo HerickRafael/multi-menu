@@ -130,6 +130,7 @@ Os logs são enviados para `storage/logs/app.log` via Monolog. Certifique-se de 
 
 - Acesse [`http://localhost:8000/hash.php`](http://localhost:8000/hash.php) para utilizar a ferramenta pública que gera valores para o campo `password_hash` dos usuários.
 
+
 ## Documentação adicional
 
 - `.env.example` descreve as variáveis suportadas
