@@ -17,11 +17,19 @@ if [[ ! -x "${DOCKER_COMPOSE_SCRIPT}" ]]; then
 fi
 
 run_in_existing_container() {
+  set +e
   "${DOCKER_COMPOSE_SCRIPT}" exec -T app "$@"
+  local status=$?
+  set -e
+  return ${status}
 }
 
 run_in_temporary_container() {
+  set +e
   "${DOCKER_COMPOSE_SCRIPT}" run --rm --no-deps app "$@"
+  local status=$?
+  set -e
+  return ${status}
 }
 
 primary_cmd=()
