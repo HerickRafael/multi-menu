@@ -22,141 +22,268 @@ if (!function_exists('config')) {
 if (!function_exists('base_url')) {
     function base_url(string $path = ''): string
     {
-        $resolveScheme = static function (?string $preferred = null): string {
-            if ($preferred !== null && $preferred !== '') {
-                return strtolower($preferred);
+        $parseHostPort = static function (?string $value): array {
+            $value = trim((string) ($value ?? ''));
+
+            if ($value === '') {
+                return ['', null];
             }
 
-            if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-                $forwardedProto = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_PROTO'])[0] ?? '';
-                $forwardedProto = strtolower(trim($forwardedProto));
+            $value = trim($value, " \t\n\r\0\x0B\"'");
 
-                if ($forwardedProto !== '') {
-                    return $forwardedProto;
-                }
+            if ($value === '') {
+                return ['', null];
             }
 
-            if (!empty($_SERVER['REQUEST_SCHEME'])) {
-                return strtolower((string) $_SERVER['REQUEST_SCHEME']);
+            $value = explode(',', $value, 2)[0];
+            $value = trim($value);
+
+            if ($value === '') {
+                return ['', null];
             }
 
-            if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-                return 'https';
+            if (strncmp($value, '//', 2) !== 0) {
+                $value = '//' . ltrim($value, '/');
             }
 
-            return 'http';
+            $parsed = parse_url($value);
+
+            if ($parsed === false) {
+                return ['', null];
+            }
+
+            $host = $parsed['host'] ?? '';
+
+            if ($host === '' && isset($parsed['path'])) {
+                $host = $parsed['path'];
+            }
+
+            $port = isset($parsed['port']) ? (int) $parsed['port'] : null;
+
+            return [$host, $port];
         };
 
-        $resolvePort = static function (string $scheme): ?int {
-            $candidates = [];
+        $formatHost = static function (string $host): string {
+            $host = trim($host);
 
-            if (!empty($_SERVER['HTTP_X_FORWARDED_PORT'])) {
-                $forwardedPort = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_PORT'])[0] ?? '';
-                $forwardedPort = (int) trim($forwardedPort);
-
-                if ($forwardedPort > 0) {
-                    $candidates[] = $forwardedPort;
-                }
+            if ($host === '') {
+                return '';
             }
 
-            if (!empty($_SERVER['SERVER_PORT'])) {
-                $serverPort = (int) $_SERVER['SERVER_PORT'];
-
-                if ($serverPort > 0) {
-                    $candidates[] = $serverPort;
-                }
+            if (strncmp($host, '[', 1) === 0 && substr($host, -1) === ']') {
+                return $host;
             }
 
-            if ($candidates === []) {
-                return null;
+            if (str_contains($host, ':')) {
+                return '[' . trim($host, '[]') . ']';
             }
 
-            $default = $scheme === 'https' ? 443 : 80;
-
-            foreach ($candidates as $candidate) {
-                if ($candidate !== $default) {
-                    return $candidate;
-                }
-            }
-
-            return $default;
+            return $host;
         };
 
-        $formatHost = static function (string $host, ?int $port): string {
-            $needsBrackets = str_contains($host, ':') && !str_starts_with($host, '[');
-            $hostPart = $needsBrackets ? '[' . $host . ']' : $host;
-
-            if ($port !== null) {
-                $hostPart .= ':' . $port;
+        $formatPort = static function (?int $port, string $scheme): string {
+            if ($port === null) {
+                return '';
             }
 
-            return $hostPart;
+            $normalizedScheme = strtolower($scheme);
+
+            if (($normalizedScheme === 'http' && $port === 80)
+                || ($normalizedScheme === 'https' && $port === 443)) {
+                return '';
+            }
+
+            return ':' . $port;
         };
 
-        $resolveHostParts = static function (string $scheme) use ($resolvePort, $formatHost): array {
-            $hostSource = '';
+        $detectedScheme = 'http';
+        $detectedHost = '';
+        $detectedPort = null;
 
-            if (!empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
-                $forwardedHost = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_HOST'])[0] ?? '';
-                $hostSource = trim($forwardedHost);
-            } elseif (!empty($_SERVER['HTTP_HOST'])) {
-                $hostSource = trim((string) $_SERVER['HTTP_HOST']);
-            } elseif (!empty($_SERVER['SERVER_NAME'])) {
-                $hostSource = trim((string) $_SERVER['SERVER_NAME']);
-            }
+        if (!empty($_SERVER['HTTP_FORWARDED'])) {
+            $forwardedValues = explode(',', (string) $_SERVER['HTTP_FORWARDED']);
+            $firstForwarded = trim($forwardedValues[0]);
 
-            if ($hostSource === '') {
-                $hostSource = 'localhost';
-            }
+            if ($firstForwarded !== '') {
+                $pairs = preg_split('/;\s*/', $firstForwarded);
 
-            $parsedHost = parse_url('http://' . ltrim($hostSource, '/'));
-            $hostOnly = $parsedHost['host'] ?? $hostSource;
-            $port = isset($parsedHost['port']) ? (int) $parsedHost['port'] : null;
+                foreach ($pairs as $pair) {
+                    if ($pair === null || $pair === '') {
+                        continue;
+                    }
 
-            $defaultPort = $scheme === 'https' ? 443 : 80;
+                    $kv = explode('=', $pair, 2);
 
-            if ($port === null || $port === 0) {
-                $detectedPort = $resolvePort($scheme);
+                    if (count($kv) !== 2) {
+                        continue;
+                    }
 
-                if ($detectedPort !== null && $detectedPort !== $defaultPort) {
-                    $port = $detectedPort;
-                } else {
-                    $port = null;
-                }
-            } elseif ($port === $defaultPort) {
-                $port = null;
-            }
+                    $key = strtolower(trim($kv[0]));
+                    $value = trim($kv[1], " \t\n\r\0\x0B\"'");
 
-            $hostDisplay = $formatHost($hostOnly, $port);
+                    if ($value === '') {
+                        continue;
+                    }
 
-            return [$hostOnly, $port, $hostDisplay];
-        };
+                    if ($key === 'proto') {
+                        $detectedScheme = strtolower($value);
+                    } elseif ($key === 'host') {
+                        [$forwardHost, $forwardPort] = $parseHostPort($value);
 
-        $base = (string) config('app.url');
+                        if ($forwardHost !== '') {
+                            $detectedHost = $forwardHost;
+                        }
 
-        if ($base !== '') {
-            $parsed = parse_url($base);
-
-            if ($parsed !== false && isset($parsed['host']) && !isset($parsed['port'])) {
-                $scheme = $resolveScheme($parsed['scheme'] ?? null);
-                [$currentHost, $currentPort, $hostDisplay] = $resolveHostParts($scheme);
-
-                if ($currentPort !== null && strcasecmp($parsed['host'], $currentHost) === 0) {
-                    $user = $parsed['user'] ?? '';
-                    $pass = $parsed['pass'] ?? '';
-                    $auth = $user !== '' ? $user . ($pass !== '' ? ':' . $pass : '') . '@' : '';
-                    $path = $parsed['path'] ?? '';
-
-                    $base = sprintf('%s://%s%s%s', $scheme, $auth, $hostDisplay, $path);
+                        if ($forwardPort !== null) {
+                            $detectedPort = $forwardPort;
+                        }
+                    }
                 }
             }
         }
 
-        if ($base === '') {
-            $scheme = $resolveScheme(null);
-            [, , $hostDisplay] = $resolveHostParts($scheme);
+        if ($detectedHost === '' && !empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+            [$candidateHost, $candidatePort] = $parseHostPort((string) $_SERVER['HTTP_X_FORWARDED_HOST']);
+
+            if ($candidateHost !== '') {
+                $detectedHost = $candidateHost;
+
+                if ($detectedPort === null && $candidatePort !== null) {
+                    $detectedPort = $candidatePort;
+                }
+            }
+        }
+
+        if ($detectedHost === '' && !empty($_SERVER['HTTP_HOST'])) {
+            [$candidateHost, $candidatePort] = $parseHostPort((string) $_SERVER['HTTP_HOST']);
+
+            if ($candidateHost !== '') {
+                $detectedHost = $candidateHost;
+
+                if ($detectedPort === null && $candidatePort !== null) {
+                    $detectedPort = $candidatePort;
+                }
+            }
+        }
+
+        if ($detectedHost === '' && !empty($_SERVER['SERVER_NAME'])) {
+            $detectedHost = (string) $_SERVER['SERVER_NAME'];
+        }
+
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            $candidate = trim((string) $_SERVER['HTTP_X_FORWARDED_PROTO']);
+
+            if ($candidate !== '') {
+                $detectedScheme = strtolower(explode(',', $candidate, 2)[0]);
+            }
+        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_SCHEME'])) {
+            $candidate = trim((string) $_SERVER['HTTP_X_FORWARDED_SCHEME']);
+
+            if ($candidate !== '') {
+                $detectedScheme = strtolower(explode(',', $candidate, 2)[0]);
+            }
+        } elseif (!empty($_SERVER['REQUEST_SCHEME'])) {
+            $detectedScheme = strtolower((string) $_SERVER['REQUEST_SCHEME']);
+        } elseif (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            $detectedScheme = 'https';
+        }
+
+        if ($detectedPort === null && !empty($_SERVER['HTTP_X_FORWARDED_PORT'])) {
+            $detectedPort = (int) $_SERVER['HTTP_X_FORWARDED_PORT'];
+        }
+
+        if ($detectedPort === null && !empty($_SERVER['SERVER_PORT'])) {
+            $detectedPort = (int) $_SERVER['SERVER_PORT'];
+        }
+
+        $configUrl = (string) config('app.url');
+        $parsedConfig = $configUrl !== '' ? parse_url($configUrl) : false;
+
+        $scheme = $detectedScheme ?: 'http';
+        $host = $detectedHost;
+        $port = $detectedPort;
+        $auth = '';
+        $basePath = '';
+
+        if ($parsedConfig !== false) {
+            if (!empty($parsedConfig['scheme'])) {
+                $scheme = $parsedConfig['scheme'];
+            }
+
+            if (!empty($parsedConfig['host'])) {
+                $host = $parsedConfig['host'];
+            }
+
+            if (isset($parsedConfig['port'])) {
+                $port = (int) $parsedConfig['port'];
+            } elseif (!empty($parsedConfig['host'])
+                && $detectedHost !== ''
+                && strcasecmp($parsedConfig['host'], $detectedHost) === 0
+                && $detectedPort !== null) {
+                $port = $detectedPort;
+            }
+
+            if (!empty($parsedConfig['user'])) {
+                $auth = $parsedConfig['user'];
+
+                if (!empty($parsedConfig['pass'])) {
+                    $auth .= ':' . $parsedConfig['pass'];
+                }
+
+                $auth .= '@';
+            }
+
+            if (isset($parsedConfig['path'])) {
+                $basePath = (string) $parsedConfig['path'];
+            }
+        } else {
+            if ($configUrl !== '') {
+                $basePath = $configUrl;
+            }
+        }
+
+        if ($host === '') {
+            $host = $detectedHost !== '' ? $detectedHost : 'localhost';
+
+            if ($port === null && $detectedPort !== null) {
+                $port = $detectedPort;
+            }
+        }
+
+        if ($basePath === '') {
             $dir = rtrim((string) dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
-            $base = $scheme . '://' . $hostDisplay . ($dir ? $dir : '');
+
+            if ($dir === '.') {
+                $dir = '';
+            }
+
+            if ($configUrl === '' && $dir !== '') {
+                $basePath = $dir;
+            }
+        }
+
+        $basePath = trim($basePath);
+
+        if ($basePath !== '') {
+            $basePath = '/' . ltrim($basePath, '/');
+            $basePath = rtrim($basePath, '/');
+        }
+
+        $scheme = $scheme !== '' ? strtolower($scheme) : 'http';
+
+        $formattedHost = $formatHost($host);
+
+        if ($formattedHost === '') {
+            $formattedHost = 'localhost';
+        }
+
+        $portSegment = $formatPort($port, $scheme);
+
+        $base = sprintf('%s://%s%s%s', $scheme, $auth, $formattedHost, $portSegment);
+
+        if ($basePath !== '') {
+            $base .= $basePath;
+
         }
 
         $base = rtrim($base, '/');
