@@ -1,8 +1,0 @@
-brew "php"
-brew "composer"
-brew "node"
-brew "mysql-client"
-brew "redis"
-brew "colima"
-brew "docker-compose"
-cask "docker"

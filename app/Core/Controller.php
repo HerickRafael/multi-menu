@@ -1,61 +1,58 @@
 <?php
-
-declare(strict_types=1);
-
-namespace App\Core;
-
-use PDO;
-use RuntimeException;
-
-abstract class Controller
-{
-    protected function view(string $path, array $data = []): void
-    {
-        $file = dirname(__DIR__) . '/Views/' . $path . '.php';
-
-        if (!file_exists($file)) {
-            throw new RuntimeException(sprintf('View não encontrada: %s', $path));
-        }
-
-        extract($data, EXTR_SKIP);
-        include $file;
+class Controller {
+  protected function view(string $path, array $data = []) {
+    // "public/home" → app/views/public/home.php
+    $file = __DIR__ . '/../views/' . $path . '.php';
+    if (!file_exists($file)) {
+      echo "View não encontrada: $path";
+      return;
     }
+    extract($data);
+    include $file;
+  }
 
-    protected function json(array $data, int $status = 200): void
-    {
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_THROW_ON_ERROR);
+  /** Retorna conexão PDO usando a função db() definida em app/config/db.php */
+  protected function db(): PDO {
+    if (!function_exists('db')) {
+      throw new RuntimeException('Função db() não encontrada. Verifique app/config/db.php e o bootstrap em public/index.php.');
     }
-
-    protected function db(): PDO
-    {
-        return Database::connection();
+    $pdo = db(); // a função db() deve retornar um PDO (com cache estático)
+    if (!$pdo instanceof PDO) {
+      throw new RuntimeException('db() não retornou uma instância de PDO.');
     }
+    return $pdo;
+  }
 
-    /**
-     * Garante que o contexto de empresa ativo em sessão siga o acesso atual.
-     *
-     * Mantém sincronizado o ID e, se informado, o slug da empresa ativa.
-     */
-    protected function ensureCompanyContext(int $companyId, ?string $slug = null): void
-    {
-        $currentId = Auth::activeCompanyId();
-        $currentSlug = Auth::activeCompanySlug();
+  /** Protege rotas admin (inicia a sessão antes de verificar) */
+  protected function requireAdmin(): void {
+    Auth::start();       // garante que a sessão foi iniciada
+    Auth::requireAdmin();
+  }
 
-        $shouldUpdateId = $currentId !== $companyId;
-        $shouldUpdateSlug = $slug !== null && $slug !== '' && $currentSlug !== $slug;
+  /**
+   * ID da empresa corrente no contexto do admin.
+   * - Para root: empresa escolhida via Auth::setActiveCompany()
+   * - Para owner/staff: a própria company_id do usuário
+   */
+  protected function currentCompanyId(): ?int {
+    return Auth::activeCompanyId();
+  }
 
-        if ($shouldUpdateId || $shouldUpdateSlug) {
-            Auth::setActiveCompany($companyId, $slug);
-        }
+  /** Slug corrente do contexto (se definido via Auth::setActiveCompany) */
+  protected function currentCompanySlug(): ?string {
+    return Auth::activeCompanySlug();
+  }
+
+  /**
+   * Garante que o contexto ativo bate com o slug da rota.
+   * Útil em rotas /admin/{slug}/...
+   */
+  protected function ensureCompanyContext(int $companyId, string $slug): void {
+    $activeId   = Auth::activeCompanyId();
+    $activeSlug = Auth::activeCompanySlug();
+
+    if ($activeId !== $companyId || $activeSlug !== $slug) {
+      Auth::setActiveCompany($companyId, $slug);
     }
-
-    /**
-     * Retorna o slug atualmente ativo no contexto da empresa logada.
-     */
-    protected function currentCompanySlug(): ?string
-    {
-        return Auth::activeCompanySlug();
-    }
+  }
 }

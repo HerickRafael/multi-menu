@@ -1,6 +1,0 @@
-parameters:
-  git_hook_variables:
-    EXEC_GRUMPHP_COMMAND: vendor/bin/grumphp
-  tasks:
-    composer_script:
-      script: quality

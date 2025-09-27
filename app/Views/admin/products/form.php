@@ -20,8 +20,8 @@ foreach ($simpleProducts as $spMeta) {
 
 // Personalização
 $customization  = $customization  ?? [];           // ['enabled'=>bool, 'groups'=>[...]]
+$custEnabled    = !empty($customization['enabled']);
 $custGroups     = $customization['groups'] ?? [];
-$custEnabled    = !empty($customization['enabled']) || !empty($custGroups);
 
 // Título / Ação
 $title   = "Produto - " . ($company['name'] ?? '');
@@ -1218,13 +1218,6 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       else if(t.classList.contains('cust-add-choice')){ const g=t.closest('.cust-group'); const sel=g?.querySelector('.cust-mode-select'); if(sel){ sel.value='choice'; } applyCustMode(g); addCustItem(g); }
       else if(t.classList.contains('cust-remove-group')){ t.closest('.cust-group')?.remove(); refreshCustGroupOrder(); }
       else if(t.classList.contains('cust-remove-item')){ t.closest('.cust-item')?.remove(); }
-    });
-    custCont?.addEventListener('change', e=>{
-      const target=e.target instanceof Element ? e.target : null;
-      if(target?.matches('.cust-mode-select')){
-        const group=target.closest('.cust-group');
-        if(group){ applyCustMode(group); }
-      }
     });
 
     // DRAG & DROP — PERSONALIZAÇÃO
