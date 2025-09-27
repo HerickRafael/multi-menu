@@ -14,7 +14,6 @@ $router->get('/admin/{slug}/dashboard', 'AdminDashboardController@index');
 
 $router->get('/admin/{slug}/settings', 'AdminSettingsController@index');
 $router->post('/admin/{slug}/settings', 'AdminSettingsController@save');
-
 $router->get('/admin/{slug}/orders', 'AdminOrdersController@index');
 $router->get('/admin/{slug}/orders/show', 'AdminOrdersController@show');
 $router->get('/admin/{slug}/orders/create', 'AdminOrdersController@create');
