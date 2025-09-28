@@ -21,7 +21,7 @@ $priceMode = $product['price_mode'] ?? 'fixed';
 
 /** URLs */
 $customizeBase = base_url($slug . '/produto/' . $pId . '/customizar');
-$addToCartUrl  = base_url($slug . '/orders/add');
+$addToCartUrl  = base_url($slug . '/cart/add');
 
 /** Helper para forçar caminho local em /uploads a partir de URL ou nome */
 if (!function_exists('local_upload_src')) {
@@ -194,7 +194,9 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   .choice.sel .mark{display:grid}
   .choice-name{margin-top:10px;font-weight:700;font-size:15px;color:#1f2937}
   .choice-price{margin-top:4px;color:#374151;font-size:14px}
-  .choice-customize{display:block;margin-top:6px;font-size:13px;font-weight:600;color:#2563eb;text-decoration:none}
+  .choice-customize{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;padding:7px 18px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;color:#111827;text-decoration:none;background:#fff;transition:background .18s ease,color .18s ease,border-color .18s ease}
+  .choice-customize:hover{background:#111827;color:#fff}
+  .choice-customize:active{background:#0f172a;color:#fff;border-color:#0f172a}
   .choice-customize.hidden{display:none}
 
   /* ===== FOOTER/CTA ===== */
@@ -329,23 +331,31 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
               $optDelta  = isset($opt['delta']) ? (float)$opt['delta'] : 0.0;
               $basePrice = isset($opt['base_price']) && $opt['base_price'] !== null ? (float)$opt['base_price'] : null;
 
-              if ($priceMode === 'sum') {
-                $sum = ($basePrice ?? 0) + $optDelta;
-                $priceLabel = price_br($sum);
+              if ($isDefault) {
+                $priceLabel = 'Incluído';
               } else {
-                if ($optDelta > 0) {
-                  $priceLabel = '+ ' . price_br($optDelta);
-                } elseif ($optDelta < 0) {
-                  $priceLabel = '− ' . price_br(abs($optDelta));
+                if ($basePrice !== null) {
+                  $priceLabel = price_br($basePrice);
+                } elseif ($priceMode === 'sum') {
+                  $priceLabel = price_br($optDelta);
                 } else {
-                  $priceLabel = 'Incluído';
+                  if ($optDelta > 0) {
+                    $priceLabel = '+ ' . price_br($optDelta);
+                  } elseif ($optDelta < 0) {
+                    $priceLabel = '− ' . price_br(abs($optDelta));
+                  } else {
+                    $priceLabel = 'Incluído';
+                  }
                 }
               }
 
               $comboImg = local_upload_src($opt['image'] ?? null);
               $simpleId = (int)($opt['simple_id'] ?? 0);
               $canCustomizeChoice = !empty($opt['customizable']) && $simpleId > 0;
-              $choiceCustomUrl = $canCustomizeChoice ? base_url($slug . '/produto/' . $simpleId . '/customizar') : null;
+              $parentQuery = http_build_query(['parent_id' => $pId]);
+              $choiceCustomUrl = $canCustomizeChoice
+                ? base_url($slug . '/produto/' . $simpleId . '/customizar?' . $parentQuery)
+                : null;
             ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>"
                  data-group="<?= (int)$gi ?>"

@@ -14,6 +14,7 @@ $router->post('/{slug}/produto/{id}/customizar', 'PublicProductController@saveCu
 /* Carrinho */
 $router->get('/{slug}/cart',                     'PublicCartController@index');
 $router->post('/{slug}/cart/add',                'PublicCartController@add');
+$router->post('/{slug}/cart/update',             'PublicCartController@update');
 
 /* ========= Rotas cliente ========= */
 $router->post('/{slug}/customer-login',          'CustomerAuthController@login');

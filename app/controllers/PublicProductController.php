@@ -95,6 +95,19 @@ class PublicProductController extends Controller
             return;
         }
 
+        $parentId = isset($_POST['parent_id']) ? (int)$_POST['parent_id'] : 0;
+        $redirectTarget = $id;
+        if ($parentId && $parentId !== $id) {
+            $parentProduct = Product::find($parentId);
+            if (
+                $parentProduct &&
+                (int)$parentProduct['company_id'] === (int)$company['id'] &&
+                (int)($parentProduct['active'] ?? 0) === 1
+            ) {
+                $redirectTarget = $parentId;
+            }
+        }
+
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
@@ -227,7 +240,7 @@ class PublicProductController extends Controller
             'quantity' => $quantity,
         ];
 
-        $redirect = base_url($slug . '/produto/' . $id);
+        $redirect = base_url($slug . '/produto/' . $redirectTarget);
         header('Location: ' . $redirect);
         exit;
     }
@@ -256,6 +269,23 @@ class PublicProductController extends Controller
             http_response_code(404);
             echo "Personalização indisponível para este produto.";
             return;
+        }
+
+        $parentId = isset($_GET['parent_id']) ? (int)$_GET['parent_id'] : 0;
+        $parentBackUrl = null;
+        if ($parentId && $parentId !== $id) {
+            $parentProduct = Product::find($parentId);
+            if (
+                $parentProduct &&
+                (int)$parentProduct['company_id'] === (int)$company['id'] &&
+                (int)($parentProduct['active'] ?? 0) === 1
+            ) {
+                $parentBackUrl = base_url($slug . '/produto/' . $parentId);
+            } else {
+                $parentId = 0;
+            }
+        } else {
+            $parentId = 0;
         }
 
         if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -320,6 +350,12 @@ class PublicProductController extends Controller
             unset($group);
         }
 
-        return $this->view('public/customization', compact('company', 'product', 'mods'));
+        return $this->view('public/customization', [
+            'company'        => $company,
+            'product'        => $product,
+            'mods'           => $mods,
+            'parentBackUrl'  => $parentBackUrl,
+            'parentProductId'=> $parentId,
+        ]);
     }
 }

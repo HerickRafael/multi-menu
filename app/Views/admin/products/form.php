@@ -147,7 +147,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           <option value="simple" <?= $ptype === 'simple' ? 'selected' : '' ?>>Simples</option>
           <option value="combo"  <?= $ptype === 'combo'  ? 'selected' : '' ?>>Combo</option>
         </select>
-        <small class="text-xs text-slate-500">Combos usam “Grupos de opções”. Produtos simples podem ter Personalização.</small>
+        <small class="text-xs text-slate-500">Combos usam Grupos. Simples têm Personalização.</small>
       </label>
 
       <label for="price_mode" class="grid gap-1">
@@ -179,6 +179,23 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
                class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
       </label>
     </div>
+  </fieldset>
+
+  <!-- CARD: Descrição -->
+  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M5 12h14M5 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Descrição
+    </legend>
+
+    <label for="description" class="grid gap-2">
+      <span class="text-sm text-slate-700">Conteúdo exibido na página do produto</span>
+      <textarea name="description" id="description" rows="5" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400" placeholder="Ex.: Pão artesanal, burger 180g, queijo prato e molho especial."><?= e($p['description'] ?? '') ?></textarea>
+      <div class="flex items-center justify-between text-xs text-slate-500">
+        <span>Use este campo para destacar ingredientes, diferenciais ou modo de preparo.</span>
+        <span id="description-counter"></span>
+      </div>
+    </label>
   </fieldset>
 
   <!-- CARD: Imagem -->
@@ -279,6 +296,11 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     .combo-default-toggle.is-active{background:#eef2ff;border-color:#4f46e5;color:#312e81;font-weight:600}
     .combo-custom-toggle.is-active{background:#dbeafe;border-color:#2563eb;color:#1d4ed8;font-weight:600}
     .combo-custom-toggle.hidden{display:none}
+    .combo-group-customizable{margin:12px 18px;padding:12px 16px;border-radius:12px;border:1px dashed #c7d2fe;background:#eef2ff;color:#3730a3;display:flex;flex-direction:column;gap:6px}
+    .combo-group-customizable.hidden{display:none}
+    .combo-group-custom-label{font-weight:600}
+    .combo-group-custom-help{color:#475569}
+    .combo-custom-wrapper.hidden{display:none}
   </style>
 
   <!-- CARD: Grupos (Combo) -->
@@ -316,15 +338,40 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           $min    = (int)($g['min_qty'] ?? $g['min'] ?? 0);
           $max    = (int)($g['max_qty'] ?? $g['max'] ?? 1);
           $sort   = isset($g['sort_order']) ? (int)$g['sort_order'] : $gi;
+          $groupHasCustom = false;
+          foreach ($gItems as $itCheck) {
+            if (!empty($itCheck['customizable']) || !empty($itCheck['allow_customize'])) {
+              $groupHasCustom = true;
+              break;
+            }
+          }
         ?>
-        <div class="group-card rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="<?= $gi ?>">
+        <div class="group-card rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="<?= $gi ?>" data-custom-group="<?= $groupHasCustom ? '1' : '0' ?>">
           <div class="flex items-center gap-3 border-b border-slate-200 p-3">
-            <button type="button" draggable="true" class="combo-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" title="Arrastar">↕</button>
-            <input type="text" name="groups[<?= $gi ?>][name]"
+<button 
+  type="button" 
+  draggable="true" 
+  class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" 
+  title="Arrastar"
+>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrows-move" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10M.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8"/>
+</svg>
+</button>            <input type="text" name="groups[<?= $gi ?>][name]"
                    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-400"
                    placeholder="Nome do grupo" value="<?= e($g['name'] ?? '') ?>" required />
             <input type="hidden" class="combo-order-input" name="groups[<?= $gi ?>][sort_order]" value="<?= $sort ?>">
             <button type="button" class="remove-group shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover grupo">✕</button>
+          </div>
+
+          <div class="combo-group-customizable <?= $ptype === 'combo' ? '' : 'hidden' ?>">
+            <label class="combo-group-custom-label inline-flex items-center gap-2 text-sm text-indigo-700">
+              <input type="checkbox" class="combo-group-custom-switch h-4 w-4 rounded border-indigo-300 text-indigo-600" <?= $groupHasCustom ? 'checked' : '' ?>>
+              <span>Grupo personalizável</span>
+            </label>
+            <p class="combo-group-custom-help mt-1 text-xs text-slate-500">
+              Ative para que o cliente personalize o item escolhido deste grupo (quando o produto simples permitir).
+            </p>
           </div>
 
           <?php if (!empty($gItems)): foreach ($gItems as $ii => $it):
@@ -372,10 +419,12 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
               <button type="button" class="combo-default-toggle rounded-lg border border-slate-300 px-3 py-2 text-sm <?= $isDef ? 'is-active admin-gradient-border' : '' ?>">
                 Acompanhamento padrão
               </button>
-              <input type="hidden" class="combo-custom-flag" name="groups[<?= $gi ?>][items][<?= $ii ?>][customizable]" value="<?= $isCustomizable ? '1' : '0' ?>">
-              <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700 <?= $isCustomizable ? 'is-active admin-gradient-border' : '' ?> <?= $canCustom ? '' : 'hidden' ?>">
-                Produto Personalizável
-              </button>
+              <div class="combo-custom-wrapper <?= $canCustom ? '' : 'hidden' ?>">
+                <input type="hidden" class="combo-custom-flag" name="groups[<?= $gi ?>][items][<?= $ii ?>][customizable]" value="<?= $isCustomizable ? '1' : '0' ?>">
+                <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700 <?= $isCustomizable ? 'is-active admin-gradient-border' : '' ?>">
+                  Produto Personalizável
+                </button>
+              </div>
             </div>
             <div class="flex justify-end">
               <button type="button" class="remove-item shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover item">✕</button>
@@ -415,10 +464,12 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
               <button type="button" class="combo-default-toggle rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 Acompanhamento padrão
               </button>
-              <input type="hidden" class="combo-custom-flag" name="groups[<?= $gi ?>][items][0][customizable]" value="0">
-              <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700 hidden">
-                Produto Personalizável
-              </button>
+              <div class="combo-custom-wrapper hidden">
+                <input type="hidden" class="combo-custom-flag" name="groups[<?= $gi ?>][items][0][customizable]" value="0">
+                <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700">
+                  Produto Personalizável
+                </button>
+              </div>
             </div>
             <div class="flex justify-end">
               <button type="button" class="remove-item shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover item">✕</button>
@@ -442,7 +493,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
   </fieldset>
 
   <!-- CARD: Personalização -->
-  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm" aria-labelledby="legend-custom">
+  <fieldset id="customization-card" class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm" aria-labelledby="legend-custom">
     <legend id="legend-custom" class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 8h12M6 12h8M6 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       Personalização
@@ -474,7 +525,16 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <div class="cust-group rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="<?= $gi ?>" data-mode="<?= e($gMode) ?>">
           <div class="flex flex-col gap-3 border-b border-slate-200 p-3">
             <div class="flex items-center gap-3">
-              <button type="button" draggable="true" class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" title="Arrastar">↕</button>
+              <button 
+  type="button" 
+  draggable="true" 
+  class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" 
+  title="Arrastar"
+>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrows-move" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10M.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8"/>
+</svg>
+</button>
               <input type="text" name="customization[groups][<?= $gi ?>][name]"
                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-400"
                      placeholder="Nome do grupo" value="<?= e($cgName) ?>"/>
@@ -573,7 +633,16 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <div class="cust-group rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="0" data-mode="extra">
           <div class="flex flex-col gap-3 border-b border-slate-200 p-3">
             <div class="flex items-center gap-3">
-              <button type="button" draggable="true" class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" title="Arrastar">↕</button>
+<button 
+  type="button" 
+  draggable="true" 
+  class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" 
+  title="Arrastar"
+>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrows-move" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10M.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8"/>
+</svg>
+</button>
               <input type="text" name="customization[groups][0][name]"
                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-400"
                      placeholder="Nome do grupo" value=""/>
@@ -624,15 +693,14 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
               </select>
             </div>
             <div class="cust-limits-wrap self-start md:self-center">
-              <span class="mb-1 block text-xs text-slate-500">Limites</span>
               <div class="cust-limits grid gap-2 md:grid-cols-2" data-min="0" data-max="1">
                 <div>
-                  <label class="block text-xs text-slate-500">Quantidade mínima</label>
+                  <label class="block text-xs text-slate-500">Quantidade mín</label>
                   <input type="number" class="cust-min-input w-24 rounded-lg border border-slate-300 px-3 py-2"
                          name="customization[groups][0][items][0][min_qty]" value="0" min="0" step="1">
                 </div>
                 <div>
-                  <label class="block text-xs text-slate-500">Quantidade máxima</label>
+                  <label class="block text-xs text-slate-500">Quantidade máx</label>
                   <input type="number" class="cust-max-input w-24 rounded-lg border border-slate-300 px-3 py-2"
                          name="customization[groups][0][items][0][max_qty]" value="1" min="0" step="1">
                 </div>
@@ -684,12 +752,30 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
   <!-- ===== Templates (Combo) ===== -->
   <template id="tpl-group">
-    <div class="group-card rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="__GI__">
+    <div class="group-card rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="__GI__" data-custom-group="0">
       <div class="flex items-center gap-3 border-b border-slate-200 p-3">
-        <button type="button" draggable="true" class="combo-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" title="Arrastar">↕</button>
-        <input type="text" name="groups[__GI__][name]" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-400" placeholder="Nome do grupo" value="" required />
+<button 
+  type="button" 
+  draggable="true" 
+  class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" 
+  title="Arrastar"
+>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrows-move" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10M.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8"/>
+</svg>
+</button>        <input type="text" name="groups[__GI__][name]" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-400" placeholder="Nome do grupo" value="" required />
         <input type="hidden" class="combo-order-input" name="groups[__GI__][sort_order]" value="__GI__">
         <button type="button" class="remove-group shrink-0 rounded-full p-2 text-slate-400 hover:text-red-600" aria-label="Remover grupo">✕</button>
+      </div>
+
+      <div class="combo-group-customizable <?= $ptype === 'combo' ? '' : 'hidden' ?>">
+        <label class="combo-group-custom-label inline-flex items-center gap-2 text-sm text-indigo-700">
+          <input type="checkbox" class="combo-group-custom-switch h-4 w-4 rounded border-indigo-300 text-indigo-600">
+          <span>Grupo personalizável</span>
+        </label>
+        <p class="combo-group-custom-help mt-1 text-xs text-slate-500">
+          Ative para liberar personalização dos itens selecionados neste grupo.
+        </p>
       </div>
 
       <div class="item-row grid grid-cols-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_160px_72px_72px_minmax(0,180px)_40px] md:items-center" data-item-index="0">
@@ -727,10 +813,12 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           <button type="button" class="combo-default-toggle rounded-lg border border-slate-300 px-3 py-2 text-sm">
             Acompanhamento padrão
           </button>
-          <input type="hidden" class="combo-custom-flag" name="groups[__GI__][items][0][customizable]" value="0">
-          <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700 hidden">
-            Produto Personalizável
-          </button>
+          <div class="combo-custom-wrapper hidden">
+            <input type="hidden" class="combo-custom-flag" name="groups[__GI__][items][0][customizable]" value="0">
+            <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700">
+              Produto Personalizável
+            </button>
+          </div>
         </div>
 
         <div class="flex justify-end">
@@ -784,10 +872,12 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         <button type="button" class="combo-default-toggle rounded-lg border border-slate-300 px-3 py-2 text-sm">
           Acompanhamento padrão
         </button>
-        <input type="hidden" class="combo-custom-flag" name="groups[__GI__][items][__II__][customizable]" value="0">
-        <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700 hidden">
-          Produto Personalizável
-        </button>
+        <div class="combo-custom-wrapper hidden">
+          <input type="hidden" class="combo-custom-flag" name="groups[__GI__][items][__II__][customizable]" value="0">
+          <button type="button" class="combo-custom-toggle rounded-lg border border-indigo-300 px-3 py-2 text-sm text-indigo-700">
+            Produto Personalizável
+          </button>
+        </div>
       </div>
 
       <div class="flex justify-end">
@@ -803,8 +893,16 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     <div class="cust-group rounded-2xl border border-slate-200 bg-white shadow-sm" data-index="__CGI__" data-mode="extra">
       <div class="flex flex-col gap-3 border-b border-slate-200 p-3">
         <div class="flex items-center gap-3">
-          <button type="button" draggable="true" class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" title="Arrastar">↕</button>
-          <input type="text" name="customization[groups][__CGI__][name]"
+<button 
+  type="button" 
+  draggable="true" 
+  class="cust-drag-handle inline-flex cursor-move items-center justify-center rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-400 hover:text-slate-600" 
+  title="Arrastar"
+>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrows-move" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10M.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8"/>
+</svg>
+</button>          <input type="text" name="customization[groups][__CGI__][name]"
                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:ring-2 focus:ring-indigo-400"
                  placeholder="Nome do grupo" value=""/>
           <input type="hidden" class="cust-order-input" name="customization[groups][__CGI__][sort_order]" value="0">
@@ -847,14 +945,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           </select>
         </div>
         <div class="cust-limits-wrap self-start md:self-center">
-          <span class="mb-1 block text-xs text-slate-500">Limites</span>
           <div class="cust-limits grid gap-2 md:grid-cols-2" data-min="0" data-max="1">
             <div>
-              <label class="block text-xs text-slate-500">Quantidade mínima</label>
+              <label class="block text-xs text-slate-500">Quantidade mín</label>
               <input type="number" class="cust-min-input w-24 rounded-lg border border-slate-300 px-3 py-2" name="customization[groups][__CGI__][items][0][min_qty]" value="0" min="0" step="1">
             </div>
             <div>
-              <label class="block text-xs text-slate-500">Quantidade máxima</label>
+              <label class="block text-xs text-slate-500">Quantidade máx</label>
               <input type="number" class="cust-max-input w-24 rounded-lg border border-slate-300 px-3 py-2" name="customization[groups][__CGI__][items][0][max_qty]" value="1" min="0" step="1">
             </div>
           </div>
@@ -894,14 +991,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
         </select>
       </div>
       <div class="cust-limits-wrap self-start md:self-center">
-        <span class="mb-1 block text-xs text-slate-500">Limites</span>
         <div class="cust-limits grid gap-2 md:grid-cols-2" data-min="0" data-max="1">
           <div>
-            <label class="block text-xs text-slate-500">Quantidade mínima</label>
+            <label class="block text-xs text-slate-500">Quantidade mín</label>
             <input type="number" class="cust-min-input w-24 rounded-lg border border-slate-300 px-3 py-2" name="customization[groups][__CGI__][items][__CII__][min_qty]" value="0" min="0" step="1">
           </div>
           <div>
-            <label class="block text-xs text-slate-500">Quantidade máxima</label>
+            <label class="block text-xs text-slate-500">Quantidade máx</label>
             <input type="number" class="cust-max-input w-24 rounded-lg border border-slate-300 px-3 py-2" name="customization[groups][__CGI__][items][__CII__][max_qty]" value="1" min="0" step="1">
           </div>
         </div>
@@ -936,6 +1032,11 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     }
 
     // ===== contador descrição & preview imagem (já na Parte 1) =====
+    const descField=document.getElementById('description');
+    const descCounter=document.getElementById('description-counter');
+    function syncDescCounter(){ if(!descField || !descCounter) return; const size=descField.value.trim().length; descCounter.textContent=`${size} caractere${size===1?'':'s'}`; }
+    descField?.addEventListener('input', syncDescCounter);
+    syncDescCounter();
 
     // ===== Visibilidade de Combo =====
     const groupsToggle=document.getElementById('groups-toggle');
@@ -950,6 +1051,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
           addGroupBtn=document.getElementById('add-group'),
           tplGroup=document.getElementById('tpl-group'),
           tplItem=document.getElementById('tpl-item');
+    const typeSelect=document.getElementById('type');
+    const customizationCard=document.getElementById('customization-card');
 
     function updateItemPrice(row){
       const sel=row.querySelector('.product-select');
@@ -978,9 +1081,15 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const count=Number(opt?.dataset.ingredients||'0');
       const can=allow && count>2;
       const btn=row.querySelector('.combo-custom-toggle');
-      if(btn){
-        btn.classList.toggle('hidden',!can);
-        if(!can){ setCustomFlag(row,false); }
+      const wrapper=row.querySelector('.combo-custom-wrapper');
+      const group=row.closest('.group-card');
+      const groupEnabled=group?.dataset.customGroup==='1';
+      const typeIsCombo=typeSelect?.value==='combo';
+      if(btn){ btn.classList.toggle('hidden',!can); }
+      if(!can){ setCustomFlag(row,false); }
+      if(wrapper){
+        const shouldShow=can && groupEnabled && typeIsCombo;
+        wrapper.classList.toggle('hidden', !shouldShow);
       }
     }
     function updateGroupFooter(groupEl){
@@ -1026,7 +1135,52 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const initCustom=row.querySelector('.combo-custom-flag');
       if(initCustom){ setCustomFlag(row, initCustom.value==='1'); }
     }
-    document.querySelectorAll('.group-card').forEach(g=>{ g.querySelectorAll('.item-row').forEach(wireItemRow); updateGroupFooter(g); });
+    function refreshGroupCustomBox(groupEl){
+      if(!groupEl) return;
+      const info=groupEl.querySelector('.combo-group-customizable');
+      const isComboType=typeSelect?.value==='combo';
+      if(info){
+        info.classList.toggle('hidden', !isComboType);
+        const switchEl=info.querySelector('.combo-group-custom-switch');
+        if(switchEl){
+          switchEl.disabled=!isComboType;
+          switchEl.checked=isComboType && groupEl.dataset.customGroup==='1';
+        }
+      }
+      groupEl.querySelectorAll('.item-row').forEach(r=>syncCustomizationControls(r));
+    }
+    function refreshGroupCustomBoxes(){ document.querySelectorAll('.group-card').forEach(refreshGroupCustomBox); }
+    function setGroupCustomState(groupEl, enabled){
+      if(!groupEl) return;
+      groupEl.dataset.customGroup = enabled ? '1' : '0';
+      const switchEl=groupEl.querySelector('.combo-group-custom-switch');
+      if(switchEl){ switchEl.checked = !!enabled; }
+      groupEl.querySelectorAll('.item-row').forEach(row=>{
+        const sel=row.querySelector('.product-select');
+        const opt=sel?.selectedOptions?.[0];
+        const allow=opt?.dataset.allowCustomize==='1';
+        const count=Number(opt?.dataset.ingredients||'0');
+        if(enabled && allow && count>2){ setCustomFlag(row,true); }
+        if(!enabled){ setCustomFlag(row,false); }
+        syncCustomizationControls(row);
+      });
+    }
+    function wireGroupCard(groupEl){
+      if(!groupEl) return;
+      groupEl.querySelectorAll('.item-row').forEach(wireItemRow);
+      updateGroupFooter(groupEl);
+      if(!groupEl.dataset.comboGroupWired){
+        const switchEl=groupEl.querySelector('.combo-group-custom-switch');
+        if(switchEl){
+          switchEl.addEventListener('change', ()=>{
+            setGroupCustomState(groupEl, !!switchEl.checked);
+          });
+        }
+        groupEl.dataset.comboGroupWired='1';
+      }
+      refreshGroupCustomBox(groupEl);
+    }
+    document.querySelectorAll('.group-card').forEach(wireGroupCard);
 
     let gIndex=gContainer?Array.from(gContainer.children).length:0;
     function addGroup(){
@@ -1035,8 +1189,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const wrap=document.createElement('div'); wrap.innerHTML=html.trim();
       const el=wrap.firstElementChild;
       gContainer.appendChild(el);
-      el.querySelectorAll('.item-row').forEach(wireItemRow);
-      updateGroupFooter(el);
+      wireGroupCard(el);
       refreshComboGroupOrder();
       return el;
     }
@@ -1055,12 +1208,21 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       row.dataset.itemIndex=ii;
       wireItemRow(row);
       updateGroupFooter(groupEl);
+      if(groupEl.dataset.customGroup==='1'){ setGroupCustomState(groupEl,true); }
       return row;
     }
-    addGroupBtn?.addEventListener('click', addGroup);
+    addGroupBtn?.addEventListener('click', ()=>{
+      const group=addGroup();
+      refreshGroupCustomBox(group);
+    });
     gContainer?.addEventListener('click', ev=>{
       const t=ev.target;
-      if(t.classList.contains('add-item')){ addItem(t.closest('.group-card')); }
+      if(t.classList.contains('add-item')){
+        const group=t.closest('.group-card');
+        const row=addItem(group);
+        if(group?.dataset.customGroup==='1'){ setGroupCustomState(group,true); }
+        else if(row){ syncCustomizationControls(row); }
+      }
       if(t.classList.contains('remove-group')){ t.closest('.group-card')?.remove(); refreshComboGroupOrder(); }
       if(t.classList.contains('remove-item')){ const g=t.closest('.group-card'); t.closest('.item-row')?.remove(); if(g) updateGroupFooter(g); }
     });
@@ -1171,6 +1333,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const flag=itemEl.querySelector('.cust-default-flag');
       const checkbox=itemEl.querySelector('.cust-default-toggle');
       if(flag && checkbox){ checkbox.checked = flag.value==='1'; }
+      if(checkbox && !checkbox.dataset.wired){
+        checkbox.addEventListener('change', ()=>{
+          if(flag){ flag.value = checkbox.checked ? '1' : '0'; }
+          updateCustItem(itemEl);
+        });
+        checkbox.dataset.wired='1';
+      }
       updateCustItem(itemEl);
     }
     function wireCustGroup(groupEl){
@@ -1178,6 +1347,13 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       const select=groupEl.querySelector('.cust-mode-select');
       if(select && !groupEl.dataset.mode){ groupEl.dataset.mode = select.value==='choice' ? 'choice' : 'extra'; }
       else if(select){ select.value = groupEl.dataset.mode==='choice' ? 'choice' : 'extra'; }
+      if(select && !select.dataset.wired){
+        select.addEventListener('change', ()=>{
+          groupEl.dataset.mode = select.value==='choice' ? 'choice' : 'extra';
+          applyCustMode(groupEl);
+        });
+        select.dataset.wired='1';
+      }
       groupEl.querySelectorAll('.cust-item').forEach(wireCustItem);
       applyCustMode(groupEl);
     }
@@ -1261,6 +1437,22 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     // ===== toggle Personalização =====
     function syncCust(){ const on=!!custToggle?.checked; if(custHidden) custHidden.value=on?'1':'0'; toggleBlock(custWrap,on); }
     custToggle?.addEventListener('change', syncCust); syncCust();
+
+    function syncProductTypeSections(){
+      const isCombo=typeSelect?.value==='combo';
+      if(customizationCard){ toggleBlock(customizationCard, !isCombo); }
+      if(custToggle){
+        custToggle.disabled=!!isCombo;
+        if(isCombo){
+          if(custToggle.checked){ custToggle.checked=false; }
+          if(custHidden) custHidden.value='0';
+          syncCust();
+        }
+      }
+      refreshGroupCustomBoxes();
+    }
+    typeSelect?.addEventListener('change', syncProductTypeSections);
+    syncProductTypeSections();
 
     // ===== validação & normalização no submit =====
     document.getElementById('product-form')?.addEventListener('submit', (e)=>{

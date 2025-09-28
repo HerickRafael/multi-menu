@@ -15,6 +15,7 @@ if (!function_exists('price_br')) {
 $slug    = $company['slug'] ?? '';
 $pName   = $product['name'] ?? 'Produto';
 $pId     = (int)($product['id'] ?? 0);
+$parentProductId = isset($parentProductId) ? (int)$parentProductId : 0;
 
 // lemos qty opcional da querystring (vinda do botão Personalizar)
 $qtyGet = isset($_GET['qty']) ? max(1, min(99, (int)$_GET['qty'])) : null;
@@ -43,8 +44,8 @@ foreach (($mods ?? []) as $gIndex => $g) {
 }
 
 // URLs
-$backUrl = base_url($slug . '/produto/' . $pId);
-$saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
+$backUrl = !empty($parentBackUrl) ? $parentBackUrl : base_url($slug . '/produto/' . $pId);
+$saveUrl = base_url($slug . '/produto/' . $pId . '/customizar');
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -248,6 +249,9 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar/salvar');
     <?php endif; ?>
 
     <input type="hidden" name="product_id" value="<?= $pId ?>">
+    <?php if ($parentProductId): ?>
+      <input type="hidden" name="parent_id" value="<?= $parentProductId ?>">
+    <?php endif; ?>
     <?php if ($qtyGet !== null): ?>
       <input type="hidden" name="qty" value="<?= (int)$qtyGet ?>">
     <?php endif; ?>
