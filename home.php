@@ -70,7 +70,13 @@ $mostraNovidade = isset($mostraNovidade) ? (bool)$mostraNovidade : (count($novid
 $bannerUrl = !empty($company['banner']) ? base_url($company['banner']) : null;
 
 /* Sessão do cliente (se existir) */
-if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  $sessName = function_exists('config') ? (config('session_name') ?? 'mm_session') : 'mm_session';
+  if ($sessName && session_name() !== $sessName) {
+    session_name($sessName);
+  }
+  @session_start();
+}
 $customer = $_SESSION['customer'] ?? null;
 $showFooterMenu = true;
 ?>

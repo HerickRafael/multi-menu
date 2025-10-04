@@ -11,6 +11,8 @@ if (!function_exists('e')) {
 
 ob_start(); ?>
 
+<div class="mx-auto max-w-6xl p-4">
+
 <!-- HEADER -->
 <header class="mb-6 flex items-center gap-3">
   <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
@@ -125,6 +127,8 @@ ob_start(); ?>
     </div>
   </div>
 <?php endif; ?>
+
+</div>
 
 <?php
 $content = ob_get_clean();

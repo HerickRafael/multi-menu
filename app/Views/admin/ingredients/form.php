@@ -45,16 +45,18 @@ if ($unitValueVal !== '' && !is_string($unitValueVal)) { $unitValueVal = rtrim(r
 
 ob_start(); ?>
 
+<div class="mx-auto max-w-4xl p-4 space-y-4">
+
 <!-- ALERTA DE ERRO -->
 <?php if (!empty($error)): ?>
-  <div class="mb-4 rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-800 shadow-sm">
+  <div class="rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-800 shadow-sm">
     <?= e($error) ?>
   </div>
 <?php endif; ?>
 
 <form method="post" enctype="multipart/form-data"
       action="<?= e(base_url($action)) ?>"
-      class="relative grid max-w-3xl gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+      class="relative grid gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 
   <!-- CSRF / METHOD -->
   <?php if (function_exists('csrf_field')): ?>
@@ -66,7 +68,7 @@ ob_start(); ?>
 
   <!-- TOOLBAR FIXA (igual ao bloco de Produto) -->
   <div class="sticky top-0 z-20 -m-4 mb-0 border-b bg-white/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-    <div class="mx-auto flex max-w-3xl items-center justify-between">
+    <div class="mx-auto flex max-w-4xl items-center justify-between">
       <div class="flex items-center gap-2 text-sm text-slate-800">
         <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
           <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none">
@@ -240,6 +242,8 @@ ob_start(); ?>
   });
 })();
 </script>
+
+</div>
 
 <?php
 $content = ob_get_clean();

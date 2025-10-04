@@ -19,6 +19,8 @@ foreach (($cats ?? []) as $c) { $catsById[(string)$c['id']] = $c['name']; }
 
 ob_start(); ?>
 
+<div class="mx-auto max-w-6xl p-4">
+
 <!-- HEADER -->
 <header class="mb-5 flex flex-wrap items-center gap-3">
   <div class="flex items-center gap-3">
@@ -244,6 +246,8 @@ if ($status !== '') {
     </div>
   </div>
 <?php endif; ?>
+
+</div>
 
 <?php
 $content = ob_get_clean();

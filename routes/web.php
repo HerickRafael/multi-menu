@@ -15,6 +15,9 @@ $router->post('/{slug}/produto/{id}/customizar', 'PublicProductController@saveCu
 $router->get('/{slug}/cart',                     'PublicCartController@index');
 $router->post('/{slug}/cart/add',                'PublicCartController@add');
 $router->post('/{slug}/cart/update',             'PublicCartController@update');
+$router->get('/{slug}/checkout',                 'PublicCartController@checkout');
+$router->get('/{slug}/checkout/success',         'PublicCartController@checkoutSuccess');
+$router->post('/{slug}/checkout',                'PublicCartController@submitCheckout');
 
 /* ========= Rotas cliente ========= */
 $router->post('/{slug}/customer-login',          'CustomerAuthController@login');
@@ -40,6 +43,11 @@ $router->post('/admin/{slug}/orders',            'AdminOrdersController@store');
 $router->post('/admin/{slug}/orders/setStatus',  'AdminOrdersController@setStatus');
 $router->post('/admin/{slug}/orders/{id}/del',   'AdminOrdersController@destroy');
 
+// KDS
+$router->get('/admin/{slug}/kds',                'AdminKdsController@index');
+$router->get('/admin/{slug}/kds/data',           'AdminKdsController@data');
+$router->post('/admin/{slug}/kds/status',        'AdminKdsController@status');
+
 // Categorias (CRUD)
 $router->get('/admin/{slug}/categories',             'AdminCategoryController@index');
 $router->get('/admin/{slug}/categories/create',      'AdminCategoryController@create');
@@ -47,6 +55,12 @@ $router->post('/admin/{slug}/categories',            'AdminCategoryController@st
 $router->get('/admin/{slug}/categories/{id}/edit',   'AdminCategoryController@edit');
 $router->post('/admin/{slug}/categories/{id}',       'AdminCategoryController@update');
 $router->post('/admin/{slug}/categories/{id}/del',   'AdminCategoryController@destroy');
+
+// Métodos de pagamento
+$router->get('/admin/{slug}/payment-methods',        'AdminPaymentMethodController@index');
+$router->post('/admin/{slug}/payment-methods',       'AdminPaymentMethodController@store');
+$router->post('/admin/{slug}/payment-methods/{id}',  'AdminPaymentMethodController@update');
+$router->post('/admin/{slug}/payment-methods/{id}/delete', 'AdminPaymentMethodController@destroy');
 
 // Produtos (CRUD)
 $router->get('/admin/{slug}/products',               'AdminProductController@index');

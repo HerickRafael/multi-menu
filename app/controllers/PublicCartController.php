@@ -4,42 +4,33 @@
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
+require_once __DIR__ . '/../core/AuthCustomer.php';
+require_once __DIR__ . '/../services/CartStorage.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Product.php';
 require_once __DIR__ . '/../models/ProductCustomization.php';
+require_once __DIR__ . '/../models/DeliveryCity.php';
+require_once __DIR__ . '/../models/DeliveryZone.php';
+require_once __DIR__ . '/../models/PaymentMethod.php';
+require_once __DIR__ . '/../models/Order.php';
 
 class PublicCartController extends Controller
 {
-    /** Garantir sessão com o nome configurado */
-    private function bootSession(): void
-    {
-        if (class_exists('Auth')) {
-            Auth::start();
-            return;
-        }
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-    }
+    /** @var CartStorage */
+    private $storage;
 
-    /** Retorna referência ao array da sacola na sessão */
-    private function &sessionCart(): array
+    public function __construct()
     {
-        $this->bootSession();
-        if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
-            $_SESSION['cart'] = [];
-        }
-        return $_SESSION['cart'];
+        $this->storage = CartStorage::instance();
     }
 
     /** Sanitiza e copia dados de personalização salvos na sessão */
     private function snapshotCustomization(int $productId): ?array
     {
-        $this->bootSession();
-        if (empty($_SESSION['customizations'][$productId]) || !is_array($_SESSION['customizations'][$productId])) {
+        $raw = $this->storage->getCustomization($productId);
+        if (!$raw || !is_array($raw)) {
             return null;
         }
-        $raw = $_SESSION['customizations'][$productId];
         $result = [
             'single' => [],
             'choice' => [],
@@ -179,6 +170,7 @@ class PublicCartController extends Controller
                 continue;
             }
 
+            $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
             $rawValue = $postData[$index] ?? null;
             $selectedIds = [];
             if (is_array($rawValue)) {
@@ -190,13 +182,17 @@ class PublicCartController extends Controller
             }
 
             if (!$selectedIds) {
-                foreach ($items as $item) {
-                    if (!empty($item['default'])) {
-                        $selectedIds[] = (int)$item['id'];
+                if ($minQty > 0) {
+                    foreach ($items as $item) {
+                        if (!empty($item['default'])) {
+                            $selectedIds[] = (int)$item['id'];
+                        }
                     }
-                }
-                if (!$selectedIds && $items) {
-                    $selectedIds[] = (int)$items[0]['id'];
+                    if (!$selectedIds && $items) {
+                        $selectedIds[] = (int)$items[0]['id'];
+                    }
+                } else {
+                    continue;
                 }
             }
 
@@ -232,6 +228,63 @@ class PublicCartController extends Controller
     private function generateUid(): string
     {
         return bin2hex(random_bytes(6));
+    }
+
+    /** Formata endereço completo em linhas para exibir no pedido */
+    private function formatOrderAddress(array $address): string
+    {
+        $parts = [];
+
+        $line1 = trim((string)($address['street'] ?? ''));
+        $number = trim((string)($address['number'] ?? ''));
+        if ($number !== '') {
+            $line1 = $line1 !== '' ? $line1 . ', ' . $number : $number;
+        }
+        $complement = trim((string)($address['complement'] ?? ''));
+        if ($complement !== '') {
+            $line1 = $line1 !== '' ? $line1 . ' - ' . $complement : $complement;
+        }
+        if ($line1 !== '') {
+            $parts[] = $line1;
+        }
+
+        $line2Segments = [];
+        if (!empty($address['neighborhood'])) {
+            $line2Segments[] = trim($address['neighborhood']);
+        }
+        $cityState = trim(($address['city'] ?? '') . ((isset($address['state']) && $address['state'] !== '') ? '/' . strtoupper($address['state']) : ''));
+        if ($cityState !== '') {
+            $line2Segments[] = $cityState;
+        }
+        if ($line2Segments) {
+            $parts[] = implode(' - ', $line2Segments);
+        }
+
+        $reference = trim((string)($address['reference'] ?? ''));
+        if ($reference !== '') {
+            $parts[] = 'Referência: ' . $reference;
+        }
+
+        return implode("\n", array_filter($parts, static fn($line) => $line !== ''));
+    }
+
+    /** Persiste endereço no pedido, ignorando caso a coluna não exista */
+    private function persistOrderAddress(PDO $db, int $orderId, ?string $address): void
+    {
+        $address = $address !== null ? trim($address) : '';
+        if ($address === '') {
+            return;
+        }
+
+        try {
+            $stmt = $db->prepare('UPDATE orders SET customer_address = :addr WHERE id = :id');
+            $stmt->execute([
+                ':addr' => $address,
+                ':id'   => $orderId,
+            ]);
+        } catch (Throwable $e) {
+            // Coluna opcional não existe; segue sem interromper fluxo
+        }
     }
 
     /** Monta estrutura pronta para renderização e cálculo */
@@ -345,6 +398,7 @@ class PublicCartController extends Controller
                 continue;
             }
 
+            $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
             $wanted = $comboMap[$gid] ?? null;
             $selectedSimpleIds = [];
             if (is_array($wanted)) {
@@ -354,14 +408,20 @@ class PublicCartController extends Controller
             } elseif ($wanted !== null) {
                 $selectedSimpleIds[] = (int)$wanted;
             } else {
-                foreach ($items as $opt) {
-                    if (!empty($opt['default'])) {
-                        $selectedSimpleIds[] = (int)$opt['simple_id'];
+                if ($minQty > 0) {
+                    foreach ($items as $opt) {
+                        if (!empty($opt['default'])) {
+                            $selectedSimpleIds[] = (int)$opt['simple_id'];
+                        }
+                    }
+                    if (!$selectedSimpleIds && $items) {
+                        $selectedSimpleIds[] = (int)$items[0]['simple_id'];
                     }
                 }
-                if (!$selectedSimpleIds && $items) {
-                    $selectedSimpleIds[] = (int)$items[0]['simple_id'];
-                }
+            }
+
+            if (!$selectedSimpleIds) {
+                continue;
             }
 
             $groupDetails = [];
@@ -374,6 +434,13 @@ class PublicCartController extends Controller
                     continue;
                 }
                 $delta = isset($opt['delta']) ? (float)$opt['delta'] : (float)($opt['delta_price'] ?? 0);
+                $basePrice = null;
+                if (array_key_exists('base_price', $opt) && $opt['base_price'] !== null) {
+                    $basePrice = (float)$opt['base_price'];
+                } elseif (array_key_exists('price', $opt) && $opt['price'] !== null) {
+                    $basePrice = (float)$opt['price'];
+                }
+                $isDefault = !empty($opt['default']) || !empty($opt['is_default']);
                 $itemData = [
                     'simple_id' => $simpleId,
                     'combo_item_id' => isset($opt['id']) ? (int)$opt['id'] : $simpleId,
@@ -381,6 +448,9 @@ class PublicCartController extends Controller
                     'delta' => $delta,
                     'image' => $opt['image'] ?? null,
                     'customizable' => !empty($opt['customizable']) || !empty($opt['allow_customize']),
+                    'base_price' => $basePrice,
+                    'is_default' => $isDefault,
+                    'default' => $isDefault,
                 ];
                 $groupDetails[] = $itemData;
                 $result['selected_items'][] = $itemData;
@@ -505,14 +575,22 @@ class PublicCartController extends Controller
                     }
                     $item = $items[$idx];
                     $priceUnit = isset($item['sale_price']) ? (float)$item['sale_price'] : (float)($item['delta'] ?? 0);
+                    $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : (isset($item['qty']) ? (int)$item['qty'] : null);
+                    $deltaQty = $qty;
+                    if ($defaultQty !== null) {
+                        $deltaQty = $qty - $defaultQty;
+                    }
+                    $linePrice = $priceUnit * $deltaQty;
                     $line = [
                         'name' => (string)($item['name'] ?? ''),
                         'qty' => $qty,
                         'unit_price' => $priceUnit,
-                        'price' => $priceUnit * $qty,
+                        'price' => $linePrice,
+                        'default_qty' => $defaultQty,
+                        'delta_qty' => $deltaQty,
                     ];
-                    if ($line['price'] > 0) {
-                        $result['total_delta'] += $line['price'];
+                    if ($linePrice !== 0.0) {
+                        $result['total_delta'] += $linePrice;
                     }
                     $selected[] = $line;
                 }
@@ -541,8 +619,19 @@ class PublicCartController extends Controller
             return;
         }
 
-        $cartRef =& $this->sessionCart();
+        $requireLogin = (bool)(config('login_required') ?? false);
+        $customer = AuthCustomer::current($slug);
+        if ($requireLogin && !$customer) {
+            $redirect = base_url($slug . '?login=1');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $cartRef = $this->storage->getCart();
         $items = $this->hydrateCartItems($cartRef, $company);
+        if (!is_array($items)) {
+            $items = [];
+        }
 
         $subtotal = 0.0;
         foreach ($items as $item) {
@@ -558,7 +647,446 @@ class PublicCartController extends Controller
             ],
             'slug' => $slug,
             'updateUrl' => base_url($slug . '/cart/update'),
+            'customer' => $customer,
+            'requireLogin' => $requireLogin,
         ]);
+    }
+
+    /** GET /{slug}/checkout */
+    public function checkout($params)
+    {
+        $slug = $params['slug'] ?? null;
+        $company = Company::findBySlug($slug);
+        if (!$company || (int)($company['active'] ?? 0) !== 1) {
+            http_response_code(404);
+            echo 'Empresa não encontrada';
+            return;
+        }
+
+        $requireLogin = (bool)(config('login_required') ?? false);
+        $customer = AuthCustomer::current($slug);
+        if ($requireLogin && !$customer) {
+            $redirect = base_url($slug . '?login=1');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $cartRef = $this->storage->getCart();
+        $items = $this->hydrateCartItems($cartRef, $company);
+
+        if (!$items) {
+            header('Location: ' . base_url($slug . '/cart'));
+            exit;
+        }
+
+        $subtotal = 0.0;
+        foreach ($items as $item) {
+            $subtotal += (float)$item['line_total'];
+        }
+
+        $deliveryAddress = $_SESSION['checkout_address'] ?? [];
+        if (!is_array($deliveryAddress)) {
+            $deliveryAddress = [];
+        }
+
+        $deliveryAddress = array_merge([
+            'name'              => $customer['name'] ?? '',
+            'phone'             => $customer['whatsapp'] ?? '',
+            'street'            => '',
+            'number'            => '',
+            'neighborhood'      => '',
+            'city'              => '',
+            'state'             => '',
+            'complement'        => '',
+            'reference'         => '',
+            'notes'             => '',
+            'city_id'           => 0,
+            'zone_id'           => 0,
+            'payment_method_id' => 0,
+        ], $deliveryAddress);
+
+        $companyId = (int)($company['id'] ?? 0);
+        $cities = DeliveryCity::allByCompany($companyId);
+        $zonesRaw = DeliveryZone::allByCompany($companyId);
+
+        $selectedCityId = (int)($deliveryAddress['city_id'] ?? 0);
+        $selectedZoneId = (int)($deliveryAddress['zone_id'] ?? 0);
+
+        $zonesByCity = [];
+        $selectedZone = null;
+        foreach ($zonesRaw as $zone) {
+            $cityId = (int)($zone['city_id'] ?? 0);
+            $mapped = [
+                'id'         => (int)($zone['id'] ?? 0),
+                'city_id'    => $cityId,
+                'name'       => (string)($zone['neighborhood'] ?? ''),
+                'fee'        => (float)($zone['fee'] ?? 0),
+                'city_name'  => (string)($zone['city_name'] ?? ''),
+            ];
+            if (!isset($zonesByCity[$cityId])) {
+                $zonesByCity[$cityId] = [];
+            }
+            $zonesByCity[$cityId][] = $mapped;
+            if ($mapped['id'] === $selectedZoneId) {
+                $selectedZone = $mapped;
+            }
+        }
+
+        if (!$selectedCityId && count($cities) === 1) {
+            $selectedCityId = (int)($cities[0]['id'] ?? 0);
+        }
+        if ($selectedZoneId && !$selectedZone) {
+            $selectedZoneId = 0;
+            $deliveryAddress['zone_id'] = 0;
+        }
+
+        if ($selectedZone && !$selectedCityId) {
+            $selectedCityId = $selectedZone['city_id'];
+        }
+
+        if ($selectedCityId && empty($deliveryAddress['city'])) {
+            foreach ($cities as $cityRow) {
+                if ((int)($cityRow['id'] ?? 0) === $selectedCityId) {
+                    $deliveryAddress['city'] = (string)($cityRow['name'] ?? '');
+                    break;
+                }
+            }
+        }
+
+        if ($selectedZone) {
+            $deliveryAddress['neighborhood'] = $selectedZone['name'];
+            if (!empty($selectedZone['city_name'])) {
+                $deliveryAddress['city'] = $selectedZone['city_name'];
+            }
+        }
+
+        $deliveryFee = $selectedZone ? (float)$selectedZone['fee'] : 0.0;
+        $total = $subtotal + $deliveryFee;
+
+        $paymentMethods = PaymentMethod::activeByCompany($companyId);
+        $selectedPaymentId = (int)($deliveryAddress['payment_method_id'] ?? 0);
+        if (!$selectedPaymentId && $paymentMethods) {
+            $selectedPaymentId = (int)$paymentMethods[0]['id'];
+        }
+        $deliveryAddress['city_id'] = $selectedCityId;
+        $deliveryAddress['zone_id'] = $selectedZone ? $selectedZone['id'] : 0;
+        $deliveryAddress['payment_method_id'] = $selectedPaymentId;
+
+        $flash = $_SESSION['checkout_flash'] ?? null;
+        unset($_SESSION['checkout_flash']);
+
+        return $this->view('public/checkout', [
+            'company'           => $company,
+            'items'             => $items,
+            'totals'            => [
+                'subtotal' => $subtotal,
+                'delivery' => $deliveryFee,
+                'total'    => $total,
+            ],
+            'slug'              => $slug,
+            'customer'          => $customer,
+            'deliveryAddress'   => $deliveryAddress,
+            'cities'            => $cities,
+            'zonesByCity'       => $zonesByCity,
+            'selectedCityId'    => $selectedCityId,
+            'selectedZoneId'    => $selectedZone ? $selectedZone['id'] : 0,
+            'paymentMethods'    => $paymentMethods,
+            'selectedPaymentId' => $selectedPaymentId,
+            'flash'             => $flash,
+        ]);
+    }
+
+    /** GET /{slug}/checkout/success */
+    public function checkoutSuccess($params)
+    {
+        $slug = $params['slug'] ?? null;
+        $company = Company::findBySlug($slug);
+        if (!$company || (int)($company['active'] ?? 0) !== 1) {
+            http_response_code(404);
+            echo 'Empresa não encontrada';
+            return;
+        }
+
+        $success = $_SESSION['checkout_success'] ?? null;
+        if (!$success || !is_array($success)) {
+            header('Location: ' . base_url($slug));
+            exit;
+        }
+
+        unset($_SESSION['checkout_success']);
+
+        return $this->view('public/checkout_success', [
+            'company' => $company,
+            'slug'    => $slug,
+            'order'   => $success,
+        ]);
+    }
+
+    /** POST /{slug}/checkout */
+    public function submitCheckout($params)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo 'Método não permitido';
+            return;
+        }
+
+        $slug = $params['slug'] ?? null;
+        $company = Company::findBySlug($slug);
+        if (!$company || (int)($company['active'] ?? 0) !== 1) {
+            http_response_code(404);
+            echo 'Empresa não encontrada';
+            return;
+        }
+
+        $requireLogin = (bool)(config('login_required') ?? false);
+        $customer = AuthCustomer::current($slug);
+        if ($requireLogin && !$customer) {
+            $redirect = base_url($slug . '?login=1');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $cartRef = $this->storage->getCart();
+        if (!$cartRef) {
+            header('Location: ' . base_url($slug . '/cart'));
+            exit;
+        }
+
+        $items = $this->hydrateCartItems($cartRef, $company);
+        if (!$items) {
+            header('Location: ' . base_url($slug . '/cart'));
+            exit;
+        }
+
+        $companyId = (int)$company['id'];
+        $cities = DeliveryCity::allByCompany($companyId);
+        $zonesRaw = DeliveryZone::allByCompany($companyId);
+
+        $cityMap = [];
+        foreach ($cities as $cityRow) {
+            $cityMap[(int)($cityRow['id'] ?? 0)] = (string)($cityRow['name'] ?? '');
+        }
+
+        $zoneMap = [];
+        $zonesByCity = [];
+        foreach ($zonesRaw as $zoneRow) {
+            $zoneId = (int)($zoneRow['id'] ?? 0);
+            $zoneMap[$zoneId] = $zoneRow;
+            $cityId = (int)($zoneRow['city_id'] ?? 0);
+            if (!isset($zonesByCity[$cityId])) {
+                $zonesByCity[$cityId] = [];
+            }
+            $zonesByCity[$cityId][] = $zoneRow;
+        }
+
+        $activePaymentMethods = PaymentMethod::activeByCompany($companyId);
+
+        $addressInput = isset($_POST['address']) && is_array($_POST['address']) ? $_POST['address'] : [];
+
+        $clean = [
+            'name'        => trim($addressInput['name'] ?? ''),
+            'phone'       => trim($addressInput['phone'] ?? ''),
+            'street'      => trim($addressInput['street'] ?? ''),
+            'number'      => trim($addressInput['number'] ?? ''),
+            'complement'  => trim($addressInput['complement'] ?? ''),
+            'state'       => strtoupper(trim($addressInput['state'] ?? '')),
+            'reference'   => trim($addressInput['reference'] ?? ''),
+            'city_id'     => (int)($addressInput['city_id'] ?? 0),
+            'zone_id'     => (int)($addressInput['zone_id'] ?? 0),
+            'city'        => '',
+            'neighborhood'=> '',
+            'notes'       => trim($_POST['order']['notes'] ?? ''),
+        ];
+
+        $deliveryFee = 0.0;
+
+        if (!isset($cityMap[$clean['city_id']])) {
+            $clean['city_id'] = 0;
+        } else {
+            $clean['city'] = $cityMap[$clean['city_id']];
+        }
+
+        if ($clean['zone_id'] && isset($zoneMap[$clean['zone_id']])) {
+            $zone = $zoneMap[$clean['zone_id']];
+            $zoneCityId = (int)($zone['city_id'] ?? 0);
+            if (!$clean['city_id'] || $clean['city_id'] !== $zoneCityId) {
+                $clean['city_id'] = $zoneCityId;
+                $clean['city'] = $cityMap[$zoneCityId] ?? '';
+            }
+            $clean['neighborhood'] = (string)($zone['neighborhood'] ?? '');
+            $deliveryFee = (float)($zone['fee'] ?? 0.0);
+        } else {
+            $clean['zone_id'] = 0;
+            $clean['neighborhood'] = '';
+            $deliveryFee = 0.0;
+        }
+
+        $paymentInput = isset($_POST['payment']) && is_array($_POST['payment']) ? $_POST['payment'] : [];
+        $paymentMethodId = (int)($paymentInput['method_id'] ?? 0);
+        $paymentMethod = $paymentMethodId ? PaymentMethod::findForCompany($paymentMethodId, $companyId) : null;
+        if (!$paymentMethod || (int)($paymentMethod['active'] ?? 0) !== 1) {
+            $paymentMethodId = 0;
+        }
+        $clean['payment_method_id'] = $paymentMethodId;
+
+        $errors = [];
+        if ($clean['name'] === '') {
+            $errors[] = 'Informe o nome do destinatário.';
+        }
+        if ($clean['phone'] === '') {
+            $errors[] = 'Informe o telefone para contato.';
+        }
+        $zonesForSelectedCity = $clean['city_id'] > 0 && isset($zonesByCity[$clean['city_id']])
+            ? $zonesByCity[$clean['city_id']] : [];
+
+        if ($clean['city_id'] <= 0 && !empty($cityMap)) {
+            $errors[] = 'Selecione uma cidade atendida.';
+        }
+        if ($clean['zone_id'] <= 0 && !empty($zonesForSelectedCity)) {
+            $errors[] = 'Selecione um bairro atendido.';
+        }
+        if ($clean['street'] === '') {
+            $errors[] = 'Informe a rua/avenida.';
+        }
+        if ($clean['number'] === '') {
+            $errors[] = 'Informe o número do endereço.';
+        }
+        if ($activePaymentMethods && $paymentMethodId <= 0) {
+            $errors[] = 'Escolha um método de pagamento disponível.';
+        }
+
+        if ($errors) {
+            $_SESSION['checkout_flash'] = [
+                'type' => 'error',
+                'message' => implode(' ', $errors),
+            ];
+            $_SESSION['checkout_address'] = $clean;
+            header('Location: ' . base_url($slug . '/checkout'));
+            exit;
+        }
+
+        $orderItemsPayload = [];
+        $subtotal = 0.0;
+        $itemsSummary = [];
+        foreach ($items as $item) {
+            $productId = (int)($item['product']['id'] ?? 0);
+            if ($productId <= 0) {
+                continue;
+            }
+            $quantity = max(1, (int)($item['qty'] ?? 1));
+            $unitPrice = (float)($item['unit_price'] ?? 0.0);
+            $lineTotal = (float)($item['line_total'] ?? ($unitPrice * $quantity));
+
+            $orderItemsPayload[] = [
+                'product_id' => $productId,
+                'quantity'   => $quantity,
+                'unit_price' => $unitPrice,
+                'line_total' => $lineTotal,
+            ];
+            $subtotal += $lineTotal;
+
+            $itemsSummary[] = [
+                'name'       => (string)($item['product']['name'] ?? 'Produto'),
+                'quantity'   => $quantity,
+                'line_total' => $lineTotal,
+            ];
+        }
+
+        if (!$orderItemsPayload) {
+            $_SESSION['checkout_flash'] = [
+                'type' => 'error',
+                'message' => 'Seu carrinho está vazio.',
+            ];
+            $_SESSION['checkout_address'] = $clean;
+            header('Location: ' . base_url($slug . '/checkout'));
+            exit;
+        }
+
+        $discount = 0.0;
+        $total = max(0.0, $subtotal + $deliveryFee - $discount);
+
+        $paymentMethodName = $paymentMethod ? trim((string)($paymentMethod['name'] ?? '')) : '';
+        $paymentInstructions = $paymentMethod ? trim((string)($paymentMethod['instructions'] ?? '')) : '';
+
+        $orderNotesParts = [];
+        if ($clean['notes'] !== '') {
+            $orderNotesParts[] = 'Observações: ' . $clean['notes'];
+        }
+        if ($paymentMethodName !== '') {
+            $paymentLine = 'Pagamento: ' . $paymentMethodName;
+            if ($paymentInstructions !== '') {
+                $paymentLine .= ' — ' . $paymentInstructions;
+            }
+            $orderNotesParts[] = $paymentLine;
+        }
+        $orderNotes = $orderNotesParts ? implode("\n\n", $orderNotesParts) : null;
+
+        $formattedAddress = $this->formatOrderAddress($clean);
+
+        $db = $this->db();
+        try {
+            $db->beginTransaction();
+            $orderId = Order::create($db, [
+                'company_id'       => $companyId,
+                'customer_name'    => $clean['name'],
+                'customer_phone'   => $clean['phone'],
+                'subtotal'         => $subtotal,
+                'delivery_fee'     => $deliveryFee,
+                'discount'         => $discount,
+                'total'            => $total,
+                'status'           => 'pending',
+                'notes'            => $orderNotes,
+                'customer_address' => $formattedAddress,
+            ]);
+
+            foreach ($orderItemsPayload as $payload) {
+                Order::addItem($db, $orderId, $payload);
+            }
+
+            $this->persistOrderAddress($db, $orderId, $formattedAddress);
+
+            Order::emitOrderEvent($db, $orderId, $companyId, 'order.created');
+
+            $db->commit();
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('Checkout error: ' . $e->getMessage());
+
+            $_SESSION['checkout_flash'] = [
+                'type' => 'error',
+                'message' => 'Não foi possível finalizar o pedido. Tente novamente em instantes.',
+            ];
+            $_SESSION['checkout_address'] = $clean;
+            header('Location: ' . base_url($slug . '/checkout'));
+            exit;
+        }
+
+        $_SESSION['checkout_address'] = $clean;
+        $_SESSION['checkout_address']['delivery_fee'] = $deliveryFee;
+
+        $this->storage->clearCart();
+
+        unset($_SESSION['checkout_flash']);
+
+        $_SESSION['checkout_success'] = [
+            'order_id'           => $orderId,
+            'customer_name'      => $clean['name'],
+            'customer_phone'     => $clean['phone'],
+            'total'              => $total,
+            'subtotal'           => $subtotal,
+            'delivery_fee'       => $deliveryFee,
+            'payment_method'     => $paymentMethodName,
+            'payment_instructions'=> $paymentInstructions,
+            'address'            => $formattedAddress,
+            'notes'              => $clean['notes'],
+            'items'              => $itemsSummary,
+        ];
+
+        header('Location: ' . base_url($slug . '/checkout/success'));
+        exit;
     }
 
     /** POST /{slug}/cart/add */
@@ -579,6 +1107,15 @@ class PublicCartController extends Controller
         }
 
         $productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        $requireLogin = (bool)(config('login_required') ?? false);
+        if ($requireLogin && !AuthCustomer::current()) {
+            $redirect = $productId > 0
+                ? base_url($slug . '/produto/' . $productId . '?login=1')
+                : base_url($slug . '?login=1');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
         $product = $productId > 0 ? Product::find($productId) : null;
         if (!$product || (int)($product['company_id'] ?? 0) !== (int)$company['id'] || (int)($product['active'] ?? 0) !== 1) {
             http_response_code(404);
@@ -616,7 +1153,7 @@ class PublicCartController extends Controller
             }
         }
 
-        $cartRef =& $this->sessionCart();
+        $cartRef = $this->storage->getCart();
         $cartRef[] = [
             'uid' => $this->generateUid(),
             'company_id' => (int)$company['id'],
@@ -627,6 +1164,8 @@ class PublicCartController extends Controller
             'combo_customizations' => $componentCustomizations,
             'added_at' => time(),
         ];
+
+        $this->storage->setCart($cartRef);
 
         header('Location: ' . base_url($slug . '/cart'));
         exit;
@@ -649,6 +1188,13 @@ class PublicCartController extends Controller
             return;
         }
 
+        $requireLogin = (bool)(config('login_required') ?? false);
+        if ($requireLogin && !AuthCustomer::current()) {
+            $redirect = base_url($slug . '?login=1');
+            header('Location: ' . $redirect);
+            exit;
+        }
+
         $uid = isset($_POST['uid']) ? (string)$_POST['uid'] : '';
         if ($uid === '') {
             header('Location: ' . base_url($slug . '/cart'));
@@ -658,7 +1204,7 @@ class PublicCartController extends Controller
         $action = $_POST['action'] ?? null;
         $qtyParam = isset($_POST['qty']) ? (int)$_POST['qty'] : null;
 
-        $cartRef =& $this->sessionCart();
+        $cartRef = $this->storage->getCart();
         foreach ($cartRef as $index => &$item) {
             if (!is_array($item)) {
                 continue;
@@ -695,8 +1241,12 @@ class PublicCartController extends Controller
         }
         unset($item);
 
-        // Reindexa para evitar buracos
+        // Reindexa e persiste
         $cartRef = array_values($cartRef);
+        $this->storage->setCart($cartRef);
+        if (!$cartRef) {
+            unset($_SESSION['checkout_address'], $_SESSION['checkout_flash']);
+        }
 
         header('Location: ' . base_url($slug . '/cart'));
         exit;

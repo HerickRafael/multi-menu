@@ -1,4 +1,11 @@
 <?php
+$name = 'mm_session';
+if (function_exists('config')) {
+    $name = config('session_name') ?? $name;
+}
+if ($name && session_name() !== $name) {
+    session_name($name);
+}
 session_start();
 
 if (!isset($_SESSION['customizations'])) {

@@ -45,6 +45,8 @@ $hours = $hours ?? [];
 
 ob_start(); ?>
 
+<div class="mx-auto max-w-6xl p-4">
+
 <!-- ALERTA DE ERRO -->
 <?php if (!empty($error)): ?>
   <div class="mb-4 rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-800 shadow-sm">
@@ -261,6 +263,8 @@ ob_start(); ?>
       <?php endforeach; ?>
     </div>
   </fieldset>
+
+</div>
 
 <!-- SCRIPTS -->
 <script>

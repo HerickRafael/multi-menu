@@ -148,12 +148,17 @@ ob_start(); ?>
               <?php
                 $st = (string)($o['status'] ?? 'pending');
                 $label = $statusLabels[$st] ?? ucfirst($st);
-                // badge classes por status
                 $badge = match ($st) {
                   'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
                   'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
                   'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
-                  default     => 'bg-amber-50 text-amber-700 ring-amber-200', // pending
+                  default     => 'bg-amber-50 text-amber-700 ring-amber-200',
+                };
+                $dotClass = match ($st) {
+                  'paid'      => 'bg-blue-500',
+                  'completed' => 'bg-emerald-500',
+                  'canceled'  => 'bg-rose-500',
+                  default     => 'bg-amber-500',
                 };
               ?>
               <tr class="hover:bg-slate-50/60">
@@ -168,15 +173,7 @@ ob_start(); ?>
 
                 <td class="p-3 align-middle">
                   <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 <?= $badge ?>">
-                    <?php if ($st === 'completed'): ?>
-                      <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                    <?php elseif ($st === 'paid'): ?>
-                      <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
-                    <?php elseif ($st === 'canceled'): ?>
-                      <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-                    <?php else: ?>
-                      <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                    <?php endif; ?>
+                    <span class="h-1.5 w-1.5 rounded-full <?= $dotClass ?>"></span>
                     <?= e($label) ?>
                   </span>
                 </td>

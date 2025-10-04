@@ -33,9 +33,11 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 ?>
 <?php ob_start(); ?>
 
+<div class="mx-auto max-w-4xl p-4 space-y-4">
+
 <!-- ERROS -->
 <?php if (!empty($errors) && is_array($errors)): ?>
-  <div class="mb-4 rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-800 shadow-sm">
+  <div class="rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-800 shadow-sm">
     <strong class="mb-1 block">Por favor, corrija os campos abaixo:</strong>
     <ul class="list-disc space-y-0.5 pl-5">
       <?php foreach ($errors as $err): ?><li><?= e($err) ?></li><?php endforeach; ?>
@@ -47,7 +49,7 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
       method="post"
       action="<?= e(base_url($action)) ?>"
       enctype="multipart/form-data"
-      class="relative grid w-full max-w-4xl gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+      class="relative grid gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 
   <!-- CSRF / METHOD -->
   <?php if (function_exists('csrf_field')): ?>
@@ -1505,6 +1507,8 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
     refreshComboGroupOrder();
   </script>
 </form>
+
+</div>
 
 <?php
 $content = ob_get_clean();

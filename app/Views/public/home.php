@@ -70,9 +70,16 @@ $mostraNovidade = isset($mostraNovidade) ? (bool)$mostraNovidade : (count($novid
 $bannerUrl = !empty($company['banner']) ? base_url($company['banner']) : null;
 
 /* Sessão do cliente (se existir) */
-if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  $sessName = function_exists('config') ? (config('session_name') ?? 'mm_session') : 'mm_session';
+  if ($sessName && session_name() !== $sessName) {
+    session_name($sessName);
+  }
+  @session_start();
+}
 $customer = $_SESSION['customer'] ?? null;
 $showFooterMenu = true;
+$forceLoginHome = !empty($_GET['login']) && !$customer;
 ?>
 <header>
   <style>
@@ -294,6 +301,7 @@ $showFooterMenu = true;
       </div>
       <form id="login-form" class="p-4" method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-login') ?>">
         <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
+        <input type="hidden" name="redirect_to" value="<?= e($_SERVER['REQUEST_URI'] ?? '') ?>">
         <div class="mb-3">
           <label class="block text-sm font-medium mb-1">Nome</label>
           <input type="text" name="name" required class="w-full border rounded-lg px-3 py-2" />
@@ -330,13 +338,21 @@ $showFooterMenu = true;
 
   // Modal de login
   (function(){
+  (function(){
     const modal = document.getElementById('login-modal');
     if (!modal) return;
-    function open(){ modal.classList.remove('hidden'); }
+    const redirectInput = modal.querySelector('input[name="redirect_to"]');
+    function open(){
+      if (redirectInput) redirectInput.value = window.location.pathname + window.location.search;
+      modal.classList.remove('hidden');
+    }
     function close(){ modal.classList.add('hidden'); }
     document.getElementById('btn-open-login')?.addEventListener('click', open);
     document.getElementById('login-close')?.addEventListener('click', close);
     modal.addEventListener('click', (e)=>{ if (e.target===modal) close(); });
+    <?php if ($forceLoginHome): ?>
+    open();
+    <?php endif; ?>
   })();
 </script>
 

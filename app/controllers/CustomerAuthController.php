@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/../core/AuthCustomer.php';
 require_once __DIR__ . '/../models/Customer.php';
 require_once __DIR__ . '/../core/Helpers.php';
 
@@ -21,9 +22,7 @@ class CustomerAuthController extends Controller
     public function login(array $params): void
     {
         // garante sessão
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
+        AuthCustomer::start();
 
         $slug = $params['slug'] ?? null;
         if (!$slug) {
@@ -97,13 +96,32 @@ class CustomerAuthController extends Controller
             'samesite' => 'Lax',
         ]);
 
-        $homeUrl = base_url(rawurlencode($slug));
+        $defaultRedirect = base_url(rawurlencode($slug));
+        $redirectTarget = trim($_POST['redirect_to'] ?? '');
+        $redirectUrl = $defaultRedirect;
+
+        if ($redirectTarget !== '') {
+            if ($redirectTarget[0] === '/') {
+                $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $redirectUrl = $scheme . '://' . $host . $redirectTarget;
+            } elseif (preg_match('~^https?://~i', $redirectTarget)) {
+                $parsed = parse_url($redirectTarget);
+                $host = $_SERVER['HTTP_HOST'] ?? '';
+                if (!empty($parsed['host']) && strcasecmp($parsed['host'], $host) === 0) {
+                    $redirectUrl = $redirectTarget;
+                }
+            } else {
+                $redirectUrl = base_url(ltrim($redirectTarget, '/'));
+            }
+        }
+
         $wantJson = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
                  || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
         if ($wantJson) {
-            $this->json(['ok' => true]);
+            $this->json(['ok' => true, 'redirect' => $redirectUrl]);
         }
-        header('Location: ' . $homeUrl);
+        header('Location: ' . $redirectUrl);
         exit;
     }
 
@@ -112,9 +130,7 @@ class CustomerAuthController extends Controller
      */
     public function logout(array $params): void
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
+        AuthCustomer::start();
         $slug = $params['slug'] ?? '';
         unset($_SESSION['customer']);
         setcookie('mm_customer_e164', '', [
@@ -141,9 +157,7 @@ class CustomerAuthController extends Controller
      */
     public function me(array $params): void
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
+        AuthCustomer::start();
         $c = $_SESSION['customer'] ?? null;
         $this->json(['logged' => (bool)$c, 'customer' => $c ?: null]);
     }

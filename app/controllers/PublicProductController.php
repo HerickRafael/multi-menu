@@ -5,6 +5,8 @@ require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Product.php';
 require_once __DIR__ . '/../models/ProductCustomization.php';
+require_once __DIR__ . '/../core/AuthCustomer.php';
+require_once __DIR__ . '/../services/CartStorage.php';
 
 class PublicProductController extends Controller
 {
@@ -50,6 +52,10 @@ class PublicProductController extends Controller
         $mods = ProductCustomization::loadForPublic($id);
         $hasCustomization = !empty($mods);
 
+        $requireLogin = (bool)(config('login_required') ?? false);
+        $isLogged = AuthCustomer::current($slug) !== null;
+        $forceLoginModal = $requireLogin && !$isLogged && !empty($_GET['login']);
+
         // Renderiza a view pública
         // A view espera: $company, $product, $comboGroups, $mods
         return $this->view('public/product', [
@@ -58,6 +64,7 @@ class PublicProductController extends Controller
             'comboGroups'      => $comboGroups,
             'mods'             => $mods,
             'hasCustomization' => $hasCustomization,
+            'forceLoginModal'  => $forceLoginModal,
         ]);
     }
 
@@ -108,12 +115,7 @@ class PublicProductController extends Controller
             }
         }
 
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-        if (!isset($_SESSION['customizations']) || !is_array($_SESSION['customizations'])) {
-            $_SESSION['customizations'] = [];
-        }
+        $store = CartStorage::instance();
 
         $customSingle = [];
         if (isset($_POST['custom_single']) && is_array($_POST['custom_single'])) {
@@ -233,12 +235,12 @@ class PublicProductController extends Controller
 
         $quantity = isset($_POST['qty']) ? max(1, (int)$_POST['qty']) : null;
 
-        $_SESSION['customizations'][$id] = [
+        $store->setCustomization($id, [
             'single'   => $customSingle,
             'qty'      => $customQty,
             'choice'   => $customChoice,
             'quantity' => $quantity,
-        ];
+        ]);
 
         $redirect = base_url($slug . '/produto/' . $redirectTarget);
         header('Location: ' . $redirect);
@@ -255,6 +257,13 @@ class PublicProductController extends Controller
             http_response_code(404);
             echo "Empresa não encontrada";
             return;
+        }
+
+        $requireLogin = (bool)(config('login_required') ?? false);
+        if ($requireLogin && !AuthCustomer::require($slug)) {
+            $redirect = base_url($slug . '/produto/' . $id . '?login=1');
+            header('Location: ' . $redirect);
+            exit;
         }
 
         $product = Product::find($id);
@@ -288,10 +297,8 @@ class PublicProductController extends Controller
             $parentId = 0;
         }
 
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-        $saved = $_SESSION['customizations'][$id] ?? null;
+        $store = CartStorage::instance();
+        $saved = $store->getCustomization($id);
         if ($saved) {
             foreach ($mods as $gi => &$group) {
                 $gType = $group['type'] ?? 'extra';

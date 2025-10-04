@@ -140,7 +140,7 @@ $adminPrimaryGradient = admin_theme_gradient($companyData);
       .admin-print-only {
         display: block !important;
       }
-      .max-w-5xl {
+      .max-w-7xl {
         max-width: 100% !important;
       }
       .mx-auto {
@@ -157,7 +157,7 @@ $adminPrimaryGradient = admin_theme_gradient($companyData);
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
-  <div class="max-w-5xl mx-auto p-4">
+  <div class="max-w-7xl mx-auto p-4">
     <?= $content ?? '' ?>
   </div>
 </body>

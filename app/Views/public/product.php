@@ -7,6 +7,14 @@
 if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
 if (!function_exists('price_br')) { function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); } }
 
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  $sessName = function_exists('config') ? (config('session_name') ?? 'mm_session') : 'mm_session';
+  if ($sessName && session_name() !== $sessName) {
+    session_name($sessName);
+  }
+  @session_start();
+}
+
 /** Variáveis básicas */
 $company      = $company      ?? [];
 $product      = $product      ?? [];
@@ -22,6 +30,9 @@ $priceMode = $product['price_mode'] ?? 'fixed';
 /** URLs */
 $customizeBase = base_url($slug . '/produto/' . $pId . '/customizar');
 $addToCartUrl  = base_url($slug . '/cart/add');
+$requireLogin  = (bool)(config('login_required') ?? false);
+$isLogged      = isset($_SESSION['customer']) && (!isset($_SESSION['customer']['company_slug']) || $_SESSION['customer']['company_slug'] === $slug);
+$forceLoginModal = !empty($forceLoginModal);
 
 /** Helper para forçar caminho local em /uploads a partir de URL ou nome */
 if (!function_exists('local_upload_src')) {
@@ -95,17 +106,6 @@ foreach ($comboGroupsRaw as $gIndex => $group) {
     continue;
   }
 
-  $hasDefault = false;
-  foreach ($items as $opt) {
-    if (!empty($opt['default'])) {
-      $hasDefault = true;
-      break;
-    }
-  }
-  if (!$hasDefault) {
-    $items[0]['default'] = true;
-  }
-
   $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
   $maxQty = isset($group['max']) ? (int)$group['max'] : (int)($group['max_qty'] ?? 1);
   $type   = isset($group['type']) && $group['type'] !== '' ? (string)$group['type'] : 'single';
@@ -135,6 +135,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
 <title><?= e($product['name'] ?? 'Produto') ?> — <?= e($company['name'] ?? '') ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
   :root{
     --bg:#f3f4f6; --card:#fff; --txt:#0f172a; --muted:#6b7280;
@@ -144,7 +145,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
-  .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+  .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;background:var(--card);padding-bottom:96px;position:relative}
   @media (min-width:768px){ .app{max-width:375px} }
 
   /* ===== HERO ===== */
@@ -198,10 +199,14 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   .choice-customize:hover{background:#111827;color:#fff}
   .choice-customize:active{background:#0f172a;color:#fff;border-color:#0f172a}
   .choice-customize.hidden{display:none}
+  .ring:focus{outline:none}
+  .ring:focus-visible{outline:none;box-shadow:none}
 
   /* ===== FOOTER/CTA ===== */
-  .footer{position:sticky;bottom:0;background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06)}
-  .cta{width:100%;border:none;border-radius:16px;padding:14px 16px;background:var(--cta);color:#1f2937;font-weight:800;font-size:16px;cursor:pointer}
+  .footer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06);width:100%;max-width:100%}
+  @media (min-width:768px){ .footer{max-width:375px} }
+  .card{padding-bottom:82px}
+  .cta{width:100%;border:none;border-radius:16px;padding:14px 16px;background:var(--cta);color:#fff;font-weight:800;font-size:16px;cursor:pointer}
   .cta:active{background:var(--cta-press)}
 </style>
 </head>
@@ -294,7 +299,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   <div class="customize-wrap">
     <div class="customize">
       <?php $customizeUrl = $customizeBase; ?>
-      <a class="btn-outline" id="btn-customize" href="<?= e($customizeUrl) ?>">
+      <a class="btn-outline" id="btn-customize" href="<?= e($customizeUrl) ?>" data-requires-login="<?= $requireLogin ? '1' : '0' ?>">
         <span>
           <strong>Personalizar</strong>
           <small style="display:block;color:#6b7280;font-size:12px;margin-top:6px">Escolha adicionais ou ajuste seu pedido.</small>
@@ -344,7 +349,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
                   } elseif ($optDelta < 0) {
                     $priceLabel = '− ' . price_br(abs($optDelta));
                   } else {
-                    $priceLabel = 'Incluído';
+                    $priceLabel = price_br(0);
                   }
                 }
               }
@@ -362,6 +367,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
                  data-id="<?= (int)($opt['id'] ?? 0) ?>"
                  data-simple="<?= $simpleId ?>"
                  data-delta="<?= e(number_format($optDelta, 2, '.', '')) ?>"
+                 data-default="<?= $isDefault ? '1' : '0' ?>"
                  <?php if ($basePrice !== null): ?>data-base-price="<?= e(number_format($basePrice, 2, '.', '')) ?>"<?php endif; ?>
                  data-customizable="<?= $canCustomizeChoice ? '1' : '0' ?>"
                  <?php if ($choiceCustomUrl): ?>data-custom-url="<?= e($choiceCustomUrl) ?>"<?php endif; ?>>
@@ -384,7 +390,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   </section>
   <?php endif; ?>
 
-  <form class="footer" method="post" action="<?= e($addToCartUrl) ?>" onsubmit="return attach(event)">
+  <form class="footer" method="post" action="<?= e($addToCartUrl) ?>" onsubmit="return attach(event)" data-requires-login="<?= $requireLogin ? '1' : '0' ?>">
     <input type="hidden" name="product_id" value="<?= $pId ?>">
     <input type="hidden" name="qty" id="qtyField" value="1">
 
@@ -398,9 +404,6 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
               break;
             }
           }
-          if ($selId === null && isset($group['items'][0]['id'])) {
-            $selId = (int)$group['items'][0]['id'];
-          }
         ?>
         <input type="hidden" name="combo[<?= (int)$gi ?>]" id="combo_field_<?= (int)$gi ?>" value="<?= $selId !== null ? (int)$selId : '' ?>">
       <?php endforeach; ?>
@@ -410,8 +413,72 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   </form>
 </div>
 
+<?php if ($requireLogin && !$isLogged): ?>
+<div id="login-modal" class="fixed inset-0 bg-black/50 hidden z-50">
+  <div class="bg-white max-w-sm mx-auto mt-24 rounded-2xl overflow-hidden shadow-xl">
+    <div class="p-4 border-b flex items-center">
+      <h3 class="font-semibold text-lg">Login do Cliente</h3>
+      <button type="button" id="login-close" class="ml-auto px-3 py-1.5 rounded-xl border">Fechar</button>
+    </div>
+    <form id="login-form" class="p-4" method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-login') ?>">
+      <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
+      <input type="hidden" name="redirect_to" value="<?= e($_SERVER['REQUEST_URI'] ?? '') ?>">
+      <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">Nome</label>
+        <input type="text" name="name" required class="w-full border rounded-lg px-3 py-2" />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">WhatsApp</label>
+        <input type="tel" name="whatsapp" required placeholder="(11) 90000-0000" class="w-full border rounded-lg px-3 py-2" />
+        <p class="text-xs text-gray-500 mt-1">Somente números; inclua DDD.</p>
+      </div>
+      <button type="submit" class="w-full bg-yellow-400 text-black font-semibold py-2 rounded-lg hover:bg-yellow-300">
+        Entrar
+      </button>
+      <div id="login-msg" class="text-sm mt-3 hidden"></div>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+
 <script>
-  // ===== Qty stepper =====
+  const requiresLogin = <?= $requireLogin ? 'true' : 'false' ?>;
+  let userLogged = <?= $isLogged ? 'true' : 'false' ?>;
+
+  let loginModal = null;
+  let loginClose = null;
+  let loginForm = null;
+
+  if (requiresLogin && !userLogged) {
+    loginModal = document.getElementById('login-modal');
+    loginClose = document.getElementById('login-close');
+    loginForm  = document.getElementById('login-form');
+    loginClose?.addEventListener('click', closeLoginModal);
+    loginModal?.addEventListener('click', (ev)=>{ if (ev.target === loginModal) closeLoginModal(); });
+    loginForm?.addEventListener('submit', ()=>{ userLogged = true; closeLoginModal(); });
+  }
+
+  if (<?= $forceLoginModal ? 'true' : 'false' ?> && requiresLogin && !userLogged) {
+    openLoginModal();
+  }
+
+  const loginRedirect = document.getElementById('login-form')?.querySelector('input[name="redirect_to"]');
+
+  function openLoginModal(){
+    if (loginRedirect) {
+      loginRedirect.value = window.location.pathname + window.location.search;
+    }
+    if (loginModal) loginModal.classList.remove('hidden');
+  }
+  function closeLoginModal(){ if (loginModal) loginModal.classList.add('hidden'); }
+
+  function allowAction(){
+    if (!requiresLogin) return true;
+    if (userLogged) return true;
+    openLoginModal();
+    return false;
+  }
+
   const stepper = document.querySelector('.stepper');
   const qval   = document.getElementById('qval');
   const qfield = document.getElementById('qtyField');
@@ -421,11 +488,19 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   function setQty(n){ const v = clamp(n); if(qval) qval.textContent = String(v); if(qfield) qfield.value = String(v); }
   minus?.addEventListener('click', ()=> setQty(parseInt(qval?.textContent||'1',10)-1));
   plus?.addEventListener('click', ()=> setQty(parseInt(qval?.textContent||'1',10)+1));
-  function attach(e){ setQty(parseInt(qval?.textContent||'1',10)||1); return true; }
 
-  // Botão Personalizar: acrescenta qty atual na URL (opcional)
+  function attach(ev){
+    setQty(parseInt(qval?.textContent||'1',10)||1);
+    if (!allowAction()) {
+      ev?.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
   const btnCust = document.getElementById('btn-customize');
   btnCust?.addEventListener('click', (ev)=>{
+    if (!allowAction()) { ev.preventDefault(); return; }
     const base = btnCust.getAttribute('href') || '<?= e($customizeBase) ?>';
     const qty  = parseInt(qval?.textContent||'1',10) || 1;
     const url  = new URL(base, window.location.origin);
@@ -433,7 +508,6 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
     btnCust.setAttribute('href', url.toString());
   });
 
-  // ===== Seleção por grupo (Combo) =====
   document.querySelectorAll('.choice-row').forEach(row=>{
     const gi = row.dataset.groupIndex;
     const hidden = document.getElementById('combo_field_' + gi);
@@ -452,25 +526,58 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
         if(link){ link.classList.remove('hidden'); }
       }
     }
+    const selectChoice = target => {
+      items.forEach(i=>{
+        i.classList.remove('sel');
+        i.querySelector('.ring')?.setAttribute('aria-pressed','false');
+      });
+      target.classList.add('sel');
+      target.querySelector('.ring')?.setAttribute('aria-pressed','true');
+      if (hidden) hidden.value = target.dataset.id || '';
+      revealCustomize(target);
+    };
+
+    const clearSelection = () => {
+      items.forEach(i=>{
+        i.classList.remove('sel');
+        i.querySelector('.ring')?.setAttribute('aria-pressed','false');
+      });
+      if (hidden) hidden.value = '';
+      revealCustomize(null);
+    };
+
+    const defaultChoice = row.querySelector('.choice[data-default="1"]');
+
     items.forEach(item=>{
       const ring = item.querySelector('.ring');
       ring?.addEventListener('click', ()=>{
-        items.forEach(i=>{
-          i.classList.remove('sel');
-          i.querySelector('.ring')?.setAttribute('aria-pressed','false');
-        });
-        item.classList.add('sel');
-        ring.setAttribute('aria-pressed','true');
-        if (hidden) hidden.value = item.dataset.id || '';
-        revealCustomize(item);
+        const isDefault = item.dataset.default === '1';
+        if (item.classList.contains('sel')) {
+          if (!isDefault) {
+            if (defaultChoice && defaultChoice !== item) {
+              selectChoice(defaultChoice);
+            } else if (row.dataset.min === '0') {
+              clearSelection();
+            }
+          }
+          return;
+        }
+        selectChoice(item);
       });
     });
+
     const initial = row.querySelector('.choice.sel');
-    if(initial){ revealCustomize(initial); }
+    if(initial){
+      if (hidden) hidden.value = initial.dataset.id || '';
+      revealCustomize(initial);
+    } else if (defaultChoice) {
+      selectChoice(defaultChoice);
+    }
   });
 
   document.querySelectorAll('.choice-customize').forEach(link=>{
-    link.addEventListener('click', ()=>{
+    link.addEventListener('click', (ev)=>{
+      if (!allowAction()) { ev.preventDefault(); return; }
       const base=link.dataset.baseUrl || link.getAttribute('href');
       if(!base) return;
       const qty=parseInt(qval?.textContent||'1',10)||1;

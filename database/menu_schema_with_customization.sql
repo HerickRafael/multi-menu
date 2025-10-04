@@ -146,7 +146,11 @@ CREATE TABLE `orders` (
   `total` decimal(10,2) NOT NULL,
   `status` enum('pending','paid','completed','canceled') NOT NULL DEFAULT 'pending',
   `notes` text DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status_changed_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `sla_deadline` datetime DEFAULT NULL,
+  `customer_address` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -215,6 +219,19 @@ CREATE TABLE `order_items` (
   `quantity` int(11) NOT NULL,
   `unit_price` decimal(10,2) NOT NULL,
   `line_total` decimal(10,2) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Estrutura da tabela `order_events`
+-- --------------------------------------------------------
+CREATE TABLE `order_events` (
+  `id` bigint(20) unsigned NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `company_id` int(11) NOT NULL,
+  `event_type` enum('order.created','order.updated','order.status_changed','order.canceled','keepalive') NOT NULL DEFAULT 'order.updated',
+  `status` enum('pending','paid','completed','canceled') DEFAULT NULL,
+  `payload` json DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -336,6 +353,12 @@ ALTER TABLE `order_items`
   ADD KEY `order_id` (`order_id`),
   ADD KEY `product_id` (`product_id`);
 
+ALTER TABLE `order_events`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `order_events_order_idx` (`order_id`),
+  ADD KEY `order_events_company_idx` (`company_id`),
+  ADD KEY `order_events_created_idx` (`created_at`);
+
 ALTER TABLE `ingredients`
   ADD PRIMARY KEY (`id`),
   ADD KEY `ingredient_company_idx` (`company_id`);
@@ -389,6 +412,9 @@ ALTER TABLE `combo_group_items`
 
 ALTER TABLE `order_items`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `order_events`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `ingredients`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;

@@ -60,6 +60,8 @@ if (!function_exists('delivery_query_suffix')) {
 ob_start();
 ?>
 
+<div class="mx-auto max-w-6xl p-4">
+
 <header class="mb-6 flex items-center gap-3">
   <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-truck" viewBox="0 0 16 16">
@@ -508,6 +510,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
+
+</div>
 
 <?php
 $content = ob_get_clean();

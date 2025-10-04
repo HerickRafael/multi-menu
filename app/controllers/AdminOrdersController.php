@@ -135,8 +135,9 @@ class AdminOrdersController extends Controller
 
         $total = max(0, $subtotal + $delivery_fee - $discount);
 
+        $companyId = (int)$company['id'];
         $orderId = Order::create($db, [
-            'company_id'     => (int)$company['id'],
+            'company_id'     => $companyId,
             'customer_name'  => $customer_name,
             'customer_phone' => $customer_phone,
             'subtotal'       => $subtotal,
@@ -150,6 +151,8 @@ class AdminOrdersController extends Controller
         foreach ($items as $it) {
             Order::addItem($db, $orderId, $it);
         }
+
+        Order::emitOrderEvent($db, $orderId, $companyId, 'order.created');
 
         header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/orders/show?id=' . $orderId));
         exit;

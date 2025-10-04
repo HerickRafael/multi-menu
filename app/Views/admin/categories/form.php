@@ -10,10 +10,12 @@ if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s,
 
 ob_start(); ?>
 
+<div class="mx-auto max-w-4xl p-4">
+
 <form id="category-form"
       method="post"
       action="<?= e(base_url($action)) ?>"
-      class="relative mx-auto grid max-w-2xl gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+      class="relative grid gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 
   <!-- CSRF / METHOD -->
   <?php if (function_exists('csrf_field')): ?>
@@ -25,7 +27,7 @@ ob_start(); ?>
 
   <!-- TOOLBAR FIXA (idêntica ao bloco de Produto) -->
   <div class="sticky top-0 z-20 -m-4 mb-0 border-b bg-white/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-    <div class="mx-auto flex max-w-2xl items-center justify-between">
+    <div class="mx-auto flex max-w-4xl items-center justify-between">
       <div class="flex items-center gap-2 text-sm text-slate-800">
         <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
           <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none">
@@ -78,7 +80,10 @@ ob_start(); ?>
 
   <!-- rodapé interno só pra respiro -->
   <div class="pb-1"></div>
+
 </form>
+
+</div>
 
 <?php
 $content = ob_get_clean();
