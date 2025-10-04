@@ -51,6 +51,7 @@ class AdminKdsController extends Controller
             'dataUrl'         => base_url('admin/' . rawurlencode($company['slug']) . '/kds/data'),
             'statusUrl'       => base_url('admin/' . rawurlencode($company['slug']) . '/kds/status'),
             'orderDetailBase' => base_url('admin/' . rawurlencode($company['slug']) . '/orders/show?id='),
+            'bellUrl'         => (string)(config('kds_bell_url') ?? ''),
             'columns' => [
                 ['id' => 'pending',   'label' => 'Recebidos'],
                 ['id' => 'paid',      'label' => 'Preparando'],

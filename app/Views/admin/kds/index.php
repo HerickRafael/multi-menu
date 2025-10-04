@@ -116,6 +116,194 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     canceled:  'canceled'
   };
 
+  // Pequeno beep (dados inline) usado como fallback da sineta.
+  const DEFAULT_BELL_URI =
+    'data:audio/wav;base64,' +
+    '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' +
+    'AM3/+/7O/jH/zv9BAFwAMQA=';
+
+  class KdsChime {
+    constructor(fallbackUri){
+      this.AudioContext = window.AudioContext || window.webkitAudioContext || null;
+      this.fallbackUri = (typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI;
+      this.context = null;
+      this.unlocked = false;
+      this.pendingRing = false;
+      this.lastPlayedAt = 0;
+      this.minimumGapMs = 450;
+      this.unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
+      this.handleUnlockEvent = this.handleUnlockEvent.bind(this);
+      this.handleVisibility = this.handleVisibility.bind(this);
+      this.bindUnlockListeners();
+    }
+
+    bindUnlockListeners(){
+      this.unlockEvents.forEach(evt => {
+        document.addEventListener(evt, this.handleUnlockEvent, {passive: true});
+      });
+      document.addEventListener('visibilitychange', this.handleVisibility);
+    }
+
+    removeUnlockListeners(){
+      this.unlockEvents.forEach(evt => {
+        document.removeEventListener(evt, this.handleUnlockEvent);
+      });
+      document.removeEventListener('visibilitychange', this.handleVisibility);
+    }
+
+    handleVisibility(){
+      if (!document.hidden && this.pendingRing && this.unlocked) {
+        this.tryRing();
+      }
+    }
+
+    handleUnlockEvent(){
+      if (this.unlocked) {
+        return;
+      }
+      this.unlocked = true;
+      if (this.AudioContext) {
+        try {
+          this.context = new this.AudioContext();
+          if (this.context && this.context.state === 'suspended') {
+            this.context.resume().catch(() => {});
+          }
+        } catch (err) {
+          this.context = null;
+        }
+      }
+      this.removeUnlockListeners();
+      if (this.pendingRing) {
+        this.tryRing();
+      }
+    }
+
+    ring(){
+      if (!this.unlocked) {
+        this.pendingRing = true;
+        return;
+      }
+      const now = Date.now();
+      if (now - this.lastPlayedAt < this.minimumGapMs) {
+        return;
+      }
+      if (this.tryRing()) {
+        this.lastPlayedAt = Date.now();
+      }
+    }
+
+    tryRing(){
+      let played = false;
+      if (this.context) {
+        played = this.playWithContext();
+      }
+      if (!played) {
+        played = this.playFallback();
+      }
+      if (played) {
+        this.pendingRing = false;
+      }
+      return played;
+    }
+
+    playWithContext(){
+      if (!this.context) {
+        return false;
+      }
+      try {
+        const ctx = this.context;
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.32, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.72);
+        return true;
+      } catch (err) {
+        this.context = null;
+        return false;
+      }
+    }
+
+    playFallback(){
+      if (!this.fallbackUri) {
+        return false;
+      }
+      try {
+        const audio = new Audio(this.fallbackUri);
+        audio.volume = 0.8;
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => {});
+        }
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    dispose(){
+      this.removeUnlockListeners();
+      this.pendingRing = false;
+      if (this.context && typeof this.context.close === 'function') {
+        try {
+          this.context.close();
+        } catch (err) {
+          // ignore
+        }
+      }
+      this.context = null;
+    }
+  }
+
   class KdsRealtime {
     constructor(config, initial){
       this.config = config || {};
@@ -138,8 +326,14 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       this.lastSyncToken = null;
       this.isFetching = false;
       this.renderRequested = false;
+      const fallbackBell = (typeof this.config.bellUrl === 'string' && this.config.bellUrl.trim())
+        ? this.config.bellUrl.trim()
+        : DEFAULT_BELL_URI;
+      this.chime = new KdsChime(fallbackBell);
+      this.knownPending = new Set();
       (initial || []).forEach(order => this.ingestOrder(order));
       this.updateSyncTokenFromState();
+      this.syncKnownPending();
     }
 
     init(){
@@ -203,6 +397,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       if (!this.config.dataUrl) return;
       if (this.isFetching) return;
       const forceFull = options && options.forceFull === true;
+      const previousPending = this.knownPending ? new Set(this.knownPending) : new Set();
       let endpoint = this.config.dataUrl;
       if (!forceFull && this.lastSyncToken) {
         const separator = endpoint.includes('?') ? '&' : '?';
@@ -233,6 +428,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
             }
           });
           this.state.orders = next;
+          this.detectNewPending(previousPending, next);
           const syncHint = (typeof data.sync_token === 'string' && data.sync_token.trim())
             ? data.sync_token.trim()
             : (typeof data.server_time === 'string' && data.server_time.trim() ? data.server_time.trim() : null);
@@ -291,6 +487,55 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       }
     }
 
+    collectPendingIds(source){
+      const result = new Set();
+      if (!source) return result;
+      if (source instanceof Map) {
+        source.forEach((order, id) => {
+          const status = (order && order.status ? String(order.status) : '').toLowerCase();
+          const lane = LANE_BY_STATUS[status] || (status || 'pending');
+          const key = this.orderKey(id);
+          if (lane === 'pending' && key > 0) {
+            result.add(key);
+          }
+        });
+        return result;
+      }
+      if (Array.isArray(source)) {
+        source.forEach(order => {
+          if (!order) return;
+          const status = (order.status ? String(order.status) : '').toLowerCase();
+          const lane = LANE_BY_STATUS[status] || (status || 'pending');
+          if (lane !== 'pending') return;
+          const idKey = this.orderKey(order.id ?? order.order_id ?? 0);
+          if (idKey > 0) {
+            result.add(idKey);
+          }
+        });
+      }
+      return result;
+    }
+
+    syncKnownPending(){
+      const orders = this.state && this.state.orders ? this.state.orders : null;
+      this.knownPending = this.collectPendingIds(orders);
+    }
+
+    detectNewPending(previousSet, nextMap){
+      const nextSet = this.collectPendingIds(nextMap);
+      this.knownPending = nextSet;
+      if (!nextSet || nextSet.size === 0) return;
+      let hasNew = false;
+      nextSet.forEach(id => {
+        if (!previousSet || !previousSet.has(id)) {
+          hasNew = true;
+        }
+      });
+      if (hasNew && this.chime) {
+        this.chime.ring();
+      }
+    }
+
     renderColumnsSkeleton(){
       this.columnsEl.innerHTML = '';
       this.columnRefs.clear();
@@ -341,6 +586,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       const normalized = this.normalizeOrder(raw, existing);
       if (normalized.id > 0) {
         this.state.orders.set(normalized.id, normalized);
+        this.syncKnownPending();
       }
     }
 
@@ -640,6 +886,9 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       if (this.pollTimer) {
         clearInterval(this.pollTimer);
         this.pollTimer = null;
+      }
+      if (this.chime && typeof this.chime.dispose === 'function') {
+        this.chime.dispose();
       }
     }
   }
