@@ -57,7 +57,7 @@ class AdminKdsController extends Controller
                 ['id' => 'completed', 'label' => 'Prontos'],
             ],
             'slaMinutes'     => (int)(config('kds_sla_minutes') ?? 20),
-            'refreshMs'      => (int)(config('kds_refresh_ms') ?? 4000),
+            'refreshMs'      => (int)(config('kds_refresh_ms') ?? 1500),
         ];
 
         return $this->view('admin/kds/index', [
@@ -77,13 +77,31 @@ class AdminKdsController extends Controller
         $db = $this->db();
         $companyId = (int)$company['id'];
 
-        $orders = Order::snapshot($db, $companyId);
+        $sinceParam = isset($_GET['since']) ? trim((string)$_GET['since']) : '';
+        if ($sinceParam !== '') {
+            $delta = Order::snapshotDelta($db, $companyId, $sinceParam);
+        } else {
+            $delta = [
+                'orders'       => Order::snapshot($db, $companyId),
+                'removed_ids'  => [],
+                'full_refresh' => true,
+            ];
+        }
+
+        $payload = [
+            'orders'       => $delta['orders'],
+            'removed_ids'  => $delta['removed_ids'] ?? [],
+            'full_refresh' => !empty($delta['full_refresh']),
+            'server_time'  => gmdate('c'),
+        ];
+
+        $syncToken = Order::latestChangeToken($db, $companyId);
+        if ($syncToken) {
+            $payload['sync_token'] = $syncToken;
+        }
 
         header('Content-Type: application/json');
-        echo json_encode([
-            'orders'      => $orders,
-            'server_time' => gmdate('c'),
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
 

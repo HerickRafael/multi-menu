@@ -135,9 +135,11 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       this.refreshBtn = document.getElementById('kds-refresh');
       this.pollTimer = null;
       this.pollInterval = this.resolveInterval();
+      this.lastSyncToken = null;
       this.isFetching = false;
       this.renderRequested = false;
       (initial || []).forEach(order => this.ingestOrder(order));
+      this.updateSyncTokenFromState();
     }
 
     init(){
@@ -149,8 +151,9 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
     resolveInterval(){
       const raw = Number(this.config.refreshMs || 0);
-      if (!Number.isFinite(raw) || raw < 1000) {
-        return 4000;
+      const minInterval = 1500;
+      if (!Number.isFinite(raw) || raw < minInterval) {
+        return minInterval;
       }
       return raw;
     }
@@ -175,7 +178,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         });
       }
       if (this.refreshBtn) {
-        this.refreshBtn.addEventListener('click', () => this.fetchData());
+        this.refreshBtn.addEventListener('click', () => this.fetchData({forceFull: true}));
       }
       if (this.toggleCanceledBtn) {
         this.toggleCanceledBtn.addEventListener('click', () => {
@@ -196,28 +199,96 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       this.pollTimer = setInterval(() => this.fetchData(), this.pollInterval);
     }
 
-    fetchData(){
+    fetchData(options = {}){
       if (!this.config.dataUrl) return;
       if (this.isFetching) return;
+      const forceFull = options && options.forceFull === true;
+      let endpoint = this.config.dataUrl;
+      if (!forceFull && this.lastSyncToken) {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        endpoint = `${endpoint}${separator}since=${encodeURIComponent(this.lastSyncToken)}`;
+      }
       this.isFetching = true;
-      fetch(this.config.dataUrl, {credentials:'include', cache:'no-store'})
+      fetch(endpoint, {credentials:'include', cache:'no-store'})
         .then(r => r.ok ? r.json() : Promise.reject(new Error('fetch_failed')))
         .then(data => {
           const orders = Array.isArray(data.orders) ? data.orders : [];
-          const previous = this.state.orders;
-          const next = new Map();
+          const removedIds = Array.isArray(data.removed_ids) ? data.removed_ids : [];
+          const fullRefresh = forceFull || !!data.full_refresh;
+          const next = fullRefresh ? new Map() : new Map(this.state.orders);
           orders.forEach(order => {
-            if (!order || order.id === undefined || order.id === null) return;
-            const normalized = this.normalizeOrder(order, previous.get(order.id));
-            next.set(normalized.id, normalized);
+            if (!order) return;
+            const idKey = this.orderKey(order.id ?? order.order_id ?? 0);
+            if (idKey <= 0) return;
+            const existing = next.get(idKey) || null;
+            const normalized = this.normalizeOrder(order, existing);
+            if (normalized.id > 0) {
+              next.set(normalized.id, normalized);
+            }
+          });
+          removedIds.forEach(id => {
+            const key = this.orderKey(id);
+            if (key > 0) {
+              next.delete(key);
+            }
           });
           this.state.orders = next;
+          const syncHint = (typeof data.sync_token === 'string' && data.sync_token.trim())
+            ? data.sync_token.trim()
+            : (typeof data.server_time === 'string' && data.server_time.trim() ? data.server_time.trim() : null);
+          this.updateSyncTokenFromState(syncHint);
           this.scheduleRender();
         })
         .catch(()=>{})
         .finally(() => {
           this.isFetching = false;
         });
+    }
+
+    orderKey(value){
+      const num = Number(value);
+      return Number.isFinite(num) ? Math.trunc(num) : 0;
+    }
+
+    computeLatestToken(){
+      let latest = 0;
+      this.state.orders.forEach(order => {
+        ['status_changed_at', 'updated_at', 'created_at'].forEach(field => {
+          const value = order[field];
+          if (!value) return;
+          const ts = Date.parse(value);
+          if (Number.isFinite(ts) && ts > latest) {
+            latest = ts;
+          }
+        });
+      });
+      return latest ? new Date(latest).toISOString() : null;
+    }
+
+    updateSyncTokenFromState(token){
+      let candidate = this.lastSyncToken || null;
+      if (typeof token === 'string' && token.trim()) {
+        candidate = token.trim();
+      }
+      const computed = this.computeLatestToken();
+      if (computed) {
+        if (!candidate) {
+          candidate = computed;
+        } else {
+          const candidateTs = Date.parse(candidate);
+          const computedTs = Date.parse(computed);
+          const candidateValid = Number.isFinite(candidateTs);
+          const computedValid = Number.isFinite(computedTs);
+          if (!candidateValid && computedValid) {
+            candidate = computed;
+          } else if (candidateValid && computedValid && computedTs > candidateTs) {
+            candidate = computed;
+          }
+        }
+      }
+      if (candidate) {
+        this.lastSyncToken = candidate;
+      }
     }
 
     renderColumnsSkeleton(){
@@ -263,16 +334,28 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     }
 
     ingestOrder(raw){
-      if (!raw || !raw.id) return;
-      const existing = this.state.orders.get(raw.id) || null;
+      if (!raw) return;
+      const idKey = this.orderKey(raw.id ?? raw.order_id ?? 0);
+      if (idKey <= 0) return;
+      const existing = this.state.orders.get(idKey) || null;
       const normalized = this.normalizeOrder(raw, existing);
-      this.state.orders.set(normalized.id, normalized);
+      if (normalized.id > 0) {
+        this.state.orders.set(normalized.id, normalized);
+      }
     }
 
     normalizeOrder(order, previous = null){
       const result = previous ? {...previous} : {};
 
-      result.id = order.id || result.id || 0;
+      const idKey = this.orderKey(order.id ?? result.id ?? 0);
+      if (idKey > 0) {
+        result.id = idKey;
+      } else if (previous) {
+        const prevKey = this.orderKey(previous.id ?? 0);
+        result.id = prevKey > 0 ? prevKey : 0;
+      } else {
+        result.id = 0;
+      }
       result.status = order.status || result.status || 'pending';
       result.created_at = order.created_at || result.created_at || null;
       result.updated_at = order.updated_at || result.updated_at || result.created_at || null;
@@ -545,6 +628,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         .then(resp => {
           if (resp && resp.order) {
             this.ingestOrder(resp.order);
+            this.updateSyncTokenFromState();
             this.scheduleRender();
           }
         }).catch(()=>{
