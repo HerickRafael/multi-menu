@@ -62,7 +62,14 @@ class AdminPaymentMethodController extends Controller
         $methods = PaymentMethod::allByCompany((int)$company['id']);
 
         $flash = $_SESSION['flash_payment'] ?? null;
-        $old   = $_SESSION['old_payment'] ?? ['name' => '', 'instructions' => '', 'sort_order' => PaymentMethod::nextSortOrder((int)$company['id']), 'active' => 1];
+        $old   = $_SESSION['old_payment'] ?? [
+            'name' => '',
+            'instructions' => '',
+            'sort_order' => PaymentMethod::nextSortOrder((int)$company['id']),
+            'active' => 1,
+            'type' => 'credit',
+            'meta' => [],
+        ];
         $errors = $_SESSION['errors_payment'] ?? [];
 
         unset($_SESSION['flash_payment'], $_SESSION['old_payment'], $_SESSION['errors_payment']);
@@ -93,10 +100,25 @@ class AdminPaymentMethodController extends Controller
             ? (int)$_POST['sort_order']
             : PaymentMethod::nextSortOrder((int)$company['id']);
         $active = isset($_POST['active']) ? 1 : 0;
+
+        $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
         $type = trim($_POST['type'] ?? 'others');
+        if (!in_array($type, $allowedTypes, true)) {
+            $type = 'others';
+        }
+
         $meta = [];
         if (!empty($_POST['meta']) && is_array($_POST['meta'])) {
-            $meta = $_POST['meta'];
+            foreach ($_POST['meta'] as $key => $value) {
+                if (!is_string($key)) {
+                    continue;
+                }
+                $value = trim((string)$value);
+                if ($value === '') {
+                    continue;
+                }
+                $meta[$key] = $value;
+            }
         }
 
         if ($name === '') {
@@ -106,15 +128,30 @@ class AdminPaymentMethodController extends Controller
                 'instructions' => $instructions,
                 'sort_order' => $sortOrder,
                 'active' => $active,
+                'type' => $type,
+                'meta' => $meta,
             ]);
             $this->flash(['type' => 'error', 'message' => 'Não foi possível salvar o método.']);
             $this->redirectToIndex($company['slug']);
         }
 
         // map pix_key: if type is pix, accept explicit pix_key or fall back to name field
-        $pixKey = trim($_POST['pix_key'] ?? '');
-        if ($type === 'pix' && $pixKey === '') {
-            $pixKey = $name; // user typed the key into the name field when label changed
+        $pixKey = '';
+        if ($type === 'pix') {
+            $pixKey = trim($meta['px_key'] ?? '');
+            if ($pixKey === '') {
+                $pixKey = trim($_POST['pix_key'] ?? '');
+            }
+            if ($pixKey === '') {
+                $pixKey = $name; // user typed the key into the name field when label changed
+            }
+            if ($pixKey !== '') {
+                $meta['px_key'] = $pixKey;
+            }
+        }
+
+        if ($type !== 'pix') {
+            unset($meta['px_key'], $meta['px_provider']);
         }
 
         // for records of type 'pix' store a canonical name
@@ -133,6 +170,10 @@ class AdminPaymentMethodController extends Controller
 
         // Load the created record
         $created = PaymentMethod::findForCompany((int)$newId, (int)$company['id']);
+        if ($created && isset($created['meta']) && is_string($created['meta'])) {
+            $decodedMeta = json_decode($created['meta'], true);
+            $created['meta'] = is_array($decodedMeta) ? $decodedMeta : [];
+        }
 
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json');
@@ -161,12 +202,38 @@ class AdminPaymentMethodController extends Controller
             ? (int)$_POST['sort_order']
             : (int)$method['sort_order'];
         $active = isset($_POST['active']) ? 1 : 0;
+        $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
         $type = trim($_POST['type'] ?? ($method['type'] ?? 'others'));
+        if (!in_array($type, $allowedTypes, true)) {
+            $type = 'others';
+        }
+
         $meta = [];
         if (!empty($_POST['meta']) && is_array($_POST['meta'])) {
-            $meta = $_POST['meta'];
+            foreach ($_POST['meta'] as $key => $value) {
+                if (!is_string($key)) {
+                    continue;
+                }
+                $value = trim((string)$value);
+                if ($value === '') {
+                    continue;
+                }
+                $meta[$key] = $value;
+            }
         } elseif (!empty($method['meta'])) {
-            $meta = json_decode((string)$method['meta'], true) ?: [];
+            $decodedMeta = json_decode((string)$method['meta'], true) ?: [];
+            if (is_array($decodedMeta)) {
+                foreach ($decodedMeta as $key => $value) {
+                    if (!is_string($key) || !is_scalar($value)) {
+                        continue;
+                    }
+                    $trimmed = trim((string)$value);
+                    if ($trimmed === '') {
+                        continue;
+                    }
+                    $meta[$key] = $trimmed;
+                }
+            }
         }
 
         if ($name === '') {
@@ -175,9 +242,22 @@ class AdminPaymentMethodController extends Controller
         }
 
         // map pix_key for update
-        $pixKey = trim($_POST['pix_key'] ?? '');
-        if ($type === 'pix' && $pixKey === '') {
-            $pixKey = $name; // user may have typed the key into name field
+        $pixKey = '';
+        if ($type === 'pix') {
+            $pixKey = trim($meta['px_key'] ?? '');
+            if ($pixKey === '') {
+                $pixKey = trim($_POST['pix_key'] ?? '');
+            }
+            if ($pixKey === '') {
+                $pixKey = $name; // user may have typed the key into name field
+            }
+            if ($pixKey !== '') {
+                $meta['px_key'] = $pixKey;
+            }
+        }
+
+        if ($type !== 'pix') {
+            unset($meta['px_key'], $meta['px_provider']);
         }
 
         $saveName = $type === 'pix' ? 'Pix' : $name;
@@ -193,6 +273,10 @@ class AdminPaymentMethodController extends Controller
         ]);
 
         $updated = PaymentMethod::findForCompany($id, (int)$company['id']);
+        if ($updated && isset($updated['meta']) && is_string($updated['meta'])) {
+            $decodedMeta = json_decode($updated['meta'], true);
+            $updated['meta'] = is_array($decodedMeta) ? $decodedMeta : [];
+        }
 
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json');

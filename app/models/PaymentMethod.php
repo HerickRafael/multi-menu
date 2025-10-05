@@ -59,7 +59,7 @@ class PaymentMethod
             'INSERT INTO payment_methods (company_id, name, instructions, sort_order, active, `type`, `meta`, pix_key)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $meta = isset($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
+        $meta = !empty($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
         $st->execute([
             (int)$data['company_id'],
             $data['name'],
@@ -76,12 +76,12 @@ class PaymentMethod
 
     public static function update(int $id, int $companyId, array $data): void
     {
-                $st = db()->prepare(
-                        'UPDATE payment_methods
-                                SET name = ?, instructions = ?, sort_order = ?, active = ?, `type` = ?, `meta` = ?, pix_key = ?
-                            WHERE id = ? AND company_id = ?'
-                );
-        $meta = isset($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
+        $st = db()->prepare(
+            'UPDATE payment_methods
+                SET name = ?, instructions = ?, sort_order = ?, active = ?, `type` = ?, `meta` = ?, pix_key = ?
+              WHERE id = ? AND company_id = ?'
+        );
+        $meta = !empty($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
         $st->execute([
             $data['name'],
             $data['instructions'] ?? null,
