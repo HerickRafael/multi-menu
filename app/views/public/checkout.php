@@ -148,9 +148,9 @@ foreach ($zonesByCity as $cityId => $zoneList) {
 <div class="app">
   <div class="topbar">
     <div class="topwrap">
-  <button class="back" type="button" data-action="navigate" data-href="<?= e($cartUrl) ?>" aria-label="Voltar para a sacola">
+  <a class="back" href="<?= e($cartUrl) ?>" data-action="navigate" aria-label="Voltar para a sacola">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="scale(0.7) translate(5 5)"/></svg>
-      </button>
+      </a>
       <div class="title">Checkout</div>
     </div>
   </div>
@@ -254,8 +254,18 @@ foreach ($zonesByCity as $cityId => $zoneList) {
               $methodId = (int)($method['id'] ?? 0);
               $isActive = $methodId === $selectedPaymentId;
               ?>
-            <button type="button" class="method-btn<?= $isActive ? ' active' : '' ?>" data-id="<?= $methodId ?>" data-instructions="<?= e($method['instructions'] ?? '') ?>">
-              <?= e($method['name'] ?? 'Pagamento') ?>
+            <?php $type = $method['type'] ?? 'others';
+                  $metaArr = [];
+                  if (!empty($method['meta'])) {
+                    $metaArr = is_string($method['meta']) ? json_decode($method['meta'], true) : (is_array($method['meta']) ? $method['meta'] : []);
+                  }
+                  $pxKey = $method['pix_key'] ?? ($metaArr['px_key'] ?? null);
+            ?>
+            <button type="button" class="method-btn<?= $isActive ? ' active' : '' ?>" data-id="<?= $methodId ?>" data-instructions="<?= e($method['instructions'] ?? '') ?>" data-type="<?= e($type) ?>" data-px-key="<?= e($pxKey ?? '') ?>">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span><?= e($method['name'] ?? 'Pagamento') ?></span>
+                <span class="badge" style="padding:4px 8px;font-size:12px;"><?= e(ucfirst($type)) ?></span>
+              </div>
             </button>
           <?php endforeach; ?>
         </div>
@@ -394,7 +404,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
     updateSummary(fee, !!opt && zoneSelect.value !== '');
   }
 
-  if (paymentButtons.length > 0) {
+    if (paymentButtons.length > 0) {
     paymentButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         const id = parseInt(btn.dataset.id || '0', 10) || 0;
@@ -403,8 +413,14 @@ foreach ($zonesByCity as $cityId => $zoneList) {
         btn.classList.add('active');
         if (paymentInput) paymentInput.value = id;
         const instructions = btn.dataset.instructions || '';
+        const type = (btn.dataset.type || '').toLowerCase();
+        const pxKey = btn.dataset.pxKey || '';
         if (paymentBox) {
-          if (instructions) {
+          if (type === 'pix' && pxKey) {
+            // show pix key prominently and then any instructions
+            paymentBox.innerHTML = '<strong>Chave Pix: </strong>' + pxKey + (instructions ? '<div style="margin-top:8px">' + instructions.replace(/\n/g, '<br>') + '</div>' : '');
+            paymentBox.classList.remove('hidden');
+          } else if (instructions) {
             paymentBox.innerHTML = instructions.replace(/\n/g, '<br>');
             paymentBox.classList.remove('hidden');
           } else {

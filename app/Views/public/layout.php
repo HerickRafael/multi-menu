@@ -46,7 +46,7 @@ try {
   <link rel="stylesheet" href="<?= base_url('assets/css/ui.css') ?>">
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <div class="max-w-5xl mx-auto<?= !empty($showFooterMenu) ? ' p-4 pb-28' : '' ?>">
+  <div class="max-w-5xl mx-auto<?= !empty($showFooterMenu) ? ' p-4' : '' ?>">
     <?= $content ?? '' ?>
   </div>
   <?php if (!empty($showFooterMenu)): ?>
@@ -72,6 +72,10 @@ try {
     </div>
   </nav>
   <?php endif; ?>
+  <script>
+    // expose customer state for client-side handlers
+    window.__IS_CUSTOMER = <?= !empty($_SESSION['customer']) ? 'true' : 'false' ?>;
+  </script>
   <script src="<?= base_url('assets/js/ui.js') ?>"></script>
 </body>
 </html>

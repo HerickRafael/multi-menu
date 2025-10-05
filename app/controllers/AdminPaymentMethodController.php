@@ -72,6 +72,17 @@ class AdminPaymentMethodController extends Controller
         return $this->view('admin/payments/index', compact('company', 'user', 'methods', 'flash', 'old', 'errors', 'title'));
     }
 
+    private function isAjaxRequest(): bool
+    {
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            return true;
+        }
+        if (!empty($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+            return true;
+        }
+        return false;
+    }
+
     public function store($params)
     {
         [$user, $company] = $this->guard($params['slug']);
@@ -82,6 +93,11 @@ class AdminPaymentMethodController extends Controller
             ? (int)$_POST['sort_order']
             : PaymentMethod::nextSortOrder((int)$company['id']);
         $active = isset($_POST['active']) ? 1 : 0;
+        $type = trim($_POST['type'] ?? 'others');
+        $meta = [];
+        if (!empty($_POST['meta']) && is_array($_POST['meta'])) {
+            $meta = $_POST['meta'];
+        }
 
         if ($name === '') {
             $this->errors(['Informe o nome do método de pagamento.']);
@@ -95,13 +111,34 @@ class AdminPaymentMethodController extends Controller
             $this->redirectToIndex($company['slug']);
         }
 
-        PaymentMethod::create([
+        // map pix_key: if type is pix, accept explicit pix_key or fall back to name field
+        $pixKey = trim($_POST['pix_key'] ?? '');
+        if ($type === 'pix' && $pixKey === '') {
+            $pixKey = $name; // user typed the key into the name field when label changed
+        }
+
+        // for records of type 'pix' store a canonical name
+        $saveName = $type === 'pix' ? 'Pix' : $name;
+
+        $newId = PaymentMethod::create([
             'company_id' => (int)$company['id'],
-            'name' => $name,
+            'name' => $saveName,
             'instructions' => $instructions !== '' ? $instructions : null,
             'sort_order' => $sortOrder,
             'active' => $active,
+            'type' => $type,
+            'meta' => $meta,
+            'pix_key' => $pixKey ?: null,
         ]);
+
+        // Load the created record
+        $created = PaymentMethod::findForCompany((int)$newId, (int)$company['id']);
+
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'method' => $created]);
+            exit;
+        }
 
         $this->flash(['type' => 'success', 'message' => 'Método adicionado com sucesso.']);
         $this->redirectToIndex($company['slug']);
@@ -124,20 +161,76 @@ class AdminPaymentMethodController extends Controller
             ? (int)$_POST['sort_order']
             : (int)$method['sort_order'];
         $active = isset($_POST['active']) ? 1 : 0;
+        $type = trim($_POST['type'] ?? ($method['type'] ?? 'others'));
+        $meta = [];
+        if (!empty($_POST['meta']) && is_array($_POST['meta'])) {
+            $meta = $_POST['meta'];
+        } elseif (!empty($method['meta'])) {
+            $meta = json_decode((string)$method['meta'], true) ?: [];
+        }
 
         if ($name === '') {
             $this->flash(['type' => 'error', 'message' => 'Informe o nome do método.']);
             $this->redirectToIndex($company['slug']);
         }
 
+        // map pix_key for update
+        $pixKey = trim($_POST['pix_key'] ?? '');
+        if ($type === 'pix' && $pixKey === '') {
+            $pixKey = $name; // user may have typed the key into name field
+        }
+
+        $saveName = $type === 'pix' ? 'Pix' : $name;
+
         PaymentMethod::update($id, (int)$company['id'], [
-            'name' => $name,
+            'name' => $saveName,
             'instructions' => $instructions !== '' ? $instructions : null,
             'sort_order' => $sortOrder,
             'active' => $active,
+            'type' => $type,
+            'meta' => $meta,
+            'pix_key' => $pixKey ?: null,
         ]);
 
+        $updated = PaymentMethod::findForCompany($id, (int)$company['id']);
+
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'method' => $updated]);
+            exit;
+        }
+
         $this->flash(['type' => 'success', 'message' => 'Método atualizado.']);
+        $this->redirectToIndex($company['slug']);
+    }
+
+    public function batchUpdate($params)
+    {
+        [$user, $company] = $this->guard($params['slug']);
+
+        $active = isset($_POST['active']) && $_POST['active'] == '1' ? 1 : 0;
+
+        // perform update
+        require_once __DIR__ . '/../models/PaymentMethod.php';
+        try {
+            PaymentMethod::setAllActiveForCompany((int)$company['id'], $active);
+        } catch (Exception $e) {
+            if ($this->isAjaxRequest()) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                exit;
+            }
+            $this->flash(['type' => 'error', 'message' => 'Erro ao atualizar métodos.']);
+            $this->redirectToIndex($company['slug']);
+        }
+
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        $this->flash(['type' => 'success', 'message' => 'Métodos atualizados.']);
         $this->redirectToIndex($company['slug']);
     }
 

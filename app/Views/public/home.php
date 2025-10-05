@@ -381,12 +381,20 @@ foreach ($names as $d => $nm):
     <a href="#novidades" class="category-tab shrink-0 px-4 py-1.5 rounded-full font-medium border<?= $isActive ? ' active' : '' ?>">Novidades</a>
 <?php endif; ?>
 <?php foreach ($categories as $c): ?>
-  <?php $isActive = !$firstActiveAssigned;
+  <?php
+    // Esconde abas de categorias que não têm itens (produtos)
+    $itemsForTab = array_values(array_filter($products, fn($p) => (int)($p['category_id'] ?? 0) === (int)$c['id']));
+    if (!$itemsForTab) {
+        continue;
+    }
+
+    $isActive = !$firstActiveAssigned;
 
     if ($isActive) {
         $firstActiveAssigned = true;
-    } ?>
-    <a href="#cat-<?= (int)$c['id'] ?>" class="category-tab shrink-0 px-4 py-1.5 rounded-full font-medium border<?= $isActive ? ' active' : '' ?>"><?= e($c['name'] ?? 'Categoria') ?></a>
+    }
+  ?>
+  <a href="#cat-<?= (int)$c['id'] ?>" class="category-tab shrink-0 px-4 py-1.5 rounded-full font-medium border<?= $isActive ? ' active' : '' ?>"><?= e($c['name'] ?? 'Categoria') ?></a>
 <?php endforeach; ?>
 </div>
 
@@ -429,16 +437,20 @@ foreach ($names as $d => $nm):
 <a id="topo"></a>
 
 <?php foreach ($categories as $c): ?>
+  <?php
+    // Lista de itens da categoria (apenas para decidir se exibimos a seção)
+    $items = array_values(array_filter($products, fn ($p) => (int)($p['category_id'] ?? 0) === (int)$c['id']));
+    // Se não houver itens, não renderiza a categoria na home
+    if (!$items) {
+        continue;
+    }
+  ?>
   <a id="cat-<?= (int)$c['id'] ?>"></a>
   <h2 class="menu-group-title text-xl font-bold inline-block px-3 py-1 rounded-lg mb-2">
     <?= e($c['name'] ?? 'Categoria') ?>
   </h2>
-  <?php $items = array_values(array_filter($products, fn ($p) => (int)($p['category_id'] ?? 0) === (int)$c['id'])); ?>
   <div class="grid gap-3 mb-6">
     <?php foreach ($items as $p): include __DIR__ . '/partials_card.php'; endforeach; ?>
-    <?php if (!$items): ?>
-      <div class="p-4 border bg-white rounded-xl text-sm">Sem itens aqui ainda.</div>
-    <?php endif; ?>
   </div>
 <?php endforeach; ?>
 

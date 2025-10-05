@@ -137,9 +137,9 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
 <div class="container">
   <div class="topbar">
     <div class="topwrap">
-  <button class="back" type="button" data-action="navigate" data-href="<?= e($backUrl) ?>">
+  <a class="back" href="<?= e($backUrl) ?>" data-action="navigate">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="scale(0.7) translate(5 5)"/></svg>
-      </button>
+      </a>
       <div class="title">Minha Sacola</div>
     </div>
   </div>

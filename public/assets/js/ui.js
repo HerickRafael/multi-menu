@@ -105,24 +105,21 @@
     const login = initLoginModal();
     initCategoryTabs();
     initSearch();
-    // Intercept footer sacola/perfil clicks to open login modal when not logged
+    // If user is anonymous, intercept clicks on footer cart/profile links to open login modal
     try {
-      if (login && typeof login.open === 'function') {
+      if (!window.__IS_CUSTOMER && login && typeof login.open === 'function') {
         document.querySelectorAll('nav a').forEach(a => {
-          const href = a.getAttribute('href') || '';
-          // pattern match for cart or profile routes
-          if (/\/cart$/.test(href) || /\/profile$/.test(href)) {
+          const href = (a.getAttribute('href') || '').toLowerCase();
+          if (href.endsWith('/cart') || href.endsWith('/profile') || href.includes('/cart') || href.includes('/profile')) {
             a.addEventListener('click', function(e){
-              // if customer not logged, open login modal and prevent navigation
-              if (!window.__IS_CUSTOMER) {
-                e.preventDefault();
-                login.open();
-              }
+              // prefer to open login modal instead of navigating
+              e.preventDefault();
+              login.open();
             });
           }
         });
       }
-    } catch(e) { console.error(e); }
+    } catch (e) {}
     // Delegated handlers for data-action
     document.body.addEventListener('click', function(e){
       const btn = e.target.closest('[data-action]');
@@ -130,6 +127,43 @@
       const action = btn.dataset.action;
       if (action === 'navigate'){
         const href = btn.dataset.href;
+        // Para botões de 'back' tentamos priorizar referrer (se for da mesma origem),
+        // depois history.back() com fallback para data-href.
+        if (btn.classList.contains('back')) {
+          try {
+            const ref = document.referrer || '';
+            if (ref) {
+              try {
+                const refUrl = new URL(ref);
+                if (refUrl.origin === window.location.origin && ref !== window.location.href) {
+                  window.location.href = ref;
+                  return;
+                }
+              } catch (e) {
+                // invalid referrer URL, ignore
+              }
+            }
+          } catch (e) {}
+
+          const current = window.location.href;
+          try {
+            window.history.back();
+          } catch (e) {}
+
+          // fallback se a URL não mudou em X ms
+          setTimeout(function(){
+            if (window.location.href === current) {
+              // se href é igual à URL atual, envie para a home (evita ficar parado)
+              if (href && href !== current) {
+                window.location.href = href;
+              } else if (href && href === current) {
+                window.location.href = '/';
+              }
+            }
+          }, 250);
+          return;
+        }
+
         if (href) window.location.href = href;
       } else if (action === 'confirm-navigate'){
         const msg = btn.dataset.message || 'Tem certeza?';

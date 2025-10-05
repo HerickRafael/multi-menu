@@ -41,6 +41,21 @@ ob_start();
       Dashboard
     </a>
   </div>
+    <script>
+      (function(){
+        const type = document.getElementById('pm-type');
+        const pixFields = document.getElementById('pm-pix-fields');
+        function togglePix(){
+          if (!type || !pixFields) return;
+          if (type.value === 'pix') {
+            pixFields.classList.remove('hidden');
+          } else {
+            pixFields.classList.add('hidden');
+          }
+        }
+        if (type){ type.addEventListener('change', togglePix); togglePix(); }
+      })();
+    </script>
 </header>
 
 <?php if ($flash): ?>
@@ -62,7 +77,7 @@ ob_start();
     <h2 class="text-lg font-semibold text-slate-800">Adicionar novo método</h2>
     <p class="mb-4 text-sm text-slate-500">Defina o nome que será exibido para o cliente e, se necessário, descreva como o pagamento será realizado.</p>
 
-    <form method="post" action="<?= e($base) ?>" class="grid gap-3">
+  <form method="post" action="<?= e($base) ?>" class="grid gap-3" id="pm-create-form">
       <?php if (function_exists('csrf_field')): ?>
         <?= csrf_field() ?>
       <?php elseif (function_exists('csrf_token')): ?>
@@ -70,14 +85,38 @@ ob_start();
       <?php endif; ?>
 
       <label class="grid gap-1 text-sm">
-        <span class="font-semibold text-slate-700">Nome do método</span>
-        <input type="text" name="name" value="<?= e($old['name'] ?? '') ?>" placeholder="Ex.: Pix, Dinheiro, Cartão" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" required>
+        <span class="font-semibold text-slate-700">Nome da bandeira</span>
+        <input id="pm-name" type="text" name="name" value="<?= e($old['name'] ?? '') ?>" placeholder="Ex.: Visa, MasterCard, Pix, Dinheiro" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" required autofocus aria-describedby="pm-name-help">
+        <div id="pm-name-help" class="text-xs text-slate-400">Nome exibido ao cliente no checkout (ex.: Visa, Pix).</div>
+      </label>
+
+      <label class="grid gap-1 text-sm">
+        <span class="font-semibold text-slate-700">Tipo</span>
+        <select name="type" id="pm-type" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          <option value="credit">Crédito</option>
+          <option value="debit">Débito</option>
+          <option value="others">Outros</option>
+          <option value="voucher">Vale-refeição</option>
+          <option value="pix">Pix</option>
+        </select>
       </label>
 
       <label class="grid gap-1 text-sm">
         <span class="font-semibold text-slate-700">Instruções (opcional)</span>
         <textarea name="instructions" rows="3" placeholder="Recados exibidos após a escolha do cliente" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"><?= e($old['instructions'] ?? '') ?></textarea>
       </label>
+
+      <div id="pm-pix-fields" class="hidden grid gap-2">
+        <h3 class="text-sm font-semibold">Credenciais Pix</h3>
+        <label class="grid gap-1 text-sm">
+          <span class="font-semibold text-slate-700">Chave Pix</span>
+          <input type="text" name="meta[px_key]" placeholder="Ex.: 11999999999 ou chave aleatória" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="font-semibold text-slate-700">Provedor (opcional)</span>
+          <input type="text" name="meta[px_provider]" placeholder="Ex.: Gerencianet, Pagar.me" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+        </label>
+      </div>
 
       <div class="grid gap-3 sm:grid-cols-2">
         <label class="grid gap-1 text-sm">
@@ -91,10 +130,11 @@ ob_start();
       </div>
 
       <div class="flex gap-3">
-        <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-indigo-300 bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500">
+        <button type="submit" class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           Adicionar método
         </button>
+        <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">Cancelar</a>
       </div>
     </form>
   </section>
@@ -104,57 +144,226 @@ ob_start();
     <?php if (!$methods): ?>
       <p class="text-sm text-slate-500">Ainda não há métodos cadastrados. Utilize o formulário ao lado para iniciar.</p>
     <?php endif; ?>
-    <div class="mt-3 grid gap-4">
+
+    <!-- Tabs (exemplo visual) -->
+    <div class="mt-3 flex items-center justify-between">
+      <div class="flex gap-4 border-b">
+        <button class="pb-2 text-sm font-medium border-b-2 border-rose-600 text-rose-600">Crédito</button>
+        <button class="pb-2 text-sm text-slate-500">Débito</button>
+        <button class="pb-2 text-sm text-slate-500">Outros</button>
+        <button class="pb-2 text-sm text-slate-500">Vale-refeição</button>
+      </div>
+      <div class="flex items-center gap-3 text-sm text-slate-600">
+        <span>Ativar todas</span>
+        <label class="inline-flex items-center cursor-pointer">
+          <input id="pm-toggle-all" type="checkbox" class="sr-only">
+          <span class="w-10 h-6 bg-slate-200 rounded-full relative transition-colors">
+            <span class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform" style="transform: translateX(0)"></span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <div class="space-y-2" id="pm-list">
       <?php foreach ($methods as $method):
           $methodId = (int)($method['id'] ?? 0);
           $methodSlug = $base . '/' . $methodId;
+          $isActive = !empty($method['active']);
           ?>
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-inner">
-          <form method="post" action="<?= e($methodSlug) ?>" class="grid gap-3">
-            <?php if (function_exists('csrf_field')): ?>
-              <?= csrf_field() ?>
-            <?php elseif (function_exists('csrf_token')): ?>
-              <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-            <?php endif; ?>
-            <label class="grid gap-1 text-sm">
-              <span class="font-semibold text-slate-700">Nome</span>
-              <input type="text" name="name" value="<?= e($method['name'] ?? '') ?>" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" required>
-            </label>
-            <label class="grid gap-1 text-sm">
-              <span class="font-semibold text-slate-700">Instruções</span>
-              <textarea name="instructions" rows="2" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Informações adicionais para o cliente"><?= e($method['instructions'] ?? '') ?></textarea>
-            </label>
-            <div class="grid gap-3 sm:grid-cols-3 sm:items-center">
-              <label class="grid gap-1 text-sm">
-                <span class="font-semibold text-slate-700">Ordem</span>
-                <input type="number" name="sort_order" value="<?= e($method['sort_order'] ?? 0) ?>" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-              </label>
-              <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" name="active" value="1" <?= !empty($method['active']) ? 'checked' : '' ?> class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                <span>Exibir no checkout</span>
-              </label>
-              <div class="flex items-center justify-end gap-2">
-                <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow hover:bg-emerald-500">
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Salvar
-                </button>
-              </div>
+        <div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-slate-200">
+              <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none"><path d="M3 7h18M7 11h10M5 15h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-          </form>
-          <form method="post" action="<?= e($methodSlug . '/delete') ?>" class="mt-2" onsubmit="return confirm('Remover este método de pagamento?');">
-            <?php if (function_exists('csrf_field')): ?>
-              <?= csrf_field() ?>
-            <?php elseif (function_exists('csrf_token')): ?>
-              <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-            <?php endif; ?>
-            <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-red-600 shadow-sm hover:bg-red-50">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 6h12M9 6l.867 10.4a1 1 0 0 0 .996.9h2.274a1 1 0 0 0 .996-.9L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 6V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              Excluir
-            </button>
-          </form>
+            <div>
+              <div class="flex items-center gap-2">
+                <div class="font-semibold text-slate-800"><?= e($method['name'] ?? '') ?></div>
+                <?php $type = $method['type'] ?? 'others'; ?>
+                <div class="text-xs rounded-full px-2 py-1 <?= $type === 'pix' ? 'bg-emerald-100 text-emerald-700' : ($type === 'credit' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700') ?>"><?= e(ucfirst($type)) ?></div>
+              </div>
+              <?php if (!empty($method['type']) && $method['type'] === 'pix' && !empty($method['meta'])):
+                  $m = is_string($method['meta']) ? json_decode($method['meta'], true) : (is_array($method['meta']) ? $method['meta'] : []);
+                  $px = $m['px_key'] ?? null;
+              ?>
+                <?php if ($px): ?><div class="text-xs text-slate-500">Chave Pix: <?= e($px) ?></div><?php endif; ?>
+              <?php endif; ?>
+              <div class="text-xs text-slate-500">ID #<?= $methodId ?></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="inline-flex items-center cursor-pointer">
+              <input data-id="<?= $methodId ?>" type="checkbox" class="pm-toggle sr-only" <?= $isActive ? 'checked' : '' ?> />
+              <span class="w-10 h-6 <?= $isActive ? 'bg-rose-500' : 'bg-slate-200' ?> rounded-full relative transition-colors">
+                <span class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform" style="transform: translateX(<?= $isActive ? '20px' : '0' ?>)"></span>
+              </span>
+            </label>
+            <a href="#" class="text-sm text-slate-500">Editar</a>
+          </div>
         </div>
       <?php endforeach; ?>
+      </div>
     </div>
+
+    <script>
+      (function(){
+        const base = '<?= $base ?>';
+        const csrftoken = <?= function_exists('csrf_token') ? ('"' . addslashes(csrf_token()) . '"') : 'null' ?>;
+
+        function escapeHtml(s){
+          return (s + '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        }
+
+        // render a method row element
+        function renderMethodRow(method){
+          const id = parseInt(method.id, 10);
+          const isActive = parseInt(method.active, 10) === 1;
+          const div = document.createElement('div');
+          div.className = 'flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3';
+          div.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-slate-200">
+                <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none"><path d="M3 7h18M7 11h10M5 15h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <div class="font-semibold text-slate-800">${escapeHtml(method.name || '')}</div>
+                  <div class="text-xs rounded-full px-2 py-1 ${method.type === 'pix' ? 'bg-emerald-100 text-emerald-700' : (method.type === 'credit' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700')}">${escapeHtml((method.type || 'others').charAt(0).toUpperCase() + (method.type || 'others').slice(1))}</div>
+                </div>
+                ${method.type === 'pix' && method.meta && method.meta.px_key ? `<div class="text-xs text-slate-500">Chave Pix: ${escapeHtml(method.meta.px_key)}</div>` : ''}
+                <div class="text-xs text-slate-500">ID #${id}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="inline-flex items-center cursor-pointer">
+                <input data-id="${id}" type="checkbox" class="pm-toggle sr-only" ${isActive ? 'checked' : ''} />
+                <span class="w-10 h-6 ${isActive ? 'bg-rose-500' : 'bg-slate-200'} rounded-full relative transition-colors">
+                  <span class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform" style="transform: translateX(${isActive ? '20px' : '0'})"></span>
+                </span>
+              </label>
+              <a href="#" class="text-sm text-slate-500">Editar</a>
+            </div>
+          `;
+
+          const chk = div.querySelector('.pm-toggle');
+          if (chk){
+            chk.addEventListener('change', function(){
+              const on = this.checked;
+              toggleMethod(id, on, function(success){ if (!success) chk.checked = !on; });
+            });
+          }
+
+          return div;
+        }
+
+        async function toggleMethod(id, on, cb){
+          try{
+            const url = base + '/' + id;
+            const body = new URLSearchParams();
+            body.append('active', on ? '1' : '0');
+            if (csrftoken) body.append('csrf_token', csrftoken);
+            const res = await fetch(url, { method: 'POST', body: body, credentials: 'same-origin' });
+            if (!res.ok) throw new Error('Network');
+            const json = await res.json().catch(()=>null);
+            if (cb) cb(!!json && json.success);
+            return !!json && json.success;
+          } catch(e){
+            console.error(e);
+            alert('Erro ao atualizar o método. Atualize a página e tente novamente.');
+            if (cb) cb(false);
+            return false;
+          }
+        }
+
+        // wire existing toggles
+        function wireExistingToggles(){
+          document.querySelectorAll('.pm-toggle').forEach(function(chk){
+            if (chk.dataset.wired) return;
+            chk.dataset.wired = '1';
+            chk.addEventListener('change', function(){
+              const id = this.dataset.id;
+              const on = this.checked;
+              toggleMethod(id, on, function(success){ if (!success) chk.checked = !on; });
+            });
+          });
+        }
+
+        wireExistingToggles();
+
+        const toggleAll = document.getElementById('pm-toggle-all');
+        if (toggleAll){
+          toggleAll.addEventListener('change', async function(){
+            const on = this.checked ? '1' : '0';
+            try{
+              const url = base + '/batch';
+              const body = new URLSearchParams();
+              body.append('active', on);
+              if (csrftoken) body.append('csrf_token', csrftoken);
+              const res = await fetch(url, { method: 'POST', body: body, credentials: 'same-origin' });
+              if (!res.ok) throw new Error('Network');
+              const json = await res.json().catch(()=>null);
+              if (!json || !json.success) throw new Error('Batch failed');
+
+              // update UI without firing individual toggles
+              document.querySelectorAll('.pm-toggle').forEach(function(chk){
+                chk.checked = toggleAll.checked;
+                const span = chk.parentElement.querySelector('span.w-10');
+                if (span){
+                  if (chk.checked) span.classList.remove('bg-slate-200'), span.classList.add('bg-rose-500');
+                  else span.classList.remove('bg-rose-500'), span.classList.add('bg-slate-200');
+                  const ball = span.querySelector('span.absolute');
+                  if (ball) ball.style.transform = 'translateX(' + (chk.checked ? '20px' : '0') + ')';
+                }
+              });
+            }catch(e){
+              console.error(e);
+              alert('Erro ao atualizar todos os métodos. Atualize a página e tente novamente.');
+              // revert toggleAll
+              toggleAll.checked = !toggleAll.checked;
+            }
+          });
+        }
+
+        // Submit create form via AJAX and insert new method
+        (function(){
+          const form = document.getElementById('pm-create-form');
+          const list = document.getElementById('pm-list');
+          if (!form || !list || !window.fetch) return;
+
+          form.addEventListener('submit', async function(e){
+            // if user disabled JS or AJAX not supported, fall back to normal submit
+            e.preventDefault();
+
+            const data = new FormData(form);
+            if (!data.has('active')) data.set('active', '0');
+            try{
+              const res = await fetch(form.action, { method: form.method || 'POST', body: data, credentials: 'same-origin' });
+              if (!res.ok) throw new Error('Network');
+              const json = await res.json().catch(()=>null);
+              if (!json || !json.success || !json.method) throw new Error('Invalid response');
+
+              // insert new node at top
+              const node = renderMethodRow(json.method);
+              list.insertBefore(node, list.firstChild);
+              // reset form and UI
+              form.reset();
+              const type = document.getElementById('pm-type');
+              const pixFields = document.getElementById('pm-pix-fields');
+              if (type && pixFields) pixFields.classList.add('hidden');
+            }catch(err){
+              console.error(err);
+              // fallback: submit normally so server can render errors
+              form.submit();
+            }
+          });
+        })();
+      })();
+    </script>
   </section>
 </div>
 

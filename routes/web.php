@@ -63,6 +63,8 @@ $router->get('/admin/{slug}/payment-methods',        'AdminPaymentMethodControll
 $router->post('/admin/{slug}/payment-methods',       'AdminPaymentMethodController@store');
 $router->post('/admin/{slug}/payment-methods/{id}',  'AdminPaymentMethodController@update');
 $router->post('/admin/{slug}/payment-methods/{id}/delete', 'AdminPaymentMethodController@destroy');
+// Batch update (ativar/desativar todos)
+$router->post('/admin/{slug}/payment-methods/batch', 'AdminPaymentMethodController@batchUpdate');
 
 // Produtos (CRUD)
 $router->get('/admin/{slug}/products',               'AdminProductController@index');

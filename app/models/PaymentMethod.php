@@ -56,15 +56,19 @@ class PaymentMethod
     {
         $sortOrder = isset($data['sort_order']) ? (int)$data['sort_order'] : self::nextSortOrder((int)$data['company_id']);
         $st = db()->prepare(
-            'INSERT INTO payment_methods (company_id, name, instructions, sort_order, active)
-             VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO payment_methods (company_id, name, instructions, sort_order, active, `type`, `meta`, pix_key)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
+        $meta = isset($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
         $st->execute([
             (int)$data['company_id'],
             $data['name'],
             $data['instructions'] ?? null,
             $sortOrder,
             !empty($data['active']) ? 1 : 0,
+            $data['type'] ?? 'others',
+            $meta,
+            $data['pix_key'] ?? null,
         ]);
 
         return (int)db()->lastInsertId();
@@ -72,16 +76,20 @@ class PaymentMethod
 
     public static function update(int $id, int $companyId, array $data): void
     {
-        $st = db()->prepare(
-            'UPDATE payment_methods
-                SET name = ?, instructions = ?, sort_order = ?, active = ?
-              WHERE id = ? AND company_id = ?'
-        );
+                $st = db()->prepare(
+                        'UPDATE payment_methods
+                                SET name = ?, instructions = ?, sort_order = ?, active = ?, `type` = ?, `meta` = ?, pix_key = ?
+                            WHERE id = ? AND company_id = ?'
+                );
+        $meta = isset($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
         $st->execute([
             $data['name'],
             $data['instructions'] ?? null,
             (int)$data['sort_order'],
             !empty($data['active']) ? 1 : 0,
+            $data['type'] ?? 'others',
+            $meta,
+            $data['pix_key'] ?? null,
             $id,
             $companyId,
         ]);
@@ -91,6 +99,12 @@ class PaymentMethod
     {
         $st = db()->prepare('DELETE FROM payment_methods WHERE id = ? AND company_id = ?');
         $st->execute([$id, $companyId]);
+    }
+
+    public static function setAllActiveForCompany(int $companyId, int $active): void
+    {
+        $st = db()->prepare('UPDATE payment_methods SET active = ? WHERE company_id = ?');
+        $st->execute([(int)$active, $companyId]);
     }
 
     public static function nextSortOrder(int $companyId): int

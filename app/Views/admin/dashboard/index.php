@@ -176,7 +176,7 @@ ob_start(); ?>
       <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white"><?= (int)count($products) ?></span>
     </div>
 
-    <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm">
+    <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
       <?php $show = array_slice($products, 0, 8); ?>
       <?php foreach ($show as $p): $pid = (int)($p['id'] ?? 0); ?>
         <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
