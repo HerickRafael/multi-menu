@@ -175,6 +175,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       this.handleUnlockEvent = this.handleUnlockEvent.bind(this);
       this.handleVisibility = this.handleVisibility.bind(this);
       this.audioEl = null;
+      this.audioFailed = false;
       this.bindUnlockListeners();
     }
 
@@ -228,7 +229,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
     tryRing(){
       let played = false;
-      if (this.preferFallback) {
+      if (this.preferFallback && !this.audioFailed) {
         played = this.playFallback();
         if (!played && this.audioCtor) {
           this.ensureContext();
@@ -283,12 +284,20 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       if (!this.fallbackUri) {
         return false;
       }
+      const fallbackToTone = () => {
+        this.audioFailed = true;
+        this.preferFallback = false;
+        return this.fallbackToTone();
+      };
       try {
         if (!this.audioEl) {
           this.audioEl = new Audio();
           this.audioEl.preload = 'auto';
           this.audioEl.src = this.fallbackUri;
           this.audioEl.volume = 0.8;
+          this.audioEl.addEventListener('error', () => {
+            fallbackToTone();
+          }, { once: true });
         }
         try {
           this.audioEl.currentTime = 0;
@@ -297,11 +306,14 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         }
         const playPromise = this.audioEl.play();
         if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise.catch(() => {});
+          playPromise.catch(() => {
+            fallbackToTone();
+          });
         }
+        this.audioFailed = false;
         return true;
       } catch (err) {
-        return false;
+        return fallbackToTone();
       }
     }
 
@@ -340,6 +352,25 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         this.context = null;
         this.audioCtor = null;
       }
+    }
+
+    fallbackToTone(){
+      if (!this.audioCtor) {
+        return false;
+      }
+      if (this.audioEl) {
+        try {
+          this.audioEl.pause();
+        } catch (err) {
+          // ignore
+        }
+      }
+      this.audioEl = null;
+      this.ensureContext();
+      if (!this.context) {
+        return false;
+      }
+      return this.playWithContext();
     }
   }
 
