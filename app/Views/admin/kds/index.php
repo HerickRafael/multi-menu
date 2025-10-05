@@ -148,18 +148,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     'SiLdPIA71B4D9LHOAcCxzgP01B6AO908SiL791nRIcA6zBbwPxvoOfw9nSX8+zHUgsD3yTrsjxcU' +
     'ON0+yygAADXXI8Hsx3HoxhMJNn4/zysEBGPaBMIYxsHk6g/GM98/py4FCLbdI8OAxCzh/QtPMf8/' +
     'TzH9CyzhgMQjw7bdBQinLt8/xjPqD8HkGMYEwmPaBATPK34/CTbGE3Ho7McjwTXXAADLKN0+FDiP' +
-    'Fzrs98mCwDHU/PudJfw96Dk/GxbwOswhwFnR+/dKIt08gDvUHgP0sc4BwLHOA/TUHoA73TxKIvv3' +
-    'WdEhwDrMFvA/G+g5/D2dJfz7MdSCwPfJOuyPFxQ43T7LKAAANdcjwezHcejGEwk2fj/PKwQEY9oE' +
-    'whjGweTqD8Yz3z+nLgUItt0jw4DELOH9C08x/z9PMf0LLOGAxCPDtt0FCKcu3z/GM+oPweQYxgTC' +
-    'Y9oEBM8rfj8JNsYTcejsxyPBNdcAAMso3T4UOI8XOuz3yYLAMdT8+50l/D3oOT8bFvA6zCHAWdH7' +
-    '90oi3TyAO9QeA/SxzgHAsc4D9NQegDvdPEoi+/dZ0SHAOswW8D8b6Dn8PZ0l/Psx1ILA98k67I8X' +
-    'FDjdPssoAAA11yPB7Mdx6MYTCTZ+P88rBARj2gTCGMbB5OoPxjPfP6cuBQi23SPDgMQs4f0LTzH/' +
-    'P08x/Qss4YDEI8O23QUIpy7fP8Yz6g/B5BjGBMJj2gQEzyt+Pwk2xhNx6OzHI8E11wAAyyjdPhQ4' +
-    'jxc67PfJgsAx1Pz7nSX8Peg5PxsW8DrMIcBZ0fv3SiLdPIA71B4D9LHOAcCxzgP01B6AO908SiL7' +
-    '91nRIcA6zBbwPxvoOfw9nSX8+zHUgsD3yTrsjxcUON0+yygAADXXI8Hsx3HoxhMJNn4/zysEBGPa' +
-    'BMIYxsHk6g/GM98/py4FCLbdI8OAxCzh/QtPMf8/TzH9CyzhgMQjw7bdBQinLt8/xjPqD8HkGMYE' +
-    'wmPaBATPK34/CTbGE3Ho7McjwTXXAADLKN0+FDiPFzrs98mCwDHU/PudJfw96Dk/GxbwOswhwFnR' +
-    '+/dKIt08UTujHh/0T88BwZ3PRvQPHtQ59jocIUj4P9PtwqfO4vDNGaY2TjpEIz/8NNcSxQXOxe2l' +
+    'Fzrs98mCwDHU/PudJfw96Dk/GxbwOswhwFnR+/dKIt08UTujHh/0T88BwZ3PRvQPHtQ59jocIUj4P9PtwqfO4vDNGaY2TjpEIz/8NNcSxQXOxe2l' +
     'FVkzXTkYJQAAKdttx7TN8uqdEfQvJjibJocDFt/1ybLNaui6DX4ssDbMJ9EG9uKlzPvNLuYBCv0o' +
     '/zSuKNsJwuZ4z4zOP+R3BnclGDNCKaIMdepm0mHPneIgA/MhAjGKKSQPCu5q1XbQR+EAAHcewS6J' +
     'KV8Re/F92MXRPeAa/QkbXCxCKVQTw/SZ20vTft9w+q4X2Cm5KAAV3/e33gHVBt8F+GwUPCfxJ2UW' +
@@ -174,60 +163,36 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
   class KdsChime {
     constructor(fallbackUri){
+      // Preferir arquivo de áudio quando for fornecido (diferente do DEFAULT)
       this.AudioContext = window.AudioContext || window.webkitAudioContext || null;
+      this.fallbackUri = this.prepareUri((typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI);
+      this.preferFallback = this.fallbackUri && this.fallbackUri !== DEFAULT_BELL_URI;
+
       this.context = null;
       this.unlocked = false;
       this.pendingRing = false;
       this.lastPlayedAt = 0;
       this.minimumGapMs = 450;
+
       this.unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
       this.handleUnlockEvent = this.handleUnlockEvent.bind(this);
-      this.handleVisibility = this.handleVisibility.bind(this);
-      this.audioElement = null;
-      this.setFallbackUri(fallbackUri);
+      this.handleVisibility   = this.handleVisibility.bind(this);
+
+      this.audioEl = null;
+      this.audioFailed = false;
+
       this.bindUnlockListeners();
     }
 
-    setFallbackUri(uri){
-      const resolved = this.prepareUri(uri);
-      this.fallbackUri = resolved || DEFAULT_BELL_URI;
-      if (this.audioElement) {
-        try {
-          this.audioElement.src = this.fallbackUri;
-          if (typeof this.audioElement.load === 'function') {
-            this.audioElement.load();
-          }
-        } catch (err) {
-          // ignore load issues; playFallback lidará posteriormente
-        }
-      }
-    }
-
     prepareUri(value){
-      if (typeof value !== 'string') {
-        return '';
-      }
+      if (typeof value !== 'string') return '';
       const raw = value.trim();
-      if (!raw) {
-        return '';
-      }
-      if (/^(data:|blob:)/i.test(raw)) {
-        return raw;
-      }
-      if (/^https?:/i.test(raw)) {
-        return raw;
-      }
-      if (/^\/\//.test(raw)) {
-        return window.location.protocol + raw;
-      }
-      if (raw[0] === '/') {
-        return window.location.origin + raw;
-      }
-      try {
-        return new URL(raw, window.location.href).toString();
-      } catch (err) {
-        return raw;
-      }
+      if (!raw) return '';
+      if (/^(data:|blob:)/i.test(raw)) return raw;
+      if (/^https?:/i.test(raw)) return raw;
+      if (/^\/\//.test(raw)) return window.location.protocol + raw;
+      if (raw[0] === '/') return window.location.origin + raw;
+      try { return new URL(raw, window.location.href).toString(); } catch { return raw; }
     }
 
     bindUnlockListeners(){
@@ -251,20 +216,14 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     }
 
     handleUnlockEvent(){
-      if (this.unlocked) {
-        return;
-      }
+      if (this.unlocked) return;
       this.unlocked = true;
-      if (this.AudioContext) {
-        try {
-          this.context = new this.AudioContext();
-          if (this.context && this.context.state === 'suspended') {
-            this.context.resume().catch(() => {});
-          }
-        } catch (err) {
-          this.context = null;
-        }
+
+      // Só cria o contexto já no unlock se a preferência não for por arquivo
+      if (!this.preferFallback) {
+        this.ensureContext();
       }
+
       this.removeUnlockListeners();
       if (this.pendingRing) {
         this.tryRing();
@@ -277,9 +236,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         return;
       }
       const now = Date.now();
-      if (now - this.lastPlayedAt < this.minimumGapMs) {
-        return;
-      }
+      if (now - this.lastPlayedAt < this.minimumGapMs) return;
       if (this.tryRing()) {
         this.lastPlayedAt = Date.now();
       }
@@ -287,27 +244,41 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
     tryRing(){
       let played = false;
-      if (this.context) {
-        played = this.playWithContext();
-      }
-      if (!played) {
+
+      if (this.preferFallback && !this.audioFailed) {
         played = this.playFallback();
+        if (!played && this.AudioContext) {
+          this.ensureContext();
+          if (this.context) played = this.playWithContext();
+        }
+      } else {
+        this.ensureContext();
+        if (this.context) played = this.playWithContext();
+        if (!played) played = this.playFallback();
       }
-      if (played) {
-        this.pendingRing = false;
-      }
+
+      if (played) this.pendingRing = false;
       return played;
     }
 
-    playWithContext(){
-      if (!this.context) {
-        return false;
+    ensureContext(){
+      if (this.context || !this.AudioContext) return;
+      try {
+        this.context = new this.AudioContext();
+        if (this.context && this.context.state === 'suspended') {
+          this.context.resume().catch(()=>{});
+        }
+      } catch {
+        this.context = null;
+        this.AudioContext = null;
       }
+    }
+
+    playWithContext(){
+      if (!this.context) return false;
       try {
         const ctx = this.context;
-        if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
-        }
+        if (ctx.state === 'suspended') ctx.resume().catch(()=>{});
         const now = ctx.currentTime;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -321,61 +292,66 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         osc.start(now);
         osc.stop(now + 0.72);
         return true;
-      } catch (err) {
+      } catch {
         this.context = null;
         return false;
       }
     }
 
     playFallback(){
-      if (!this.fallbackUri) {
-        return false;
-      }
+      if (!this.fallbackUri) return false;
+
+      const fallbackToTone = () => {
+        this.audioFailed = true;
+        this.preferFallback = false;
+        return this.fallbackToTone();
+      };
+
       try {
-        if (!this.audioElement) {
-          this.audioElement = new Audio();
-          this.audioElement.preload = 'auto';
+        if (!this.audioEl) {
+          this.audioEl = new Audio();
+          this.audioEl.preload = 'auto';
+          this.audioEl.src = this.fallbackUri;
+          this.audioEl.volume = 0.8;
+          this.audioEl.addEventListener('error', () => { fallbackToTone(); }, { once: true });
         }
-        const audio = this.audioElement;
-        if (audio.src !== this.fallbackUri) {
-          audio.src = this.fallbackUri;
+        try { this.audioEl.currentTime = 0; } catch {}
+        const p = this.audioEl.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => { fallbackToTone(); });
         }
-        audio.currentTime = 0;
-        audio.volume = 0.8;
-        const playPromise = audio.play();
-        if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise.catch(() => {});
-        }
+        this.audioFailed = false;
         return true;
-      } catch (err) {
-        return false;
+      } catch {
+        return fallbackToTone();
       }
+    }
+
+    fallbackToTone(){
+      if (!this.AudioContext) return false;
+      if (this.audioEl) {
+        try { this.audioEl.pause(); } catch {}
+      }
+      this.audioEl = null;
+      this.ensureContext();
+      if (!this.context) return false;
+      return this.playWithContext();
     }
 
     dispose(){
       this.removeUnlockListeners();
       this.pendingRing = false;
       if (this.context && typeof this.context.close === 'function') {
-        try {
-          this.context.close();
-        } catch (err) {
-          // ignore
-        }
+        try { this.context.close(); } catch {}
       }
       this.context = null;
-      if (this.audioElement) {
+      if (this.audioEl) {
         try {
-          this.audioElement.pause();
-        } catch (err) {
-          // ignore
-        }
-        try {
-          this.audioElement.src = '';
-        } catch (err) {
-          // ignore
-        }
+          this.audioEl.pause();
+          this.audioEl.currentTime = 0;
+        } catch {}
       }
-      this.audioElement = null;
+      this.audioEl = null;
     }
   }
 
@@ -462,9 +438,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     startPolling(){
       this.pollInterval = this.resolveInterval();
       this.fetchData();
-      if (this.pollTimer) {
-        clearInterval(this.pollTimer);
-      }
+      if (this.pollTimer) clearInterval(this.pollTimer);
       this.pollTimer = setInterval(() => this.fetchData(), this.pollInterval);
     }
 
@@ -965,6 +939,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       if (this.chime && typeof this.chime.dispose === 'function') {
         this.chime.dispose();
       }
+      this.chime = null;
     }
   }
 

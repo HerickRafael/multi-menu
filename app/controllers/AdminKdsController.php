@@ -47,11 +47,22 @@ class AdminKdsController extends Controller
             }
         }
 
+        // Resolve bell URL (aceita http(s), //, caminho absoluto ou relativo ao app)
+        $bellPath = (string)(config('kds_bell_url') ?? '');
+        $bellUrl = '';
+        if ($bellPath !== '') {
+            if (preg_match('/^(https?:)?\/\//i', $bellPath)) {
+                $bellUrl = $bellPath;
+            } else {
+                $bellUrl = base_url(ltrim($bellPath, '/'));
+            }
+        }
+
         $config = [
             'dataUrl'         => base_url('admin/' . rawurlencode($company['slug']) . '/kds/data'),
             'statusUrl'       => base_url('admin/' . rawurlencode($company['slug']) . '/kds/status'),
             'orderDetailBase' => base_url('admin/' . rawurlencode($company['slug']) . '/orders/show?id='),
-            'bellUrl'         => (string)(config('kds_bell_url') ?? ''),
+            'bellUrl'         => $bellUrl ?: $bellPath,
             'columns' => [
                 ['id' => 'pending',   'label' => 'Recebidos'],
                 ['id' => 'paid',      'label' => 'Preparando'],
@@ -97,9 +108,7 @@ class AdminKdsController extends Controller
         ];
 
         $syncToken = Order::latestChangeToken($db, $companyId);
-        if ($syncToken) {
-            $payload['sync_token'] = $syncToken;
-        }
+        $payload['sync_token'] = $syncToken ?: $payload['server_time'];
 
         header('Content-Type: application/json');
         echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
