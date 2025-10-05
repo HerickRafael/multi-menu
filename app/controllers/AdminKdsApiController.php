@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -12,6 +14,7 @@ class AdminKdsApiController extends Controller
     {
         Auth::start();
         $user = Auth::user();
+
         if (!$user) {
             header('Content-Type: application/json');
             http_response_code(401);
@@ -20,6 +23,7 @@ class AdminKdsApiController extends Controller
         }
 
         $company = Company::findBySlug($slug);
+
         if (!$company) {
             header('Content-Type: application/json');
             http_response_code(404);
@@ -45,6 +49,7 @@ class AdminKdsApiController extends Controller
         $companyId = (int)$company['id'];
 
         $sinceParam = isset($_GET['since']) ? trim((string)$_GET['since']) : '';
+
         if ($sinceParam !== '') {
             $delta = Order::snapshotDelta($db, $companyId, $sinceParam);
         } else {
@@ -65,6 +70,7 @@ class AdminKdsApiController extends Controller
         ];
 
         $syncToken = Order::latestChangeToken($db, $companyId);
+
         if ($syncToken) {
             $payload['sync_token'] = $syncToken;
         }
@@ -93,9 +99,11 @@ class AdminKdsApiController extends Controller
         header('X-Accel-Buffering: no');
 
         $lastId = 0;
+
         if (isset($_GET['last_id'])) {
             $lastId = max($lastId, (int)$_GET['last_id']);
         }
+
         if (!empty($_SERVER['HTTP_LAST_EVENT_ID'])) {
             $lastId = max($lastId, (int)$_SERVER['HTTP_LAST_EVENT_ID']);
         }
@@ -106,6 +114,7 @@ class AdminKdsApiController extends Controller
 
         while (!connection_aborted() && (time() - $start) < $timeout) {
             $events = Order::latestEvents($db, $companyId, $lastId, 200);
+
             if ($events) {
                 foreach ($events as $event) {
                     $lastId = (int)$event['id'];
@@ -154,6 +163,7 @@ class AdminKdsApiController extends Controller
         $companyId = (int)$company['id'];
 
         $input = json_decode(file_get_contents('php://input'), true);
+
         if (!is_array($input)) {
             $input = $_POST;
         }
@@ -168,6 +178,7 @@ class AdminKdsApiController extends Controller
         }
 
         $ok = Order::updateStatus($db, $orderId, $companyId, $status);
+
         if (!$ok) {
             http_response_code(400);
             echo json_encode(['error' => 'invalid_status']);
@@ -195,6 +206,7 @@ class AdminKdsApiController extends Controller
         [$user, $company] = $this->guard($slug);
 
         $payload = json_decode(file_get_contents('php://input'), true);
+
         if (!is_array($payload)) {
             $payload = [];
         }

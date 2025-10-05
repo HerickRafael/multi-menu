@@ -1,11 +1,14 @@
 <?php
 // admin/orders/create.php — Novo pedido (com toolbar fixa)
 
-$title = "Novo pedido";
+$title = 'Novo pedido';
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 ob_start(); ?>
@@ -94,7 +97,7 @@ ob_start(); ?>
           <select name="product_id[]" class="product-select rounded-xl border border-slate-300 bg-white px-3 py-2">
             <option value="">Selecione um produto…</option>
             <?php foreach ($products as $pr):
-              $pp = (float)($pr['promo_price'] ?: $pr['price']); ?>
+                $pp = (float)($pr['promo_price'] ?: $pr['price']); ?>
               <option value="<?= (int)$pr['id'] ?>" data-price="<?= e((string)$pp) ?>">
                 <?= e($pr['name']) ?> — R$ <?= number_format($pp, 2, ',', '.') ?>
               </option>
@@ -159,70 +162,7 @@ ob_start(); ?>
                 placeholder="Ex.: Sem cebola, entregar no portão…"><?= e($defaults['notes'] ?? '') ?></textarea>
     </fieldset>
 
-<script>
-(function(){
-  const itemsBox = document.getElementById('items');
-  const tpl = document.getElementById('tpl-row').content;
-  const form = document.getElementById('order-form');
-
-  function formatBR(v){ return 'R$ ' + (Number(v)||0).toFixed(2).replace('.', ','); }
-  function getNumber(input){ const n = parseFloat(input?.value?.replace(',', '.') || '0'); return isFinite(n) ? n : 0; }
-
-  function addRow(){
-    const node = document.importNode(tpl, true);
-    const row  = node.querySelector('div');
-
-    const select = row.querySelector('.product-select');
-    const qty    = row.querySelector('.qty-input');
-    const show   = row.querySelector('.price-show');
-    const btnDel = row.querySelector('.btn-del');
-
-    function updateLine(){
-      const opt = select.options[select.selectedIndex];
-      const price = parseFloat(opt?.dataset?.price || '0');
-      const q = Math.max(1, parseInt(qty.value || '1', 10));
-      qty.value = q;
-      show.value = formatBR(price * q);
-      recalc();
-    }
-
-    select.addEventListener('change', updateLine);
-    qty.addEventListener('input', updateLine);
-    btnDel.addEventListener('click', ()=>{ row.remove(); recalc(); });
-
-    itemsBox.appendChild(row);
-    updateLine();
-  }
-
-  function recalc(){
-    let subtotal = 0;
-    itemsBox.querySelectorAll('.product-select').forEach((sel, i) => {
-      const opt = sel.options[sel.selectedIndex];
-      const price = parseFloat(opt?.dataset?.price || '0');
-      const qtyInput = itemsBox.querySelectorAll('.qty-input')[i];
-      const q = Math.max(0, parseInt(qtyInput.value || '0', 10));
-      subtotal += price * q;
-    });
-
-    const fee  = getNumber(document.querySelector('.fee-input'));
-    const disc = getNumber(document.querySelector('.disc-input'));
-    const total = Math.max(0, subtotal + fee - disc);
-
-    document.getElementById('subtot-view').textContent = formatBR(subtotal);
-    document.getElementById('total-view').textContent  = formatBR(total);
-  }
-
-  document.getElementById('btn-add-item').addEventListener('click', addRow);
-  document.querySelectorAll('.fee-input, .disc-input').forEach(inp=>{ inp.addEventListener('input', recalc); });
-
-  form.addEventListener('submit', (e)=>{
-    const hasItem = Array.from(itemsBox.querySelectorAll('.product-select')).some(sel => sel.value && sel.value !== '');
-    if (!hasItem) { e.preventDefault(); alert('Adicione pelo menos 1 item ao pedido.'); return false; }
-  });
-
-  addRow();
-})();
-</script>
+<!-- order form behaviors are centralized in public/assets/js/admin.js -->
 <?php
 $content = ob_get_clean();
 include __DIR__ . '/../layout.php';

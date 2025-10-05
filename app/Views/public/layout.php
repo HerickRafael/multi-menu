@@ -6,28 +6,34 @@ $slug = trim($slug, '/');
 $company = $company ?? [];
 $slug = isset($slug) ? (string)$slug : (string)($company['slug'] ?? '');
 $slug = trim($slug, '/');
+
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 $homeUrl = function_exists('base_url') ? base_url($slug !== '' ? $slug : '') : '#';
 $cartUrl = function_exists('base_url') ? base_url(($slug !== '' ? $slug . '/' : '') . 'cart') : '#';
+$profileUrl = function_exists('base_url') ? base_url(($slug !== '' ? $slug . '/' : '') . 'profile') : '#';
 
 $cartItemCount = 0;
 try {
-  if (class_exists('CartStorage')) {
-    $cartItems = CartStorage::instance()->getCart();
-    if (is_array($cartItems)) {
-      foreach ($cartItems as $entry) {
-        $cartItemCount += max(0, (int)($entry['qty'] ?? 0));
-      }
+    if (class_exists('CartStorage')) {
+        $cartItems = CartStorage::instance()->getCart();
+
+        if (is_array($cartItems)) {
+            foreach ($cartItems as $entry) {
+                $cartItemCount += max(0, (int)($entry['qty'] ?? 0));
+            }
+        }
+    } elseif (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+        foreach ($_SESSION['cart'] as $entry) {
+            $cartItemCount += max(0, (int)($entry['qty'] ?? 0));
+        }
     }
-  } elseif (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
-    foreach ($_SESSION['cart'] as $entry) {
-      $cartItemCount += max(0, (int)($entry['qty'] ?? 0));
-    }
-  }
 } catch (Throwable $layoutCartEx) {
-  $cartItemCount = 0;
+    $cartItemCount = 0;
 }
 ?>
 <!doctype html>
@@ -37,9 +43,10 @@ try {
   <title><?= e($title ?? 'Cardápio') ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="<?= base_url('assets/css/ui.css') ?>">
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <div class="max-w-5xl mx-auto p-4<?= !empty($showFooterMenu) ? ' ' : '' ?>">
+  <div class="max-w-5xl mx-auto<?= !empty($showFooterMenu) ? ' p-4 pb-28' : '' ?>">
     <?= $content ?? '' ?>
   </div>
   <?php if (!empty($showFooterMenu)): ?>
@@ -58,12 +65,13 @@ try {
         <?php endif; ?>
         <span class="text-xs">Sacola</span>
       </a>
-      <a href="#" class="flex flex-col items-center text-gray-500">
+      <a href="<?= e($profileUrl) ?>" class="flex flex-col items-center text-gray-500">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
         <span class="text-xs">Perfil</span>
       </a>
     </div>
   </nav>
   <?php endif; ?>
+  <script src="<?= base_url('assets/js/ui.js') ?>"></script>
 </body>
 </html>

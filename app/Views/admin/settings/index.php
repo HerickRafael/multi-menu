@@ -1,27 +1,42 @@
 <?php
 // admin/settings/index.php — Configurações (com toolbar fixa)
 
-$title = "Configurações - " . ($company['name'] ?? '');
+$title = 'Configurações - ' . ($company['name'] ?? '');
 $slug  = rawurlencode((string)($company['slug'] ?? ''));
-$days  = [1=>'Segunda',2=>'Terça',3=>'Quarta',4=>'Quinta',5=>'Sexta',6=>'Sábado',7=>'Domingo'];
+$days  = [1 => 'Segunda',2 => 'Terça',3 => 'Quarta',4 => 'Quinta',5 => 'Sexta',6 => 'Sábado',7 => 'Domingo'];
 
 // helper de escape (se ainda não existir)
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 // Normalização de cores (se ainda não existir)
 if (!function_exists('settings_color_value')) {
-  function settings_color_value($value, $default) {
-    $value = trim((string)$value);
-    if ($value === '') return strtoupper($default);
-    if ($value[0] !== '#') $value = '#'.$value;
-    if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) return strtoupper($default);
-    if (strlen($value) === 4) {
-      $value = '#'.$value[1].$value[1].$value[2].$value[2].$value[3].$value[3];
+    function settings_color_value($value, $default)
+    {
+        $value = trim((string)$value);
+
+        if ($value === '') {
+            return strtoupper($default);
+        }
+
+        if ($value[0] !== '#') {
+            $value = '#'.$value;
+        }
+
+        if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value)) {
+            return strtoupper($default);
+        }
+
+        if (strlen($value) === 4) {
+            $value = '#'.$value[1].$value[1].$value[2].$value[2].$value[3].$value[3];
+        }
+
+        return strtoupper($value);
     }
-    return strtoupper($value);
-  }
 }
 
 $colorDefaults = [
@@ -36,8 +51,9 @@ $colorDefaults = [
 ];
 
 $colorValues = [];
+
 foreach ($colorDefaults as $key => $default) {
-  $colorValues[$key] = settings_color_value($company[$key] ?? '', $default);
+    $colorValues[$key] = settings_color_value($company[$key] ?? '', $default);
 }
 
 // Horários vindos do controller (pode estar vazio)
@@ -162,7 +178,8 @@ ob_start(); ?>
         'menu_welcome_bg_color'       => 'Fundo da mensagem de boas-vindas',
         'menu_welcome_text_color'     => 'Texto da mensagem de boas-vindas',
       ];
-      foreach ($labels as $key => $lab): ?>
+
+foreach ($labels as $key => $lab): ?>
         <label class="grid gap-1">
           <span class="text-sm text-slate-700"><?= e($lab) ?></span>
           <div class="flex items-center gap-3">
@@ -221,8 +238,8 @@ ob_start(); ?>
 
     <div class="grid gap-2">
       <?php foreach ($days as $d => $label):
-        $row    = $hours[$d] ?? ['is_open'=>0,'open1'=>null,'close1'=>null,'open2'=>null,'close2'=>null];
-        $isOpen = !empty($row['is_open']); ?>
+          $row    = $hours[$d] ?? ['is_open' => 0,'open1' => null,'close1' => null,'open2' => null,'close2' => null];
+          $isOpen = !empty($row['is_open']); ?>
         <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div class="mb-2 flex items-center gap-3">
             <label class="inline-flex cursor-pointer items-center gap-2">
@@ -237,25 +254,25 @@ ob_start(); ?>
           <div class="grid items-end gap-2 md:grid-cols-4">
             <label class="grid gap-1">
               <span class="text-xs text-slate-600">Abre 1</span>
-              <input name="open1[<?= $d ?>]" value="<?= e(substr((string)$row['open1'],0,5)) ?>" placeholder="18:00"
+              <input name="open1[<?= $d ?>]" value="<?= e(substr((string)$row['open1'], 0, 5)) ?>" placeholder="18:00"
                      class="time-input rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400"
                      data-day="<?= $d ?>">
             </label>
             <label class="grid gap-1">
               <span class="text-xs text-slate-600">Fecha 1</span>
-              <input name="close1[<?= $d ?>]" value="<?= e(substr((string)$row['close1'],0,5)) ?>" placeholder="23:59"
+              <input name="close1[<?= $d ?>]" value="<?= e(substr((string)$row['close1'], 0, 5)) ?>" placeholder="23:59"
                      class="time-input rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400"
                      data-day="<?= $d ?>">
             </label>
 
-            <label class="slot2 grid gap-1" data-day="<?= $d ?>" style="<?= ($row['open2']||$row['close2'])?'':'display:none' ?>">
+            <label class="slot2 grid gap-1" data-day="<?= $d ?>" style="<?= ($row['open2'] || $row['close2']) ? '' : 'display:none' ?>">
               <span class="text-xs text-slate-600">Abre 2</span>
-              <input name="open2[<?= $d ?>]" value="<?= e(substr((string)$row['open2'],0,5)) ?>" placeholder="11:30"
+              <input name="open2[<?= $d ?>]" value="<?= e(substr((string)$row['open2'], 0, 5)) ?>" placeholder="11:30"
                      class="time-input rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
             </label>
-            <label class="slot2 grid gap-1" data-day="<?= $d ?>" style="<?= ($row['open2']||$row['close2'])?'':'display:none' ?>">
+            <label class="slot2 grid gap-1" data-day="<?= $d ?>" style="<?= ($row['open2'] || $row['close2']) ? '' : 'display:none' ?>">
               <span class="text-xs text-slate-600">Fecha 2</span>
-              <input name="close2[<?= $d ?>]" value="<?= e(substr((string)$row['close2'],0,5)) ?>" placeholder="14:00"
+              <input name="close2[<?= $d ?>]" value="<?= e(substr((string)$row['close2'], 0, 5)) ?>" placeholder="14:00"
                      class="time-input rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
             </label>
           </div>
@@ -264,121 +281,8 @@ ob_start(); ?>
     </div>
   </fieldset>
 
-</div>
+  </div>
 
-<!-- SCRIPTS -->
-<script>
-(function(){
-  // ====== Helpers ======
-  function digits(s){ return (s||'').replace(/\D+/g, ''); }
-  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-  function validImage(file){ return /image\/(jpeg|png|webp)/.test(file.type) && file.size <= 5*1024*1024; }
-
-  // ====== WhatsApp máscara + normalização ======
-  const inputWhats = document.getElementById('whats');
-  if (inputWhats){
-    function toPretty(d){
-      if (d.startsWith('55')) d = d.slice(2);
-      d = d.slice(0, 13);
-      const ddd = d.slice(0,2), rest = d.slice(2);
-      if (rest.length >= 9) return `(${ddd}) ${rest.slice(0,5)}-${rest.slice(5)}`;
-      if (rest.length >= 8) return `(${ddd}) ${rest.slice(0,4)}-${rest.slice(4)}`;
-      if (rest.length > 0)  return `(${ddd}) ${rest}`;
-      if (d.length >= 2)    return `(${ddd}) `;
-      return d;
-    }
-    function onInput(){
-      let d = digits(inputWhats.value);
-      inputWhats.value = toPretty(d);
-    }
-    function beforeSubmit(){
-      let d = digits(inputWhats.value).slice(0,15);
-      if (d.length <= 11 && !d.startsWith('55')) d = '55' + d;
-      inputWhats.value = d;
-    }
-    inputWhats.addEventListener('input', onInput);
-    onInput();
-    document.getElementById('settingsForm').addEventListener('submit', beforeSubmit);
-  }
-
-  // ====== Linkar inputs texto <-> color ======
-  document.querySelectorAll('input[data-color-for]').forEach((txt)=>{
-    const key = txt.getAttribute('data-color-for');
-    const color = document.querySelector(`input[type="color"][name="${key}"]`);
-    function norm(v){
-      v = (v||'').trim().toUpperCase();
-      if (!v) return '#000000';
-      if (v[0] !== '#') v = '#'+v;
-      if (!/^#([0-9A-F]{3}|[0-9A-F]{6})$/.test(v)) return color.value;
-      if (v.length === 4) v = '#' + v[1]+v[1]+v[2]+v[2]+v[3]+v[3];
-      return v;
-    }
-    if (color){
-      // texto → color
-      txt.addEventListener('change', ()=>{ color.value = norm(txt.value); txt.value = color.value; });
-      // color → texto
-      color.addEventListener('input', ()=>{ txt.value = color.value.toUpperCase(); });
-    }
-  });
-
-  // ====== Preview de imagens (logo/banner) ======
-  const logoInput = document.getElementById('logo-input');
-  const logoPrev  = document.getElementById('logo-preview');
-  const bannerInput = document.getElementById('banner-input');
-  const bannerPrev  = document.getElementById('banner-preview');
-
-  function previewFile(input, img){
-    const f = input.files && input.files[0];
-    if (!f) return;
-    if (!validImage(f)) { alert('Formato inválido ou arquivo muito grande. Use JPG/PNG/WEBP até 5MB.'); input.value = ''; return; }
-    const url = URL.createObjectURL(f);
-    img.src = url;
-    img.onload = ()=> URL.revokeObjectURL(url);
-  }
-
-  logoInput?.addEventListener('change', ()=>previewFile(logoInput, logoPrev));
-  bannerInput?.addEventListener('change', ()=>previewFile(bannerInput, bannerPrev));
-
-  // ====== Horários: habilitar/desabilitar e slot 2 ======
-  document.querySelectorAll('.toggle-day').forEach(chk=>{
-    const day = chk.dataset.day;
-    function toggle(){
-      const enabled = chk.checked;
-      document.querySelectorAll('[data-day="'+day+'"].time-input').forEach(i=>{
-        i.disabled = !enabled; i.classList.toggle('bg-gray-100', !enabled);
-      });
-      document.querySelectorAll('.slot2[data-day="'+day+'"] input').forEach(i=>{
-        i.disabled = !enabled;
-      });
-    }
-    chk.addEventListener('change', toggle); toggle();
-  });
-
-  document.querySelectorAll('.btn-slot2').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const day = btn.dataset.day;
-      document.querySelectorAll('.slot2[data-day="'+day+'"]').forEach(el=>{
-        el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
-      });
-    });
-  });
-
-  // ====== Formatação HH:MM ======
-  document.querySelectorAll('.time-input').forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      let v = inp.value.replace(/\D+/g, '').slice(0,4);
-      if (v.length >= 3) {
-        let h = clamp(parseInt(v.slice(0,2)||'0',10), 0, 23).toString().padStart(2,'0');
-        let m = clamp(parseInt(v.slice(2)||'0',10), 0, 59).toString().padStart(2,'0');
-        inp.value = `${h}:${m}`;
-      } else {
-        inp.value = v;
-      }
-    });
-  });
-})();
-</script>
-
-<?php
-$content = ob_get_clean();
+  <?php
+  $content = ob_get_clean();
 include __DIR__ . '/../layout.php';

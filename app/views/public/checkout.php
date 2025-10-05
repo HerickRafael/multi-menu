@@ -1,6 +1,17 @@
 <?php
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
-if (!function_exists('price_br')) { function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); } }
+if (!function_exists('e')) {
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('price_br')) {
+    function price_br($v)
+    {
+        return 'R$ ' . number_format((float)$v, 2, ',', '.');
+    }
+}
 
 $company         = is_array($company ?? null) ? $company : [];
 $items           = is_array($items ?? null) ? $items : [];
@@ -23,29 +34,36 @@ $selectedZoneId    = isset($selectedZoneId) ? (int)$selectedZoneId : (int)($addr
 $selectedPaymentId = isset($selectedPaymentId) ? (int)$selectedPaymentId : (int)($address['payment_method_id'] ?? 0);
 
 $zonesPresent = false;
+
 foreach ($zonesByCity as $cityZones) {
-  if (!empty($cityZones)) { $zonesPresent = true; break; }
+    if (!empty($cityZones)) {
+        $zonesPresent = true;
+        break;
+    }
 }
 
 $deliveryLabel = 'A calcular';
+
 if ($selectedZoneId) {
-  $deliveryLabel = $deliveryFee > 0 ? price_br($deliveryFee) : 'Grátis';
+    $deliveryLabel = $deliveryFee > 0 ? price_br($deliveryFee) : 'Grátis';
 } elseif ($zonesPresent) {
-  $deliveryLabel = 'Selecione';
+    $deliveryLabel = 'Selecione';
 } elseif (!$zonesPresent && $deliveryFee <= 0) {
-  $deliveryLabel = 'Indisponível';
+    $deliveryLabel = 'Indisponível';
 }
 
 $selectedPayment = null;
+
 foreach ($paymentMethods as $method) {
-  if ((int)($method['id'] ?? 0) === $selectedPaymentId) {
-    $selectedPayment = $method;
-    break;
-  }
+    if ((int)($method['id'] ?? 0) === $selectedPaymentId) {
+        $selectedPayment = $method;
+        break;
+    }
 }
+
 if (!$selectedPayment && $paymentMethods) {
-  $selectedPayment = $paymentMethods[0];
-  $selectedPaymentId = (int)($selectedPayment['id'] ?? 0);
+    $selectedPayment = $paymentMethods[0];
+    $selectedPaymentId = (int)($selectedPayment['id'] ?? 0);
 }
 $paymentInstructions = (string)($selectedPayment['instructions'] ?? '');
 $flash = is_array($flash ?? null) ? $flash : null;
@@ -55,25 +73,27 @@ $addressNeighborhoodName = (string)($address['neighborhood'] ?? '');
 $addressState = (string)($address['state'] ?? '');
 
 $citiesForJs = array_map(static function ($city) {
-  return [
-    'id'   => (int)($city['id'] ?? 0),
-    'name' => (string)($city['name'] ?? ''),
-  ];
+    return [
+      'id'   => (int)($city['id'] ?? 0),
+      'name' => (string)($city['name'] ?? ''),
+    ];
 }, $cities);
 
 $zonesForJs = [];
+
 foreach ($zonesByCity as $cityId => $zoneList) {
-  $cityKey = (string)$cityId;
-  $zonesForJs[$cityKey] = [];
-  foreach ($zoneList as $zone) {
-    $zonesForJs[$cityKey][] = [
-      'id'        => (int)($zone['id'] ?? 0),
-      'city_id'   => (int)($zone['city_id'] ?? 0),
-      'name'      => (string)($zone['name'] ?? ''),
-      'fee'       => (float)($zone['fee'] ?? 0),
-      'city_name' => (string)($zone['city_name'] ?? ''),
-    ];
-  }
+    $cityKey = (string)$cityId;
+    $zonesForJs[$cityKey] = [];
+
+    foreach ($zoneList as $zone) {
+        $zonesForJs[$cityKey][] = [
+          'id'        => (int)($zone['id'] ?? 0),
+          'city_id'   => (int)($zone['city_id'] ?? 0),
+          'name'      => (string)($zone['name'] ?? ''),
+          'fee'       => (float)($zone['fee'] ?? 0),
+          'city_name' => (string)($zone['city_name'] ?? ''),
+        ];
+    }
 }
 
 ?>
@@ -84,10 +104,10 @@ foreach ($zonesByCity as $cityId => $zoneList) {
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Checkout — <?= e($company['name'] ?? 'Cardápio') ?></title>
 <style>
-  :root{ --bg:#f3f4f6; --card:#ffffff; --border:#e5e7eb; --muted:#6b7280; --text:#0f172a; --accent:#f59e0b; }
+  :root{ --bg:#f3f4f6; --card:#ffffff; --border:#e5e7eb; --muted:#6b7280; --text:#0f172a; --accent:#f59e0b; --accent-active:#d97706; --accent-ink:#ffffff; }
   *{box-sizing:border-box;font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
   body{margin:0;background:var(--bg);color:var(--text);}
-  .app{max-width:430px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding-bottom:120px;background:var(--bg);}
+  .app{width:100%;max-width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding-bottom:120px;background:var(--bg);}
   .topbar{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);z-index:10;}
   .topwrap{display:flex;align-items:center;gap:12px;padding:12px 16px;}
   .back{width:36px;height:36px;border-radius:999px;border:1px solid var(--border);display:grid;place-items:center;background:var(--card);cursor:pointer;}
@@ -113,9 +133,14 @@ foreach ($zonesByCity as $cityId => $zoneList) {
   .method-btn.active{border-color:#1d4ed8;background:#e0e7ff;color:#1d4ed8;}
   .payment-note{font-size:13px;color:#334155;background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;line-height:1.45;}
   .payment-note.hidden{display:none;}
-  .checkout-footer{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;background:var(--card);border-top:1px solid var(--border);padding:12px 16px 18px;box-shadow:0 -10px 30px -18px rgba(15,23,42,.35);}
-  .cta{width:100%;border:none;border-radius:16px;padding:16px;background:var(--accent);color:#fff;font-weight:800;font-size:17px;cursor:pointer;text-align:center;}
-  .cta:active{filter:brightness(.95);}
+  .checkout-footer{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:100%;background:var(--card);border-top:1px solid var(--border);padding:12px 16px 18px;box-shadow:0 -10px 30px -18px rgba(15,23,42,.35);}
+  @media (min-width:768px){
+    .app{max-width:420px}
+    .checkout-footer{max-width:420px}
+  }
+  .cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:none;border-radius:18px;padding:0 24px;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:16px;text-decoration:none;text-align:center;cursor:pointer;}
+  .cta:active{background:var(--accent-active);}
+  .cta[disabled]{opacity:.6;cursor:not-allowed;}
   .note-muted{font-size:12px;color:var(--muted);}
 </style>
 </head>
@@ -123,7 +148,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
 <div class="app">
   <div class="topbar">
     <div class="topwrap">
-      <button class="back" type="button" onclick="window.location.href='<?= e($cartUrl) ?>'" aria-label="Voltar para a sacola">
+  <button class="back" type="button" data-action="navigate" data-href="<?= e($cartUrl) ?>" aria-label="Voltar para a sacola">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="scale(0.7) translate(5 5)"/></svg>
       </button>
       <div class="title">Checkout</div>
@@ -226,9 +251,9 @@ foreach ($zonesByCity as $cityId => $zoneList) {
       <?php if ($paymentMethods): ?>
         <div class="methods">
           <?php foreach ($paymentMethods as $method):
-            $methodId = (int)($method['id'] ?? 0);
-            $isActive = $methodId === $selectedPaymentId;
-          ?>
+              $methodId = (int)($method['id'] ?? 0);
+              $isActive = $methodId === $selectedPaymentId;
+              ?>
             <button type="button" class="method-btn<?= $isActive ? ' active' : '' ?>" data-id="<?= $methodId ?>" data-instructions="<?= e($method['instructions'] ?? '') ?>">
               <?= e($method['name'] ?? 'Pagamento') ?>
             </button>

@@ -1,13 +1,16 @@
 <?php
 // admin/orders/show.php — Detalhe do pedido (versão moderna)
 
-$title = "Pedido #" . ($order['id'] ?? '');
+$title = 'Pedido #' . ($order['id'] ?? '');
 $o     = $order ?? [];
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 
 // helper de escape (se ainda não existir)
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 // labels e cores de status
@@ -18,43 +21,45 @@ $statusLabels = [
   'canceled'  => 'Cancelado',
 ];
 $st = (string)($o['status'] ?? 'pending');
-$badgeClass = match($st){
-  'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
-  'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
-  default     => 'bg-amber-50 text-amber-700 ring-amber-200',
+$badgeClass = match($st) {
+    'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
+    'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
+    default     => 'bg-amber-50 text-amber-700 ring-amber-200',
 };
 
 // util: montar link do WhatsApp se houver telefone
 $wa = null;
+
 if (!empty($o['customer_phone'])) {
-  $digits = preg_replace('/\D+/', '', (string)$o['customer_phone']);
-  if ($digits) {
-    $waText = rawurlencode("Olá! Sobre o pedido #".(int)($o['id'] ?? 0).".");
-    $wa = "https://wa.me/{$digits}?text={$waText}";
-  }
+    $digits = preg_replace('/\D+/', '', (string)$o['customer_phone']);
+
+    if ($digits) {
+        $waText = rawurlencode('Olá! Sobre o pedido #'.(int)($o['id'] ?? 0).'.');
+        $wa = "https://wa.me/{$digits}?text={$waText}";
+    }
 }
 
 ob_start(); ?>
 <div class="admin-print-only">
   <?php
     $companyName    = trim((string)($company['name'] ?? ''));
-    $companyAddress = trim((string)($company['address'] ?? ''));
-    $companyContact = trim((string)($company['whatsapp'] ?? ($company['phone'] ?? '')));
-    $createdAt      = trim((string)($o['created_at'] ?? ''));
-    $subtotal       = (float)($o['subtotal'] ?? 0);
-    $deliveryFee    = (float)($o['delivery_fee'] ?? 0);
-    $discountValue  = (float)($o['discount'] ?? 0);
-    $totalValue     = (float)($o['total'] ?? 0);
-    $printTitle     = $companyName !== ''
-      ? (function_exists('mb_strtoupper') ? mb_strtoupper($companyName, 'UTF-8') : strtoupper($companyName))
-      : 'PEDIDO';
-    $printStatus    = $statusLabels[$st] ?? ucfirst($st);
-    $items          = is_array($o['items'] ?? null) ? $o['items'] : [];
-    $discountLabel  = $discountValue > 0
-      ? '-R$ ' . number_format($discountValue, 2, ',', '.')
-      : 'R$ ' . number_format($discountValue, 2, ',', '.');
-  ?>
+$companyAddress = trim((string)($company['address'] ?? ''));
+$companyContact = trim((string)($company['whatsapp'] ?? ($company['phone'] ?? '')));
+$createdAt      = trim((string)($o['created_at'] ?? ''));
+$subtotal       = (float)($o['subtotal'] ?? 0);
+$deliveryFee    = (float)($o['delivery_fee'] ?? 0);
+$discountValue  = (float)($o['discount'] ?? 0);
+$totalValue     = (float)($o['total'] ?? 0);
+$printTitle     = $companyName !== ''
+  ? (function_exists('mb_strtoupper') ? mb_strtoupper($companyName, 'UTF-8') : strtoupper($companyName))
+  : 'PEDIDO';
+$printStatus    = $statusLabels[$st] ?? ucfirst($st);
+$items          = is_array($o['items'] ?? null) ? $o['items'] : [];
+$discountLabel  = $discountValue > 0
+  ? '-R$ ' . number_format($discountValue, 2, ',', '.')
+  : 'R$ ' . number_format($discountValue, 2, ',', '.');
+?>
   <div class="receipt">
     <div class="receipt-header">
       <h1><?= e($printTitle) ?></h1>
@@ -173,7 +178,7 @@ ob_start(); ?>
           Excluir
         </button>
       </form>
-      <button type="button" onclick="window.print()"
+  <button type="button" data-action="print"
          class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M7 9V4h10v5M7 14H5a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2m-10 0h10v6H7v-6Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Imprimir
@@ -197,8 +202,8 @@ ob_start(); ?>
     <input type="hidden" name="id" value="<?= (int)($o['id'] ?? 0) ?>">
     <label class="text-sm text-slate-700">Atualizar status:</label>
     <select name="status" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
-      <?php foreach ($statusLabels as $k=>$label): ?>
-        <option value="<?= e($k) ?>" <?= ($o['status'] ?? '')===$k ? 'selected' : '' ?>><?= e($label) ?></option>
+      <?php foreach ($statusLabels as $k => $label): ?>
+        <option value="<?= e($k) ?>" <?= ($o['status'] ?? '') === $k ? 'selected' : '' ?>><?= e($label) ?></option>
       <?php endforeach; ?>
     </select>
     <button class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">

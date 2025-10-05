@@ -2,7 +2,10 @@
 // admin/delivery-fees/index.php
 
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 $company      = is_array($company ?? null) ? $company : [];
@@ -27,34 +30,48 @@ $slug         = rawurlencode((string)($company['slug'] ?? ''));
 
 // Contagem de bairros por cidade
 $zoneCountByCity = [];
+
 foreach ($zones as $zone) {
-  $cityId = (int)($zone['city_id'] ?? 0);
-  if (!isset($zoneCountByCity[$cityId])) {
-    $zoneCountByCity[$cityId] = 0;
-  }
-  $zoneCountByCity[$cityId]++;
+    $cityId = (int)($zone['city_id'] ?? 0);
+
+    if (!isset($zoneCountByCity[$cityId])) {
+        $zoneCountByCity[$cityId] = 0;
+    }
+    $zoneCountByCity[$cityId]++;
 }
 
 $basePath   = base_url('admin/' . $slug . '/delivery-fees');
 $queryState = [];
-if ($citySearch !== '') { $queryState['city_search'] = $citySearch; }
-if ($zoneSearch !== '') { $queryState['zone_search'] = $zoneSearch; }
+
+if ($citySearch !== '') {
+    $queryState['city_search'] = $citySearch;
+}
+
+if ($zoneSearch !== '') {
+    $queryState['zone_search'] = $zoneSearch;
+}
 
 if (!function_exists('delivery_query_suffix')) {
-  function delivery_query_suffix(array $current, array $overrides = [], array $remove = []): string {
-    foreach ($remove as $key) {
-      unset($current[$key]);
+    function delivery_query_suffix(array $current, array $overrides = [], array $remove = []): string
+    {
+        foreach ($remove as $key) {
+            unset($current[$key]);
+        }
+
+        foreach ($overrides as $key => $value) {
+            if ($value === null || $value === '') {
+                unset($current[$key]);
+            } else {
+                $current[$key] = $value;
+            }
+        }
+
+        if (!$current) {
+            return '';
+        }
+
+        return '?' . http_build_query($current);
     }
-    foreach ($overrides as $key => $value) {
-      if ($value === null || $value === '') {
-        unset($current[$key]);
-      } else {
-        $current[$key] = $value;
-      }
-    }
-    if (!$current) return '';
-    return '?' . http_build_query($current);
-  }
 }
 
 ob_start();
@@ -198,7 +215,7 @@ ob_start();
       $cityFormAction = $editCityId && !empty($oldCity['id'])
         ? base_url('admin/' . $slug . '/delivery-fees/cities/' . (int)$oldCity['id'])
         : base_url('admin/' . $slug . '/delivery-fees/cities');
-    ?>
+?>
     <form method="post" action="<?= e($cityFormAction) ?>" class="grid gap-4">
       <?php if (function_exists('csrf_field')): ?>
         <?= csrf_field() ?>
@@ -316,10 +333,10 @@ ob_start();
     <?php endif; ?>
 
     <?php
-      $zoneFormAction = $editZoneId && !empty($oldZone['id'])
-        ? base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)$oldZone['id'])
-        : base_url('admin/' . $slug . '/delivery-fees/zones');
-    ?>
+  $zoneFormAction = $editZoneId && !empty($oldZone['id'])
+    ? base_url('admin/' . $slug . '/delivery-fees/zones/' . (int)$oldZone['id'])
+    : base_url('admin/' . $slug . '/delivery-fees/zones');
+?>
     <form method="post" action="<?= e($zoneFormAction) ?>" class="grid gap-4">
       <?php if (function_exists('csrf_field')): ?>
         <?= csrf_field() ?>
@@ -448,68 +465,7 @@ ob_start();
   </section>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  // Busca de cidades (client-side)
-  var cityForm  = document.querySelector('[data-js="city-search-form"]');
-  var cityInput = document.querySelector('[data-js="city-search-input"]');
-  var cityList  = document.querySelector('[data-js="city-list"]');
-  var cityItems = cityList ? Array.prototype.slice.call(cityList.querySelectorAll('[data-js="city-item"]')) : [];
-  var cityEmpty = document.querySelector('[data-js="city-empty"]');
-
-  function filterCities() {
-    if (!cityList) return;
-    var term = (cityInput && cityInput.value ? cityInput.value : '').toLowerCase().trim();
-    var visible = 0;
-    cityItems.forEach(function (item) {
-      var haystack = (item.dataset && item.dataset.cityName ? item.dataset.cityName : '').toLowerCase();
-      var match = term === '' || haystack.indexOf(term) !== -1;
-      item.style.display = match ? '' : 'none';
-      if (match) visible++;
-    });
-    if (cityList) cityList.style.display = visible === 0 ? 'none' : '';
-    if (cityEmpty) cityEmpty.classList.toggle('hidden', visible !== 0);
-  }
-
-  if (cityForm && cityInput && cityList) {
-    cityForm.addEventListener('submit', function (event) {
-      event.preventDefault();
-      filterCities();
-    });
-    cityInput.addEventListener('input', filterCities);
-    filterCities();
-  }
-
-  // Busca de bairros/zonas (client-side)
-  var zoneForm  = document.querySelector('[data-js="zone-search-form"]');
-  var zoneInput = document.querySelector('[data-js="zone-search-input"]');
-  var zoneBody  = document.querySelector('[data-js="zone-body"]');
-  var zoneRows  = zoneBody ? Array.prototype.slice.call(zoneBody.querySelectorAll('[data-js="zone-row"]')) : [];
-  var zoneEmpty = document.querySelector('[data-js="zone-empty"]');
-
-  function filterZones() {
-    if (!zoneBody) return;
-    var term = (zoneInput && zoneInput.value ? zoneInput.value : '').toLowerCase().trim();
-    var visible = 0;
-    zoneRows.forEach(function (row) {
-      var haystack = (row.dataset && row.dataset.zoneSearch ? row.dataset.zoneSearch : '').toLowerCase();
-      var match = term === '' || haystack.indexOf(term) !== -1;
-      row.style.display = match ? '' : 'none';
-      if (match) visible++;
-    });
-    if (zoneEmpty) zoneEmpty.classList.toggle('hidden', visible !== 0);
-  }
-
-  if (zoneForm && zoneInput && zoneBody) {
-    zoneForm.addEventListener('submit', function (event) {
-      event.preventDefault();
-      filterZones();
-    });
-    zoneInput.addEventListener('input', filterZones);
-    filterZones();
-  }
-});
-</script>
+<!-- delivery-fees search behaviors migrated to public/assets/js/admin.js -->
 
 </div>
 

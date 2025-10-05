@@ -5,7 +5,10 @@ $title = 'KDS - ' . ($company['name'] ?? 'Empresa');
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 
 if (!function_exists('e')) {
-    function e($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 $initialSnapshot = is_array($initialSnapshot ?? null) ? $initialSnapshot : [];

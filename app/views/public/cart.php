@@ -1,5 +1,10 @@
 <?php
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
+if (!function_exists('e')) {
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
+}
 $items  = isset($items) && is_array($items) ? $items : [];
 $totals = isset($totals) && is_array($totals) ? $totals : ['subtotal' => 0.0, 'total' => 0.0];
 $company = $company ?? [];
@@ -13,21 +18,38 @@ $basePath = $slugEncoded !== '' ? $slugEncoded : '';
 $homeUrl = function_exists('base_url') ? base_url($basePath) : '#';
 $updateUrl = isset($updateUrl) ? (string)$updateUrl : (function_exists('base_url') ? base_url(($basePath !== '' ? $basePath . '/' : '') . 'cart/update') : '#');
 $checkoutUrl = function_exists('base_url') ? base_url(($basePath !== '' ? $basePath . '/' : '') . 'checkout') : '#';
+
 if ($requireLogin && !$customer) {
-  $checkoutUrl = $homeUrl . '?login=1';
+    $checkoutUrl = $homeUrl . '?login=1';
 }
 $backUrl = $homeUrl;
-$formatBrl = static function ($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); };
+$formatBrl = static function ($v) { return 'R$ ' . number_format((float)$v, 2, ',', '.'); };
 $uploadSrc = static function (?string $value, string $fallback = 'assets/logo-placeholder.png') {
-  $raw = trim((string)($value ?? ''));
-  if ($raw === '') return base_url($fallback);
-  $path = parse_url($raw, PHP_URL_PATH);
-  if ($path && strpos($path, '/uploads/') !== false) return base_url(ltrim($path, '/'));
-  if (preg_match('/^https?:\/\//i', $raw)) return $raw;
-  if ($path) $raw = $path;
-  $raw = ltrim($raw, '/');
-  if (strpos($raw, 'uploads/') === 0) return base_url($raw);
-  return base_url('uploads/' . basename($raw));
+    $raw = trim((string)($value ?? ''));
+
+    if ($raw === '') {
+        return base_url($fallback);
+    }
+    $path = parse_url($raw, PHP_URL_PATH);
+
+    if ($path && strpos($path, '/uploads/') !== false) {
+        return base_url(ltrim($path, '/'));
+    }
+
+    if (preg_match('/^https?:\/\//i', $raw)) {
+        return $raw;
+    }
+
+    if ($path) {
+        $raw = $path;
+    }
+    $raw = ltrim($raw, '/');
+
+    if (strpos($raw, 'uploads/') === 0) {
+        return base_url($raw);
+    }
+
+    return base_url('uploads/' . basename($raw));
 };
 $companyName = $company['name'] ?? 'Meu Carrinho';
 ?>
@@ -38,10 +60,10 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sacola — <?= e($companyName) ?></title>
 <style>
-  :root{ --bg:#F3F4F6; --surface:#FFFFFF; --border:#E5E7EB; --text:#0F172A; --muted:#6B7280; --accent:#F4A62A; --accent-ink:#fff; --radius:20px; --shadow:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10); }
+  :root{ --bg:#F3F4F6; --surface:#FFFFFF; --border:#E5E7EB; --text:#0F172A; --muted:#6B7280; --accent:#F59E0B; --accent-active:#D97706; --accent-ink:#fff; --radius:20px; --shadow:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10); }
   *{box-sizing:border-box}
   body{margin:0;font-family:ui-sans-serif,-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
-  .container{max-width:430px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+  .container{width:100%;max-width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
   .topbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);z-index:10}
   .topwrap{display:flex;align-items:center;gap:12px;padding:10px 14px}
   .back{width:36px;height:36px;border-radius:999px;border:1px solid var(--border);display:grid;place-items:center;background:#fff;cursor:pointer}
@@ -100,10 +122,14 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
   .trow{display:flex;justify-content:space-between;align-items:center;margin:18px 0}
   .trow .label{font-size:22px;font-weight:800;letter-spacing:.2px;color:#0F172A}
   .trow .value{font-size:28px;font-weight:800;color:#0F172A}
-  .footer{position:fixed;left:50%;transform:translateX(-50%);bottom:0;background:#fff;border-top:1px solid var(--border);padding:12px;z-index:20;width:100%}
-  @media (min-width:430px){ .footer{max-width:430px} }
+  .footer{position:fixed;left:50%;transform:translateX(-50%);bottom:0;background:#fff;border-top:1px solid var(--border);padding:12px;z-index:20;width:100%;max-width:100%}
+  @media (min-width:768px){
+    .container{max-width:420px}
+    .footer{max-width:420px}
+  }
   .container{padding-bottom:120px}
-  .cta{display:block;width:100%;background:#F4A62A;color:#fff;border:none;border-radius:14px;font-weight:800;font-size:16px;padding:14px 18px;cursor:pointer;text-align:center;text-decoration:none}
+  .cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:none;border-radius:18px;padding:0 24px;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:16px;text-decoration:none;text-align:center;cursor:pointer}
+  .cta:active{background:var(--accent-active)}
   .cta[disabled]{opacity:.6;cursor:not-allowed}
 </style>
 </head>
@@ -111,7 +137,7 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
 <div class="container">
   <div class="topbar">
     <div class="topwrap">
-      <button class="back" type="button" onclick="window.location.href='<?= e($backUrl) ?>'">
+  <button class="back" type="button" data-action="navigate" data-href="<?= e($backUrl) ?>">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="scale(0.7) translate(5 5)"/></svg>
       </button>
       <div class="title">Minha Sacola</div>
@@ -123,91 +149,101 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
   <?php endif; ?>
 
   <?php foreach ($items as $index => $item):
-    $uid = preg_replace('/[^a-z0-9]/i', '', (string)($item['uid'] ?? 'u'.$index)) ?: 'u'.$index;
-    $hasCombo = !empty($item['combo']['groups']);
-    $eps = 0.009;
-
-    /* ===================== COMBO (MESMA ESTRUTURA DO SIMPLES) ===================== */
-    if ($hasCombo):
-      $extId = 'ext-'.$uid;
-
+      $uid = preg_replace('/[^a-z0-9]/i', '', (string)($item['uid'] ?? 'u'.$index)) ?: 'u'.$index;
+      $hasCombo = !empty($item['combo']['groups']);
       $eps = 0.009;
-      $comboExtraTotal = 0.0;
-      $comboHasPaid = false;
-      $componentShouldOpen = [];
 
-      foreach ($item['combo']['groups'] as $group) {
-        foreach (($group['items'] ?? []) as $choice) {
-          $delta = isset($choice['delta']) ? (float)$choice['delta'] : 0.0;
-          $basePrice = null;
-          if (array_key_exists('base_price', $choice) && $choice['base_price'] !== null) {
-            $basePrice = (float)$choice['base_price'];
-          } elseif (array_key_exists('price', $choice) && $choice['price'] !== null) {
-            $basePrice = (float)$choice['price'];
-          }
-          $isDefault = !empty($choice['is_default']) || !empty($choice['default']);
-          if (!$isDefault) {
-            $charge = $basePrice !== null ? $basePrice : $delta;
-            $comboExtraTotal += $charge;
-            if (abs($charge) > $eps) {
-              $comboHasPaid = true;
-            }
-          }
+      /* ===================== COMBO (MESMA ESTRUTURA DO SIMPLES) ===================== */
+      if ($hasCombo):
+          $extId = 'ext-'.$uid;
 
-          $simpleId = (int)($choice['simple_id'] ?? 0);
-          if ($simpleId && !empty($item['component_customizations'][$simpleId]['customization']['groups'])) {
-            $componentHasPaid = false;
-            foreach ($item['component_customizations'][$simpleId]['customization']['groups'] as $cg) {
-              foreach (($cg['items'] ?? []) as $opt) {
-                $qty = isset($opt['qty']) ? (int)$opt['qty'] : null;
-                $linePrice = 0.0;
-                if (isset($opt['price'])) {
-                  $linePrice = (float)$opt['price'];
-                } elseif ($qty !== null && isset($opt['unit_price'])) {
-                  $linePrice = (float)$opt['unit_price'] * $qty;
-                }
-                $comboExtraTotal += $linePrice;
-                if (abs($linePrice) > $eps) {
-                  $componentHasPaid = true;
-                  $comboHasPaid = true;
-                }
+          $eps = 0.009;
+          $comboExtraTotal = 0.0;
+          $comboHasPaid = false;
+          $componentShouldOpen = [];
+
+          foreach ($item['combo']['groups'] as $group) {
+              foreach (($group['items'] ?? []) as $choice) {
+                  $delta = isset($choice['delta']) ? (float)$choice['delta'] : 0.0;
+                  $basePrice = null;
+
+                  if (array_key_exists('base_price', $choice) && $choice['base_price'] !== null) {
+                      $basePrice = (float)$choice['base_price'];
+                  } elseif (array_key_exists('price', $choice) && $choice['price'] !== null) {
+                      $basePrice = (float)$choice['price'];
+                  }
+                  $isDefault = !empty($choice['is_default']) || !empty($choice['default']);
+
+                  if (!$isDefault) {
+                      $charge = $basePrice !== null ? $basePrice : $delta;
+                      $comboExtraTotal += $charge;
+
+                      if (abs($charge) > $eps) {
+                          $comboHasPaid = true;
+                      }
+                  }
+
+                  $simpleId = (int)($choice['simple_id'] ?? 0);
+
+                  if ($simpleId && !empty($item['component_customizations'][$simpleId]['customization']['groups'])) {
+                      $componentHasPaid = false;
+
+                      foreach ($item['component_customizations'][$simpleId]['customization']['groups'] as $cg) {
+                          foreach (($cg['items'] ?? []) as $opt) {
+                              $qty = isset($opt['qty']) ? (int)$opt['qty'] : null;
+                              $linePrice = 0.0;
+
+                              if (isset($opt['price'])) {
+                                  $linePrice = (float)$opt['price'];
+                              } elseif ($qty !== null && isset($opt['unit_price'])) {
+                                  $linePrice = (float)$opt['unit_price'] * $qty;
+                              }
+                              $comboExtraTotal += $linePrice;
+
+                              if (abs($linePrice) > $eps) {
+                                  $componentHasPaid = true;
+                                  $comboHasPaid = true;
+                              }
+                          }
+                      }
+
+                      if ($componentHasPaid) {
+                          $componentShouldOpen[$simpleId] = true;
+                      }
+                  }
               }
-            }
-            if ($componentHasPaid) {
-              $componentShouldOpen[$simpleId] = true;
-            }
           }
-        }
-      }
 
       if (!empty($item['customization']['groups'])) {
-        foreach ($item['customization']['groups'] as $g) {
-          foreach (($g['items'] ?? []) as $opt) {
-            $qty = isset($opt['qty']) ? (int)$opt['qty'] : null;
-            $linePrice = 0.0;
-            if (isset($opt['price'])) {
-              $linePrice = (float)$opt['price'];
-            } elseif ($qty !== null && isset($opt['unit_price'])) {
-              $linePrice = (float)$opt['unit_price'] * $qty;
-            }
-            $comboExtraTotal += $linePrice;
-            if (abs($linePrice) > $eps) {
-              $comboHasPaid = true;
-            }
+          foreach ($item['customization']['groups'] as $g) {
+              foreach (($g['items'] ?? []) as $opt) {
+                  $qty = isset($opt['qty']) ? (int)$opt['qty'] : null;
+                  $linePrice = 0.0;
+
+                  if (isset($opt['price'])) {
+                      $linePrice = (float)$opt['price'];
+                  } elseif ($qty !== null && isset($opt['unit_price'])) {
+                      $linePrice = (float)$opt['unit_price'] * $qty;
+                  }
+                  $comboExtraTotal += $linePrice;
+
+                  if (abs($linePrice) > $eps) {
+                      $comboHasPaid = true;
+                  }
+              }
           }
-        }
       }
 
       if ($comboHasPaid) {
-        if ($comboExtraTotal > $eps) {
-          $headerNote = $formatBrl($comboExtraTotal);
-        } elseif ($comboExtraTotal < -$eps) {
-          $headerNote = '− '.$formatBrl(abs($comboExtraTotal));
-        } else {
-          $headerNote = $formatBrl(0);
-        }
+          if ($comboExtraTotal > $eps) {
+              $headerNote = $formatBrl($comboExtraTotal);
+          } elseif ($comboExtraTotal < -$eps) {
+              $headerNote = '− '.$formatBrl(abs($comboExtraTotal));
+          } else {
+              $headerNote = $formatBrl(0);
+          }
       } else {
-        $headerNote = 'Incluso';
+          $headerNote = 'Incluso';
       }
 
       $openCombo = $comboHasPaid;
@@ -215,7 +251,7 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
       $buttonClasses = 'toggle-row' . ($openCombo ? ' open' : '');
       $extClasses = 'ext' . ($openCombo ? ' open' : '');
       $ariaExpanded = $openCombo ? 'true' : 'false';
-  ?>
+      ?>
     <div class="<?= e($cardClasses) ?>" id="card-<?= e($uid) ?>" aria-controls="<?= e($extId) ?>" aria-expanded="<?= e($ariaExpanded) ?>">
       <div class="avatar">
         <?php if (!empty($item['product']['image'])): ?>
@@ -251,40 +287,43 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
     <div class="<?= e($extClasses) ?>" id="<?= e($extId) ?>">
       <div class="linked-list">
         <?php foreach ($item['combo']['groups'] as $group):
-          foreach (($group['items'] ?? []) as $choice):
-            $delta = isset($choice['delta']) ? (float)$choice['delta'] : 0.0;
-            $basePrice = null;
-            if (array_key_exists('base_price', $choice) && $choice['base_price'] !== null) {
-              $basePrice = (float)$choice['base_price'];
-            } elseif (array_key_exists('price', $choice) && $choice['price'] !== null) {
-              $basePrice = (float)$choice['price'];
-            }
-            $isDefault = !empty($choice['is_default']) || !empty($choice['default']);
+            foreach (($group['items'] ?? []) as $choice):
+                $delta = isset($choice['delta']) ? (float)$choice['delta'] : 0.0;
+                $basePrice = null;
 
-            if ($isDefault) {
-              $metaPrice = 'Incluso';
-              $note = 'Incluso';
-            } else {
-              $displayValue = $basePrice !== null ? $basePrice : $delta;
-              if ($displayValue > 0.009) {
-                $valueLabel = $formatBrl($displayValue);
-              } elseif ($displayValue < -0.009) {
-                $valueLabel = '− '.$formatBrl(abs($displayValue));
-              } else {
-                $valueLabel = $formatBrl(0);
-              }
-              $metaPrice = $valueLabel;
-              $note = $valueLabel;
-            }
+                if (array_key_exists('base_price', $choice) && $choice['base_price'] !== null) {
+                    $basePrice = (float)$choice['base_price'];
+                } elseif (array_key_exists('price', $choice) && $choice['price'] !== null) {
+                    $basePrice = (float)$choice['price'];
+                }
+                $isDefault = !empty($choice['is_default']) || !empty($choice['default']);
 
-            $simpleId = (int)($choice['simple_id'] ?? 0);
-            $componentCustomization = null;
-            if ($simpleId && !empty($item['component_customizations'][$simpleId]['customization'])) {
-              $componentCustomization = $item['component_customizations'][$simpleId]['customization'];
-            }
-            $hasChildren = $componentCustomization && !empty($componentCustomization['groups']);
-            $showInlineMeta = !$hasChildren;
-        ?>
+                if ($isDefault) {
+                    $metaPrice = 'Incluso';
+                    $note = 'Incluso';
+                } else {
+                    $displayValue = $basePrice !== null ? $basePrice : $delta;
+
+                    if ($displayValue > 0.009) {
+                        $valueLabel = $formatBrl($displayValue);
+                    } elseif ($displayValue < -0.009) {
+                        $valueLabel = '− '.$formatBrl(abs($displayValue));
+                    } else {
+                        $valueLabel = $formatBrl(0);
+                    }
+                    $metaPrice = $valueLabel;
+                    $note = $valueLabel;
+                }
+
+                $simpleId = (int)($choice['simple_id'] ?? 0);
+                $componentCustomization = null;
+
+                if ($simpleId && !empty($item['component_customizations'][$simpleId]['customization'])) {
+                    $componentCustomization = $item['component_customizations'][$simpleId]['customization'];
+                }
+                $hasChildren = $componentCustomization && !empty($componentCustomization['groups']);
+                $showInlineMeta = !$hasChildren;
+                ?>
           <?php $componentOpen = $hasChildren && !empty($componentShouldOpen[$simpleId]); ?>
           <div class="linked<?= $hasChildren ? ' toggle' : '' ?><?= $componentOpen ? ' open' : '' ?>"<?= $hasChildren ? ' aria-expanded="'.($componentOpen ? 'true' : 'false').'"' : '' ?>>
             <div class="l-ava">
@@ -311,15 +350,22 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
           <?php if ($hasChildren): ?>
             <div class="nested">
               <?php foreach ($componentCustomization['groups'] as $cGroup):
-                foreach (($cGroup['items'] ?? []) as $opt):
-                  $childName = (string)($opt['name'] ?? '');
-                  $childQty  = isset($opt['qty']) ? (int)$opt['qty'] : null;
-                  if ($childQty !== null && $childQty > 1) $childName = $childQty.'x '.$childName;
-                  $childPrice = 0.0;
-                  if (isset($opt['price'])) $childPrice = (float)$opt['price'];
-                  elseif ($childQty !== null && isset($opt['unit_price'])) $childPrice = (float)$opt['unit_price'] * $childQty;
-                  $childMeta = $childPrice > 0.009 ? '+ '.$formatBrl($childPrice) : ($childPrice < -0.009 ? '− '.$formatBrl(abs($childPrice)) : 'Incluso');
-              ?>
+                  foreach (($cGroup['items'] ?? []) as $opt):
+                      $childName = (string)($opt['name'] ?? '');
+                      $childQty  = isset($opt['qty']) ? (int)$opt['qty'] : null;
+
+                      if ($childQty !== null && $childQty > 1) {
+                          $childName = $childQty.'x '.$childName;
+                      }
+                      $childPrice = 0.0;
+
+                      if (isset($opt['price'])) {
+                          $childPrice = (float)$opt['price'];
+                      } elseif ($childQty !== null && isset($opt['unit_price'])) {
+                          $childPrice = (float)$opt['unit_price'] * $childQty;
+                      }
+                      $childMeta = $childPrice > 0.009 ? '+ '.$formatBrl($childPrice) : ($childPrice < -0.009 ? '− '.$formatBrl(abs($childPrice)) : 'Incluso');
+                      ?>
                 <div class="ing"><div class="ing-name"><?= e($childName) ?></div><div class="ing-meta"><?= e($childMeta) ?></div></div>
               <?php endforeach; endforeach; ?>
             </div>
@@ -330,15 +376,22 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
       <?php if (!empty($item['customization']['groups'])): ?>
         <div class="section-title" style="margin-top:10px">Personalizações do combo</div>
         <?php foreach ($item['customization']['groups'] as $group):
-          foreach (($group['items'] ?? []) as $opt):
-            $name = (string)($opt['name'] ?? '');
-            $qty  = isset($opt['qty']) ? (int)$opt['qty'] : null;
-            if ($qty !== null && $qty > 1) $name = $qty.'x '.$name;
-            $linePrice = 0.0;
-            if (isset($opt['price'])) $linePrice = (float)$opt['price'];
-            elseif ($qty !== null && isset($opt['unit_price'])) $linePrice = (float)$opt['unit_price'] * $qty;
-            $meta = $linePrice > 0.009 ? '+ '.$formatBrl($linePrice) : ($linePrice < -0.009 ? '− '.$formatBrl(abs($linePrice)) : 'Incluso');
-        ?>
+            foreach (($group['items'] ?? []) as $opt):
+                $name = (string)($opt['name'] ?? '');
+                $qty  = isset($opt['qty']) ? (int)$opt['qty'] : null;
+
+                if ($qty !== null && $qty > 1) {
+                    $name = $qty.'x '.$name;
+                }
+                $linePrice = 0.0;
+
+                if (isset($opt['price'])) {
+                    $linePrice = (float)$opt['price'];
+                } elseif ($qty !== null && isset($opt['unit_price'])) {
+                    $linePrice = (float)$opt['unit_price'] * $qty;
+                }
+                $meta = $linePrice > 0.009 ? '+ '.$formatBrl($linePrice) : ($linePrice < -0.009 ? '− '.$formatBrl(abs($linePrice)) : 'Incluso');
+                ?>
           <div class="ing"><div class="ing-name"><?= e($name) ?></div><div class="ing-meta"><?= e($meta) ?></div></div>
         <?php endforeach; endforeach; ?>
       <?php endif; ?>
@@ -351,31 +404,44 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
       $hasDetails = (!empty($item['customization']['groups'])) || !empty($item['component_customizations']);
       $extraTotal = 0.0;
       $hasPaidExtra = false;
+
       if (!empty($item['customization']['groups'])) {
-        foreach ($item['customization']['groups'] as $group) {
-          foreach (($group['items'] ?? []) as $opt) {
-            $linePrice = 0.0;
-            if (isset($opt['price'])) $linePrice = (float)$opt['price'];
-            elseif (isset($opt['unit_price'], $opt['qty'])) $linePrice = (float)$opt['unit_price'] * (int)$opt['qty'];
-            $extraTotal += $linePrice;
-            if (abs($linePrice) > $eps) {
-              $hasPaidExtra = true;
-            }
+          foreach ($item['customization']['groups'] as $group) {
+              foreach (($group['items'] ?? []) as $opt) {
+                  $linePrice = 0.0;
+
+                  if (isset($opt['price'])) {
+                      $linePrice = (float)$opt['price'];
+                  } elseif (isset($opt['unit_price'], $opt['qty'])) {
+                      $linePrice = (float)$opt['unit_price'] * (int)$opt['qty'];
+                  }
+                  $extraTotal += $linePrice;
+
+                  if (abs($linePrice) > $eps) {
+                      $hasPaidExtra = true;
+                  }
+              }
           }
-        }
       }
-      if (!$hasDetails) $extraTotal = 0.0;
+
+      if (!$hasDetails) {
+          $extraTotal = 0.0;
+      }
       $headerNote = 'Incluso';
+
       if (!empty($item['customization']['groups'])) {
-        if ($extraTotal > $eps)      $headerNote = '+ '.$formatBrl($extraTotal);
-        elseif ($extraTotal < -$eps) $headerNote = '− '.$formatBrl(abs($extraTotal));
+          if ($extraTotal > $eps) {
+              $headerNote = '+ '.$formatBrl($extraTotal);
+          } elseif ($extraTotal < -$eps) {
+              $headerNote = '− '.$formatBrl(abs($extraTotal));
+          }
       }
       $openSimple = $hasPaidExtra;
       $cardClasses = 'item' . ($openSimple ? ' open' : '');
       $buttonClasses = 'toggle-row' . ($openSimple ? ' open' : '');
       $extClasses = 'ext' . ($openSimple ? ' open' : '');
       $ariaExpanded = $openSimple ? 'true' : 'false';
-    ?>
+      ?>
     <div class="<?= e($cardClasses) ?>" id="card-<?= e($uid) ?>" aria-controls="<?= e($extId) ?>" aria-expanded="<?= e($ariaExpanded) ?>">
       <div class="avatar">
         <?php if (!empty($item['product']['image'])): ?>
@@ -410,34 +476,57 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
     <?php if ($hasDetails): ?>
       <div class="<?= e($extClasses) ?>" id="<?= e($extId) ?>">
         <?php foreach ($item['customization']['groups'] as $group):
-          $groupItems = $group['items'] ?? [];
-          if (!$groupItems) continue;
-          $groupTitle = trim((string)($group['name'] ?? '')); ?>
+            $groupItems = $group['items'] ?? [];
+
+            if (!$groupItems) {
+                continue;
+            }
+            $groupTitle = trim((string)($group['name'] ?? '')); ?>
           <?php if ($groupTitle !== ''): ?><div class="section-title"><?= e($groupTitle) ?></div><?php endif; ?>
           <?php foreach ($groupItems as $opt):
-            $name = (string)($opt['name'] ?? '');
-            $qty  = isset($opt['qty']) ? (int)$opt['qty'] : null;
-            $defaultQty = array_key_exists('default_qty', $opt) && $opt['default_qty'] !== null ? (int)$opt['default_qty'] : null;
-            $deltaQty = array_key_exists('delta_qty', $opt) ? (int)$opt['delta_qty'] : null;
-            if ($deltaQty === null && $qty !== null) $deltaQty = $defaultQty !== null ? $qty - $defaultQty : $qty;
-            if ($qty !== null && $qty > 1) $name = $qty.'x '.$name;
+              $name = (string)($opt['name'] ?? '');
+              $qty  = isset($opt['qty']) ? (int)$opt['qty'] : null;
+              $defaultQty = array_key_exists('default_qty', $opt) && $opt['default_qty'] !== null ? (int)$opt['default_qty'] : null;
+              $deltaQty = array_key_exists('delta_qty', $opt) ? (int)$opt['delta_qty'] : null;
 
-            $linePrice = 0.0;
-            if (isset($opt['price'])) $linePrice = (float)$opt['price'];
-            elseif ($deltaQty !== null && isset($opt['unit_price'])) $linePrice = (float)$opt['unit_price'] * $deltaQty;
-            elseif ($qty !== null && isset($opt['unit_price'])) $linePrice = (float)$opt['unit_price'] * $qty;
+              if ($deltaQty === null && $qty !== null) {
+                  $deltaQty = $defaultQty !== null ? $qty - $defaultQty : $qty;
+              }
 
-            $meta = 'Incluso';
-            if ($deltaQty !== null) {
-              if ($deltaQty > 0 && $linePrice > 0.009)      $meta = '+ '.$formatBrl($linePrice);
-              elseif ($deltaQty > 0 && $linePrice <= 0.009) $meta = 'Extra';
-              elseif ($deltaQty < 0 && $linePrice < -0.009) $meta = '− '.$formatBrl(abs($linePrice));
-              elseif ($deltaQty < 0 && $linePrice >= -0.009)$meta = 'Removido';
-            } else {
-              if     ($linePrice > 0.009)  $meta = '+ '.$formatBrl($linePrice);
-              elseif ($linePrice < -0.009) $meta = '− '.$formatBrl(abs($linePrice));
-            }
-          ?>
+              if ($qty !== null && $qty > 1) {
+                  $name = $qty.'x '.$name;
+              }
+
+              $linePrice = 0.0;
+
+              if (isset($opt['price'])) {
+                  $linePrice = (float)$opt['price'];
+              } elseif ($deltaQty !== null && isset($opt['unit_price'])) {
+                  $linePrice = (float)$opt['unit_price'] * $deltaQty;
+              } elseif ($qty !== null && isset($opt['unit_price'])) {
+                  $linePrice = (float)$opt['unit_price'] * $qty;
+              }
+
+              $meta = 'Incluso';
+
+              if ($deltaQty !== null) {
+                  if ($deltaQty > 0 && $linePrice > 0.009) {
+                      $meta = '+ '.$formatBrl($linePrice);
+                  } elseif ($deltaQty > 0 && $linePrice <= 0.009) {
+                      $meta = 'Extra';
+                  } elseif ($deltaQty < 0 && $linePrice < -0.009) {
+                      $meta = '− '.$formatBrl(abs($linePrice));
+                  } elseif ($deltaQty < 0 && $linePrice >= -0.009) {
+                      $meta = 'Removido';
+                  }
+              } else {
+                  if ($linePrice > 0.009) {
+                      $meta = '+ '.$formatBrl($linePrice);
+                  } elseif ($linePrice < -0.009) {
+                      $meta = '− '.$formatBrl(abs($linePrice));
+                  }
+              }
+              ?>
             <div class="ing"><div class="ing-name"><?= e($name) ?></div><div class="ing-meta"><?= e($meta) ?></div></div>
           <?php endforeach; ?>
         <?php endforeach; ?>

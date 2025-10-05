@@ -6,10 +6,17 @@
  */
 
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
+
 if (!function_exists('price_br')) {
-  function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); }
+    function price_br($v)
+    {
+        return 'R$ ' . number_format((float)$v, 2, ',', '.');
+    }
 }
 
 $slug    = $company['slug'] ?? '';
@@ -22,25 +29,27 @@ $qtyGet = isset($_GET['qty']) ? max(1, min(99, (int)$_GET['qty'])) : null;
 
 // Sanitiza grupos/itens vindos de $mods
 $groups = [];
+
 foreach (($mods ?? []) as $gIndex => $g) {
-  if (empty($g['items']) || !is_array($g['items'])) {
-    continue;
-  }
-
-  $items = [];
-  foreach ($g['items'] as $item) {
-    if (!is_array($item)) {
-      continue;
+    if (empty($g['items']) || !is_array($g['items'])) {
+        continue;
     }
-    $items[] = $item;
-  }
 
-  if (!$items) {
-    continue;
-  }
+    $items = [];
 
-  $g['items'] = array_values($items);
-  $groups[] = $g;
+    foreach ($g['items'] as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $items[] = $item;
+    }
+
+    if (!$items) {
+        continue;
+    }
+
+    $g['items'] = array_values($items);
+    $groups[] = $g;
 }
 
 // URLs
@@ -135,32 +144,36 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar');
 
     <?php if (!empty($groups)): ?>
       <?php foreach ($groups as $gi => $g):
-        $gName = (string)($g['name'] ?? ('Grupo '.($gi+1)));
-        $gType = (string)($g['type'] ?? 'extra');
-        $gMin  = (int)($g['min'] ?? 0); // mantidos para regras JS/servidor, mas não exibidos
-        $gMax  = (int)($g['max'] ?? 0);
-        $items = $g['items'] ?? [];
-      ?>
+          $gName = (string)($g['name'] ?? ('Grupo '.($gi + 1)));
+          $gType = (string)($g['type'] ?? 'extra');
+          $gMin  = (int)($g['min'] ?? 0); // mantidos para regras JS/servidor, mas não exibidos
+          $gMax  = (int)($g['max'] ?? 0);
+          $items = $g['items'] ?? [];
+          ?>
 
         <!-- Título grande: nome do grupo -->
         <h2 class="group-title"><?= e($gName) ?></h2>
 
         <?php if ($gType === 'single'): ?>
           <?php
-            $selectedIndex = 0;
+                $selectedIndex = 0;
+
             foreach ($items as $ii => $it) {
-              if (!empty($it['default'])) { $selectedIndex = $ii; break; }
+                if (!empty($it['default'])) {
+                    $selectedIndex = $ii;
+                    break;
+                }
             }
-          ?>
+            ?>
           <?php foreach ($items as $ii => $it):
-            $isSel = ($ii === $selectedIndex);
-            $img   = $it['img'] ?? null; ?>
+              $isSel = ($ii === $selectedIndex);
+              $img   = $it['img'] ?? null; ?>
             <div class="row radio" data-radio="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
               <div class="thumb">
                 <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
               </div>
               <div class="info">
-                <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
+                <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii + 1)); ?>
                 <div class="name"><?= e($optName) ?></div>
                 <?php $sale = isset($it['sale_price']) ? (float)$it['sale_price'] : 0.0; ?>
                 <?php if ($sale > 0): ?>
@@ -168,7 +181,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar');
                 <?php endif; ?>
               </div>
               <div class="radio-wrap">
-                <div class="radio-btn <?= $isSel?'sel':'' ?>" role="radio" aria-checked="<?= $isSel?'true':'false' ?>" tabindex="0">
+                <div class="radio-btn <?= $isSel ? 'sel' : '' ?>" role="radio" aria-checked="<?= $isSel ? 'true' : 'false' ?>" tabindex="0">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
               </div>
@@ -178,33 +191,39 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar');
 
         <?php elseif ($gType === 'addon'): ?>
           <?php
-            $maxSel = $gMax > 0 ? $gMax : count($items);
-            if ($maxSel <= 0) { $maxSel = count($items); }
+              $maxSel = $gMax > 0 ? $gMax : count($items);
+
+            if ($maxSel <= 0) {
+                $maxSel = count($items);
+            }
             $minSel = max(0, $gMin);
-            if ($maxSel < $minSel) { $maxSel = $minSel; }
-          ?>
+
+            if ($maxSel < $minSel) {
+                $maxSel = $minSel;
+            }
+            ?>
           <div class="list choice" data-group="g<?= (int)$gi ?>" data-min="<?= (int)$minSel ?>" data-max="<?= (int)$maxSel ?>">
             <?php foreach ($items as $ii => $it):
-              $img   = $it['img'] ?? null;
-              $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
-              $isSel = !empty($it['selected']) || !empty($it['default']);
-            ?>
+                $img   = $it['img'] ?? null;
+                $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
+                $isSel = !empty($it['selected']) || !empty($it['default']);
+                ?>
               <div class="row checkbox" data-group="g<?= (int)$gi ?>" data-id="<?= (int)$ii ?>">
                 <div class="thumb">
                   <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
                 </div>
                 <div class="info">
-                  <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii+1)); ?>
+                  <?php $optName = $it['name'] ?? $it['label'] ?? ('Opção '.($ii + 1)); ?>
                   <div class="name"><?= e($optName) ?></div>
                   <?php if ($sale > 0): ?>
                     <div class="price"><?= price_br($sale) ?></div>
                   <?php endif; ?>
                 </div>
                 <div class="checkbox-wrap">
-                  <div class="check-btn <?= $isSel?'sel':'' ?>" role="checkbox" aria-checked="<?= $isSel?'true':'false' ?>" tabindex="0">
+                  <div class="check-btn <?= $isSel ? 'sel' : '' ?>" role="checkbox" aria-checked="<?= $isSel ? 'true' : 'false' ?>" tabindex="0">
                     <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   </div>
-                  <input type="checkbox" class="choice-input" name="custom_choice[<?= (int)$gi ?>][]" value="<?= (int)$ii ?>" <?= $isSel?'checked':'' ?>>
+                  <input type="checkbox" class="choice-input" name="custom_choice[<?= (int)$gi ?>][]" value="<?= (int)$ii ?>" <?= $isSel ? 'checked' : '' ?>>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -213,18 +232,18 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar');
         <?php else: ?>
           <div class="list" aria-label="<?= e($gName) ?>">
             <?php foreach ($items as $ii => $it):
-              $img   = $it['img'] ?? null;
-              $min   = isset($it['min']) ? (int)$it['min'] : 0;
-              $max   = isset($it['max']) ? (int)$it['max'] : 5;
-              $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? (int)($it['default_qty'] ?? $min) : $min);
-              $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
-            ?>
+                $img   = $it['img'] ?? null;
+                $min   = isset($it['min']) ? (int)$it['min'] : 0;
+                $max   = isset($it['max']) ? (int)$it['max'] : 5;
+                $qty   = isset($it['qty']) ? (int)$it['qty'] : (!empty($it['default']) ? (int)($it['default_qty'] ?? $min) : $min);
+                $sale  = isset($it['sale_price']) ? (float)$it['sale_price'] : (float)($it['delta'] ?? 0);
+                ?>
               <div class="row" data-id="<?= (int)$ii ?>" data-min="<?= $min ?>" data-max="<?= $max ?>">
                 <div class="thumb">
                   <img src="<?= e($img ?: 'https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+') ?>" alt="" onerror="this.src='https://dummyimage.com/80x80/f3f4f6/aaa.png&text=+'">
                 </div>
                 <div class="info">
-                  <?php $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii+1)); ?>
+                  <?php $itemName = $it['name'] ?? $it['label'] ?? ('Item '.($ii + 1)); ?>
                   <div class="name"><?= e($itemName) ?></div>
                   <?php if ($sale > 0): ?>
                     <div class="price"><?= price_br($sale) ?></div>
@@ -258,7 +277,7 @@ $saveUrl = base_url($slug . '/produto/' . $pId . '/customizar');
   </div>
 
   <div class="footer">
-    <button type="button" class="btn-cancel" onclick="window.location.href='<?= e($backUrl) ?>'">Cancelar</button>
+  <button type="button" class="btn-cancel" data-action="navigate" data-href="<?= e($backUrl) ?>">Cancelar</button>
     <button type="submit" class="btn-confirm">Confirmar</button>
   </div>
 </form>

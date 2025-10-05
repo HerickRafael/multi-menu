@@ -1,12 +1,15 @@
 <?php
 // admin/products/index.php — Lista de produtos (versão moderna + filtro de status)
 
-$title = "Produtos - " . ($company['name'] ?? '');
+$title = 'Produtos - ' . ($company['name'] ?? '');
 $slug  = rawurlencode((string)($company['slug'] ?? ''));
 
 // helper de escape (se ainda não existir)
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 $q       = trim((string)($_GET['q'] ?? ''));
@@ -15,7 +18,10 @@ $status  = (string)($_GET['status'] ?? ''); // '' | '1' | '0'
 
 // mapa de categorias por id
 $catsById = [];
-foreach (($cats ?? []) as $c) { $catsById[(string)$c['id']] = $c['name']; }
+
+foreach (($cats ?? []) as $c) {
+    $catsById[(string)$c['id']] = $c['name'];
+}
 
 ob_start(); ?>
 
@@ -85,7 +91,7 @@ ob_start(); ?>
   <label>
     <span class="sr-only">Status</span>
     <select name="status" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
-      <option value=""  <?= $status === ''  ? 'selected' : '' ?>>Todos</option>
+      <option value=""  <?= $status === '' ? 'selected' : '' ?>>Todos</option>
       <option value="1" <?= $status === '1' ? 'selected' : '' ?>>Ativos</option>
       <option value="0" <?= $status === '0' ? 'selected' : '' ?>>Inativos</option>
     </select>
@@ -110,22 +116,23 @@ $filtered = $items ?? [];
 
 // texto
 if ($q !== '') {
-  $qNorm = mb_strtolower($q, 'UTF-8');
-  $filtered = array_filter($filtered, function($p) use ($qNorm){
-    $name = mb_strtolower((string)($p['name'] ?? ''), 'UTF-8');
-    $desc = mb_strtolower((string)($p['description'] ?? ''), 'UTF-8');
-    return (strpos($name, $qNorm) !== false) || (strpos($desc, $qNorm) !== false);
-  });
+    $qNorm = mb_strtolower($q, 'UTF-8');
+    $filtered = array_filter($filtered, function ($p) use ($qNorm) {
+        $name = mb_strtolower((string)($p['name'] ?? ''), 'UTF-8');
+        $desc = mb_strtolower((string)($p['description'] ?? ''), 'UTF-8');
+
+        return (strpos($name, $qNorm) !== false) || (strpos($desc, $qNorm) !== false);
+    });
 }
 
 // categoria
 if ($cat !== '') {
-  $filtered = array_filter($filtered, fn($p) => (string)($p['category_id'] ?? '') === $cat);
+    $filtered = array_filter($filtered, fn ($p) => (string)($p['category_id'] ?? '') === $cat);
 }
 
 // status (aqui mostramos TODOS por padrão; só filtramos se usuário escolher)
 if ($status !== '') {
-  $filtered = array_filter($filtered, fn($p) => (string)((int)($p['active'] ?? 0)) === $status);
+    $filtered = array_filter($filtered, fn ($p) => (string)((int)($p['active'] ?? 0)) === $status);
 }
 ?>
 

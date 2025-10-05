@@ -1,12 +1,17 @@
 <?php
-$title    = "Categoria - " . ($company['name'] ?? '');
+$title    = 'Categoria - ' . ($company['name'] ?? '');
 $editing  = !empty($cat['id']);
 $slug     = rawurlencode((string)($company['slug'] ?? ''));
 $action   = $editing
   ? "admin/{$slug}/categories/" . (int)$cat['id']
   : "admin/{$slug}/categories";
 
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
+if (!function_exists('e')) {
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
+}
 
 ob_start(); ?>
 

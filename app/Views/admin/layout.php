@@ -12,6 +12,7 @@ $orderDetailBaseUrl = $companySlug ? base_url('admin/' . rawurlencode($companySl
 $kdsPageUrl = $companySlug ? base_url('admin/' . rawurlencode($companySlug) . '/kds') : null;
 $bellConfig = (string)(config('kds_bell_url') ?? '');
 $resolvedBellUrl = '';
+
 if ($bellConfig !== '') {
     if (preg_match('/^(data:|https?:\/\/|\/\/)/i', $bellConfig)) {
         $resolvedBellUrl = $bellConfig;
@@ -251,37 +252,6 @@ if ($bellConfig !== '') {
       background: rgba(226,232,240,0.9);
     }
 
-    .admin-sound-activate-btn {
-      position: fixed;
-      right: 1.25rem;
-      bottom: 1.25rem;
-      z-index: 10000;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.1rem;
-      border-radius: 9999px;
-      border: none;
-      font-weight: 600;
-      font-size: 0.9rem;
-      background-image: var(--admin-primary-gradient);
-      color: #fff;
-      box-shadow: 0 18px 35px -18px rgba(15,23,42,0.45);
-      cursor: pointer;
-    }
-
-    .admin-sound-activate-btn:hover {
-      filter: brightness(1.05);
-    }
-
-    .admin-sound-activate-btn:focus {
-      outline: 3px solid rgba(59,130,246,0.45);
-      outline-offset: 2px;
-    }
-
-    .admin-sound-activate-btn.hidden {
-      display: none !important;
-    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900"
@@ -294,12 +264,6 @@ if ($bellConfig !== '') {
     <?= $content ?? '' ?>
   </div>
   <div class="admin-order-toasts" id="admin-order-toasts" aria-live="polite"></div>
-  <?php if (!empty($kdsDataUrl)): ?>
-    <button type="button" id="admin-sound-activate" class="admin-sound-activate-btn">
-      <span aria-hidden="true">🔔</span>
-      <span>Ativar som</span>
-    </button>
-  <?php endif; ?>
 
   <script>
   (function(){
@@ -363,7 +327,6 @@ if ($bellConfig !== '') {
     let knownPending = new Set();
 
     const toastContainer = document.getElementById('admin-order-toasts');
-    const soundButton = document.getElementById('admin-sound-activate');
 
     const prepareUri = (value) => {
       if (!value) return '';
@@ -665,15 +628,16 @@ if ($bellConfig !== '') {
 
     const chime = new KdsChime(prepareUri(bellConfig) || DEFAULT_BELL_URI);
 
-    if (soundButton) {
-      soundButton.addEventListener('click', () => {
-        chime.activate();
-        lastUserActivity = Date.now();
-        soundButton.classList.add('hidden');
-      });
-    }
+    const ensureChimeActivated = () => {
+      if (chime.isActivated()) return;
+      chime.activate();
+    };
+
+    ensureChimeActivated();
+    lastUserActivity = Date.now();
 
     const trackActivity = () => {
+      ensureChimeActivated();
       lastUserActivity = Date.now();
       chime.handleUserActivity();
     };
@@ -797,5 +761,6 @@ const formatCurrency = (value) => {
     window.addEventListener('beforeunload', () => chime.dispose());
   })();
   </script>
+  <script src="<?= base_url('assets/js/admin.js') ?>"></script>
 </body>
 </html>

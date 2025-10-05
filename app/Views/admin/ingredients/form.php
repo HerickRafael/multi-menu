@@ -1,7 +1,7 @@
 <?php
 // admin/ingredients/form.php — Formulário de ingrediente (versão moderna com toolbar fixa)
 
-$title   = "Ingrediente - " . ($company['name'] ?? '');
+$title   = 'Ingrediente - ' . ($company['name'] ?? '');
 $editing = !empty($ingredient['id']);
 $slug    = rawurlencode((string)($company['slug'] ?? ''));
 $action  = $editing
@@ -10,7 +10,12 @@ $action  = $editing
 
 $image = $ingredient['image_path'] ?? null;
 
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
+if (!function_exists('e')) {
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
+}
 
 $unitOptions = [
   ['value' => 'un', 'label' => 'Unidade (un)'],
@@ -22,13 +27,25 @@ $unitOptions = [
   ['value' => 'pc', 'label' => 'Peça (pc)'],
 ];
 
-$unitLabelMap = ['un'=>'unidade','kg'=>'kg','g'=>'g','mg'=>'mg','l'=>'litro','ml'=>'mililitro','pc'=>'peça'];
+$unitLabelMap = ['un' => 'unidade','kg' => 'kg','g' => 'g','mg' => 'mg','l' => 'litro','ml' => 'mililitro','pc' => 'peça'];
 
 $unitRaw = trim((string)($ingredient['unit'] ?? ''));
 $unitSelectValue = '';
-foreach ($unitOptions as $opt) { if (strcasecmp($unitRaw, $opt['value']) === 0) { $unitSelectValue = $opt['value']; break; } }
+
+foreach ($unitOptions as $opt) {
+    if (strcasecmp($unitRaw, $opt['value']) === 0) {
+        $unitSelectValue = $opt['value'];
+        break;
+    }
+}
 $unitCustomValue = '';
-if ($unitSelectValue === '') { if ($unitRaw !== '') { $unitSelectValue = 'custom'; $unitCustomValue = $unitRaw; } }
+
+if ($unitSelectValue === '') {
+    if ($unitRaw !== '') {
+        $unitSelectValue = 'custom';
+        $unitCustomValue = $unitRaw;
+    }
+}
 
 $unitLabelDisplay = $unitSelectValue === 'custom'
   ? ($unitCustomValue !== '' ? $unitCustomValue : 'unidade')
@@ -37,11 +54,20 @@ $unitLabelDisplay = $unitLabelDisplay !== '' ? $unitLabelDisplay : 'unidade';
 $unitValuePlaceholder = trim('Ex.: 1 ' . $unitLabelDisplay);
 
 $costVal = $ingredient['cost'] ?? '';
-if ($costVal !== '' && !is_string($costVal)) { $costVal = number_format((float)$costVal, 2, ',', '.'); }
+
+if ($costVal !== '' && !is_string($costVal)) {
+    $costVal = number_format((float)$costVal, 2, ',', '.');
+}
 $saleVal = $ingredient['sale_price'] ?? '';
-if ($saleVal !== '' && !is_string($saleVal)) { $saleVal = number_format((float)$saleVal, 2, ',', '.'); }
+
+if ($saleVal !== '' && !is_string($saleVal)) {
+    $saleVal = number_format((float)$saleVal, 2, ',', '.');
+}
 $unitValueVal = $ingredient['unit_value'] ?? '';
-if ($unitValueVal !== '' && !is_string($unitValueVal)) { $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ','); }
+
+if ($unitValueVal !== '' && !is_string($unitValueVal)) {
+    $unitValueVal = rtrim(rtrim(number_format((float)$unitValueVal, 3, ',', '.'), '0'), ',');
+}
 
 ob_start(); ?>
 
@@ -177,74 +203,21 @@ ob_start(); ?>
              class="h-20 w-20 rounded-xl border border-slate-200 object-cover shadow-sm" alt="Pré-visualização">
       </div>
     </div>
+
   </fieldset>
-
-<!-- JS: unidade dinâmica, máscara simples e preview -->
-<script>
-(function(){
-  const select = document.getElementById('unit_select');
-  const custom = document.getElementById('unit_custom');
-  const labelEl = document.getElementById('unit_label');
-  const valueInput = document.getElementById('unit_value');
-  const labelMap = <?= json_encode($unitLabelMap, JSON_UNESCAPED_UNICODE) ?>;
-
-  function resolveLabel(){
-    const sel = select?.value || '';
-    if (sel === 'custom') {
-      const customVal = (custom?.value || '').trim();
-      return customVal !== '' ? customVal : 'unidade';
-    }
-    if (sel && Object.prototype.hasOwnProperty.call(labelMap, sel)) return labelMap[sel] || sel;
-    return sel !== '' ? sel : 'unidade';
-  }
-  function syncUnit(){
-    const isCustom = (select?.value === 'custom');
-    if (custom) {
-      custom.classList.toggle('hidden', !isCustom);
-      isCustom ? custom.setAttribute('required','required') : custom.removeAttribute('required');
-    }
-    const u = resolveLabel();
-    if (labelEl) labelEl.textContent = u;
-    if (valueInput) valueInput.setAttribute('placeholder', ('Ex.: 1 ' + u).trim());
-  }
-  select?.addEventListener('change', syncUnit);
-  custom?.addEventListener('input', syncUnit);
-  syncUnit();
-
-  function toMoneyBR(raw){
-    let s = String(raw || '').replace(/\D+/g,'');
-    if (!s) return '';
-    if (s.length === 1) s = '0' + s;
-    s = s.replace(/^0+(\d)/, '$1');
-    const int = s.slice(0, -2) || '0';
-    const dec = s.slice(-2);
-    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return intFmt + ',' + dec;
-  }
-  document.querySelectorAll('.money-input').forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      const digits = inp.value.replace(/\D+/g,'');
-      inp.value = toMoneyBR(digits);
-    });
-    inp.addEventListener('focus', ()=> inp.select());
-  });
-
-  const file = document.getElementById('image');
-  const prev = document.getElementById('image-preview');
-  file?.addEventListener('change', ()=>{
-    const f = file.files?.[0];
-    if (!f) return;
-    const ok = /image\/(png|jpe?g|webp)/i.test(f.type);
-    if (!ok) { alert('Formato inválido. Use JPG, PNG ou WEBP.'); file.value=''; return; }
-    const reader = new FileReader();
-    reader.onload = e => { prev.src = e.target.result; };
-    reader.readAsDataURL(f);
-  });
-})();
-</script>
 
 </div>
 
 <?php
 $content = ob_get_clean();
-include __DIR__ . '/../layout.php';
+
+// Provide unit label map for admin.js to read (data attribute on the form wrapper)
+// We'll print it into a wrapping div so script can find it via dataset.
+// The form has id 'ingredientForm' — we add data-unit-label-map to document body near content.
+// (the admin.js will attempt to read the map from an element with id 'ingredientForm').
+
+// To ensure the JSON is available for the JS initializer, include it in a small inline data element.
+?>
+<script type="application/json" id="unit-label-map-json" data-target="ingredientForm"><?= json_encode($unitLabelMap, JSON_UNESCAPED_UNICODE) ?></script>
+
+<?php include __DIR__ . '/../layout.php';

@@ -1,6 +1,9 @@
 <?php
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 $company = is_array($company ?? null) ? $company : [];
@@ -103,9 +106,9 @@ ob_start();
     <?php endif; ?>
     <div class="mt-3 grid gap-4">
       <?php foreach ($methods as $method):
-        $methodId = (int)($method['id'] ?? 0);
-        $methodSlug = $base . '/' . $methodId;
-      ?>
+          $methodId = (int)($method['id'] ?? 0);
+          $methodSlug = $base . '/' . $methodId;
+          ?>
         <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-inner">
           <form method="post" action="<?= e($methodSlug) ?>" class="grid gap-3">
             <?php if (function_exists('csrf_field')): ?>

@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 // app/controllers/PublicCartController.php
 
 require_once __DIR__ . '/../core/Controller.php';
@@ -28,6 +30,7 @@ class PublicCartController extends Controller
     private function snapshotCustomization(int $productId): ?array
     {
         $raw = $this->storage->getCustomization($productId);
+
         if (!$raw || !is_array($raw)) {
             return null;
         }
@@ -36,30 +39,36 @@ class PublicCartController extends Controller
             'choice' => [],
             'qty'    => [],
         ];
+
         if (isset($raw['single']) && is_array($raw['single'])) {
             foreach ($raw['single'] as $g => $idx) {
                 $result['single'][(int)$g] = (int)$idx;
             }
         }
+
         if (isset($raw['choice']) && is_array($raw['choice'])) {
             foreach ($raw['choice'] as $g => $vals) {
                 if (!is_array($vals)) {
                     continue;
                 }
                 $clean = [];
+
                 foreach ($vals as $val) {
                     $clean[] = (int)$val;
                 }
                 $result['choice'][(int)$g] = array_values(array_unique($clean));
             }
         }
+
         if (isset($raw['qty']) && is_array($raw['qty'])) {
             foreach ($raw['qty'] as $g => $items) {
                 if (!is_array($items)) {
                     continue;
                 }
+
                 foreach ($items as $i => $qty) {
                     $qtyInt = (int)$qty;
+
                     if ($qtyInt <= 0) {
                         continue;
                     }
@@ -67,14 +76,17 @@ class PublicCartController extends Controller
                 }
             }
         }
+
         if (isset($raw['quantity'])) {
             $quantity = max(1, (int)$raw['quantity']);
             $result['quantity'] = $quantity;
         }
+
         // Remove se nada foi preenchido
         if (!$result['single'] && !$result['choice'] && !$result['qty'] && empty($result['quantity'])) {
             return null;
         }
+
         return $result;
     }
 
@@ -82,6 +94,7 @@ class PublicCartController extends Controller
     private function defaultCustomizationSnapshot(int $productId): ?array
     {
         $mods = ProductCustomization::loadForPublic($productId);
+
         if (!$mods) {
             return null;
         }
@@ -97,18 +110,21 @@ class PublicCartController extends Controller
         foreach ($mods as $gi => $group) {
             $type = $group['type'] ?? 'extra';
             $items = $group['items'] ?? [];
+
             if (!$items) {
                 continue;
             }
 
             if ($type === 'single') {
                 $selectedIndex = null;
+
                 foreach ($items as $ii => $item) {
                     if (!empty($item['default'])) {
                         $selectedIndex = $ii;
                         break;
                     }
                 }
+
                 if ($selectedIndex === null) {
                     $selectedIndex = 0;
                 }
@@ -116,27 +132,33 @@ class PublicCartController extends Controller
                 $hasData = true;
             } elseif ($type === 'addon') {
                 $selected = [];
+
                 foreach ($items as $ii => $item) {
                     if (!empty($item['default']) || !empty($item['selected'])) {
                         $selected[] = (int)$ii;
                     }
                 }
+
                 if ($selected) {
                     $snapshot['choice'][(int)$gi] = array_values(array_unique($selected));
                     $hasData = true;
                 }
             } else {
                 $qtyItems = [];
+
                 foreach ($items as $ii => $item) {
                     $qty = isset($item['qty']) ? (int)$item['qty'] : 0;
+
                     if ($qty <= 0 && !empty($item['default_qty'])) {
                         $qty = (int)$item['default_qty'];
                     }
+
                     if ($qty <= 0) {
                         continue;
                     }
                     $qtyItems[(int)$ii] = $qty;
                 }
+
                 if ($qtyItems) {
                     $snapshot['qty'][(int)$gi] = $qtyItems;
                     $hasData = true;
@@ -154,18 +176,22 @@ class PublicCartController extends Controller
     private function resolveComboSelection(array $product, array $postData): array
     {
         $selection = [];
+
         if (($product['type'] ?? 'simple') !== 'combo') {
             return $selection;
         }
 
         $groups = Product::getComboGroupsWithItems((int)$product['id']);
+
         foreach ($groups as $index => $group) {
             $groupId = (int)($group['id'] ?? 0);
+
             if ($groupId <= 0) {
                 continue;
             }
 
             $items = $group['items'] ?? [];
+
             if (!$items) {
                 continue;
             }
@@ -173,6 +199,7 @@ class PublicCartController extends Controller
             $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
             $rawValue = $postData[$index] ?? null;
             $selectedIds = [];
+
             if (is_array($rawValue)) {
                 foreach ($rawValue as $val) {
                     $selectedIds[] = (int)$val;
@@ -188,6 +215,7 @@ class PublicCartController extends Controller
                             $selectedIds[] = (int)$item['id'];
                         }
                     }
+
                     if (!$selectedIds && $items) {
                         $selectedIds[] = (int)$items[0]['id'];
                     }
@@ -197,12 +225,15 @@ class PublicCartController extends Controller
             }
 
             $simpleChosen = [];
+
             foreach ($items as $item) {
                 $comboItemId = (int)$item['id'];
+
                 if (!in_array($comboItemId, $selectedIds, true)) {
                     continue;
                 }
                 $simpleId = isset($item['simple_id']) ? (int)$item['simple_id'] : (int)($item['simple_product_id'] ?? 0);
+
                 if ($simpleId <= 0) {
                     continue;
                 }
@@ -214,6 +245,7 @@ class PublicCartController extends Controller
             }
 
             $max = isset($group['max']) ? (int)$group['max'] : (int)($group['max_qty'] ?? 1);
+
             if ($max > 0 && count($simpleChosen) > $max) {
                 $simpleChosen = array_slice($simpleChosen, 0, $max);
             }
@@ -237,41 +269,49 @@ class PublicCartController extends Controller
 
         $line1 = trim((string)($address['street'] ?? ''));
         $number = trim((string)($address['number'] ?? ''));
+
         if ($number !== '') {
             $line1 = $line1 !== '' ? $line1 . ', ' . $number : $number;
         }
         $complement = trim((string)($address['complement'] ?? ''));
+
         if ($complement !== '') {
             $line1 = $line1 !== '' ? $line1 . ' - ' . $complement : $complement;
         }
+
         if ($line1 !== '') {
             $parts[] = $line1;
         }
 
         $line2Segments = [];
+
         if (!empty($address['neighborhood'])) {
             $line2Segments[] = trim($address['neighborhood']);
         }
         $cityState = trim(($address['city'] ?? '') . ((isset($address['state']) && $address['state'] !== '') ? '/' . strtoupper($address['state']) : ''));
+
         if ($cityState !== '') {
             $line2Segments[] = $cityState;
         }
+
         if ($line2Segments) {
             $parts[] = implode(' - ', $line2Segments);
         }
 
         $reference = trim((string)($address['reference'] ?? ''));
+
         if ($reference !== '') {
             $parts[] = 'Referência: ' . $reference;
         }
 
-        return implode("\n", array_filter($parts, static fn($line) => $line !== ''));
+        return implode("\n", array_filter($parts, static fn ($line) => $line !== ''));
     }
 
     /** Persiste endereço no pedido, ignorando caso a coluna não exista */
     private function persistOrderAddress(PDO $db, int $orderId, ?string $address): void
     {
         $address = $address !== null ? trim($address) : '';
+
         if ($address === '') {
             return;
         }
@@ -291,23 +331,28 @@ class PublicCartController extends Controller
     private function hydrateCartItems(array $rawItems, array $company): array
     {
         $hydrated = [];
+
         foreach ($rawItems as $item) {
             if (!is_array($item)) {
                 continue;
             }
+
             if ((int)($item['company_id'] ?? 0) !== (int)($company['id'] ?? 0)) {
                 continue;
             }
 
             $productId = (int)($item['product_id'] ?? 0);
+
             if ($productId <= 0) {
                 continue;
             }
 
             $product = Product::find($productId);
+
             if (!$product || (int)($product['company_id'] ?? 0) !== (int)($company['id'] ?? 0)) {
                 continue;
             }
+
             if (!empty($product['active']) && (int)$product['active'] !== 1) {
                 continue;
             }
@@ -324,20 +369,25 @@ class PublicCartController extends Controller
 
             $componentCustomizations = [];
             $componentExtra = 0.0;
+
             if ($comboData['selected_items']) {
                 foreach ($comboData['selected_items'] as $selected) {
                     $simpleId = (int)($selected['simple_id'] ?? 0);
+
                     if ($simpleId <= 0) {
                         continue;
                     }
                     $rawCustom = null;
+
                     if (isset($item['combo_customizations']) && is_array($item['combo_customizations']) && array_key_exists($simpleId, $item['combo_customizations'])) {
                         $rawCustom = $item['combo_customizations'][$simpleId];
                     }
+
                     if ($rawCustom === null) {
                         $rawCustom = $this->defaultCustomizationSnapshot($simpleId);
                     }
                     $expanded = $this->expandCustomization($simpleId, $rawCustom);
+
                     if ($expanded['has_customization']) {
                         $componentCustomizations[$simpleId] = [
                             'component' => $selected,
@@ -350,6 +400,7 @@ class PublicCartController extends Controller
 
             $pricing = $comboData['pricing'];
             $unitPrice = ($pricing['total'] ?? $pricing['base'] ?? 0) + $baseCustomization['total_delta'] + $componentExtra;
+
             if ($unitPrice < 0) {
                 $unitPrice = 0.0;
             }
@@ -370,6 +421,7 @@ class PublicCartController extends Controller
                 'line_total' => $unitPrice * $qty,
             ];
         }
+
         return $hydrated;
     }
 
@@ -388,12 +440,15 @@ class PublicCartController extends Controller
         }
 
         $groups = Product::getComboGroupsWithItems((int)$product['id']);
+
         foreach ($groups as $group) {
             $gid = (int)($group['id'] ?? 0);
+
             if ($gid <= 0) {
                 continue;
             }
             $items = $group['items'] ?? [];
+
             if (!$items) {
                 continue;
             }
@@ -401,6 +456,7 @@ class PublicCartController extends Controller
             $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
             $wanted = $comboMap[$gid] ?? null;
             $selectedSimpleIds = [];
+
             if (is_array($wanted)) {
                 foreach ($wanted as $sid) {
                     $selectedSimpleIds[] = (int)$sid;
@@ -414,6 +470,7 @@ class PublicCartController extends Controller
                             $selectedSimpleIds[] = (int)$opt['simple_id'];
                         }
                     }
+
                     if (!$selectedSimpleIds && $items) {
                         $selectedSimpleIds[] = (int)$items[0]['simple_id'];
                     }
@@ -425,16 +482,20 @@ class PublicCartController extends Controller
             }
 
             $groupDetails = [];
+
             foreach ($items as $opt) {
                 $simpleId = isset($opt['simple_id']) ? (int)$opt['simple_id'] : (int)($opt['simple_product_id'] ?? 0);
+
                 if ($simpleId <= 0) {
                     continue;
                 }
+
                 if (!in_array($simpleId, $selectedSimpleIds, true)) {
                     continue;
                 }
                 $delta = isset($opt['delta']) ? (float)$opt['delta'] : (float)($opt['delta_price'] ?? 0);
                 $basePrice = null;
+
                 if (array_key_exists('base_price', $opt) && $opt['base_price'] !== null) {
                     $basePrice = (float)$opt['base_price'];
                 } elseif (array_key_exists('price', $opt) && $opt['price'] !== null) {
@@ -483,9 +544,11 @@ class PublicCartController extends Controller
     {
         $price = (float)($product['price'] ?? 0);
         $promo = (float)($product['promo_price'] ?? 0);
+
         if ($promo > 0 && $promo < $price) {
             return $promo;
         }
+
         return $price;
     }
 
@@ -498,9 +561,11 @@ class PublicCartController extends Controller
             'has_customization' => false,
         ];
         $mods = ProductCustomization::loadForPublic($productId);
+
         if (!$mods) {
             return $result;
         }
+
         if (!$customData) {
             return $result;
         }
@@ -508,6 +573,7 @@ class PublicCartController extends Controller
         foreach ($mods as $gi => $group) {
             $type = $group['type'] ?? 'extra';
             $items = $group['items'] ?? [];
+
             if (!$items) {
                 continue;
             }
@@ -517,6 +583,7 @@ class PublicCartController extends Controller
                     continue;
                 }
                 $index = (int)$customData['single'][$gi];
+
                 if (!isset($items[$index])) {
                     continue;
                 }
@@ -530,6 +597,7 @@ class PublicCartController extends Controller
                         'price' => $price,
                     ]],
                 ];
+
                 if ($price > 0) {
                     $result['total_delta'] += $price;
                 }
@@ -539,8 +607,10 @@ class PublicCartController extends Controller
                     continue;
                 }
                 $selected = [];
+
                 foreach ($customData['choice'][$gi] as $idx) {
                     $idx = (int)$idx;
+
                     if (!isset($items[$idx])) {
                         continue;
                     }
@@ -550,10 +620,12 @@ class PublicCartController extends Controller
                         'name' => (string)($item['name'] ?? ''),
                         'price' => $price,
                     ];
+
                     if ($price > 0) {
                         $result['total_delta'] += $price;
                     }
                 }
+
                 if ($selected) {
                     $result['groups'][] = [
                         'name' => (string)($group['name'] ?? ''),
@@ -567,9 +639,11 @@ class PublicCartController extends Controller
                     continue;
                 }
                 $selected = [];
+
                 foreach ($customData['qty'][$gi] as $idx => $qty) {
                     $idx = (int)$idx;
                     $qty = (int)$qty;
+
                     if ($qty <= 0 || !isset($items[$idx])) {
                         continue;
                     }
@@ -577,6 +651,7 @@ class PublicCartController extends Controller
                     $priceUnit = isset($item['sale_price']) ? (float)$item['sale_price'] : (float)($item['delta'] ?? 0);
                     $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : (isset($item['qty']) ? (int)$item['qty'] : null);
                     $deltaQty = $qty;
+
                     if ($defaultQty !== null) {
                         $deltaQty = $qty - $defaultQty;
                     }
@@ -589,11 +664,13 @@ class PublicCartController extends Controller
                         'default_qty' => $defaultQty,
                         'delta_qty' => $deltaQty,
                     ];
+
                     if ($linePrice !== 0.0) {
                         $result['total_delta'] += $linePrice;
                     }
                     $selected[] = $line;
                 }
+
                 if ($selected) {
                     $result['groups'][] = [
                         'name' => (string)($group['name'] ?? ''),
@@ -613,14 +690,17 @@ class PublicCartController extends Controller
     {
         $slug = $params['slug'] ?? null;
         $company = Company::findBySlug($slug);
+
         if (!$company || (int)($company['active'] ?? 0) !== 1) {
             http_response_code(404);
             echo 'Empresa não encontrada';
+
             return;
         }
 
         $requireLogin = (bool)(config('login_required') ?? false);
         $customer = AuthCustomer::current($slug);
+
         if ($requireLogin && !$customer) {
             $redirect = base_url($slug . '?login=1');
             header('Location: ' . $redirect);
@@ -629,11 +709,13 @@ class PublicCartController extends Controller
 
         $cartRef = $this->storage->getCart();
         $items = $this->hydrateCartItems($cartRef, $company);
+
         if (!is_array($items)) {
             $items = [];
         }
 
         $subtotal = 0.0;
+
         foreach ($items as $item) {
             $subtotal += (float)$item['line_total'];
         }
@@ -657,14 +739,17 @@ class PublicCartController extends Controller
     {
         $slug = $params['slug'] ?? null;
         $company = Company::findBySlug($slug);
+
         if (!$company || (int)($company['active'] ?? 0) !== 1) {
             http_response_code(404);
             echo 'Empresa não encontrada';
+
             return;
         }
 
         $requireLogin = (bool)(config('login_required') ?? false);
         $customer = AuthCustomer::current($slug);
+
         if ($requireLogin && !$customer) {
             $redirect = base_url($slug . '?login=1');
             header('Location: ' . $redirect);
@@ -680,11 +765,13 @@ class PublicCartController extends Controller
         }
 
         $subtotal = 0.0;
+
         foreach ($items as $item) {
             $subtotal += (float)$item['line_total'];
         }
 
         $deliveryAddress = $_SESSION['checkout_address'] ?? [];
+
         if (!is_array($deliveryAddress)) {
             $deliveryAddress = [];
         }
@@ -714,6 +801,7 @@ class PublicCartController extends Controller
 
         $zonesByCity = [];
         $selectedZone = null;
+
         foreach ($zonesRaw as $zone) {
             $cityId = (int)($zone['city_id'] ?? 0);
             $mapped = [
@@ -723,10 +811,12 @@ class PublicCartController extends Controller
                 'fee'        => (float)($zone['fee'] ?? 0),
                 'city_name'  => (string)($zone['city_name'] ?? ''),
             ];
+
             if (!isset($zonesByCity[$cityId])) {
                 $zonesByCity[$cityId] = [];
             }
             $zonesByCity[$cityId][] = $mapped;
+
             if ($mapped['id'] === $selectedZoneId) {
                 $selectedZone = $mapped;
             }
@@ -735,6 +825,7 @@ class PublicCartController extends Controller
         if (!$selectedCityId && count($cities) === 1) {
             $selectedCityId = (int)($cities[0]['id'] ?? 0);
         }
+
         if ($selectedZoneId && !$selectedZone) {
             $selectedZoneId = 0;
             $deliveryAddress['zone_id'] = 0;
@@ -755,6 +846,7 @@ class PublicCartController extends Controller
 
         if ($selectedZone) {
             $deliveryAddress['neighborhood'] = $selectedZone['name'];
+
             if (!empty($selectedZone['city_name'])) {
                 $deliveryAddress['city'] = $selectedZone['city_name'];
             }
@@ -765,6 +857,7 @@ class PublicCartController extends Controller
 
         $paymentMethods = PaymentMethod::activeByCompany($companyId);
         $selectedPaymentId = (int)($deliveryAddress['payment_method_id'] ?? 0);
+
         if (!$selectedPaymentId && $paymentMethods) {
             $selectedPaymentId = (int)$paymentMethods[0]['id'];
         }
@@ -801,13 +894,16 @@ class PublicCartController extends Controller
     {
         $slug = $params['slug'] ?? null;
         $company = Company::findBySlug($slug);
+
         if (!$company || (int)($company['active'] ?? 0) !== 1) {
             http_response_code(404);
             echo 'Empresa não encontrada';
+
             return;
         }
 
         $success = $_SESSION['checkout_success'] ?? null;
+
         if (!$success || !is_array($success)) {
             header('Location: ' . base_url($slug));
             exit;
@@ -828,19 +924,23 @@ class PublicCartController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo 'Método não permitido';
+
             return;
         }
 
         $slug = $params['slug'] ?? null;
         $company = Company::findBySlug($slug);
+
         if (!$company || (int)($company['active'] ?? 0) !== 1) {
             http_response_code(404);
             echo 'Empresa não encontrada';
+
             return;
         }
 
         $requireLogin = (bool)(config('login_required') ?? false);
         $customer = AuthCustomer::current($slug);
+
         if ($requireLogin && !$customer) {
             $redirect = base_url($slug . '?login=1');
             header('Location: ' . $redirect);
@@ -848,12 +948,14 @@ class PublicCartController extends Controller
         }
 
         $cartRef = $this->storage->getCart();
+
         if (!$cartRef) {
             header('Location: ' . base_url($slug . '/cart'));
             exit;
         }
 
         $items = $this->hydrateCartItems($cartRef, $company);
+
         if (!$items) {
             header('Location: ' . base_url($slug . '/cart'));
             exit;
@@ -864,16 +966,19 @@ class PublicCartController extends Controller
         $zonesRaw = DeliveryZone::allByCompany($companyId);
 
         $cityMap = [];
+
         foreach ($cities as $cityRow) {
             $cityMap[(int)($cityRow['id'] ?? 0)] = (string)($cityRow['name'] ?? '');
         }
 
         $zoneMap = [];
         $zonesByCity = [];
+
         foreach ($zonesRaw as $zoneRow) {
             $zoneId = (int)($zoneRow['id'] ?? 0);
             $zoneMap[$zoneId] = $zoneRow;
             $cityId = (int)($zoneRow['city_id'] ?? 0);
+
             if (!isset($zonesByCity[$cityId])) {
                 $zonesByCity[$cityId] = [];
             }
@@ -895,7 +1000,7 @@ class PublicCartController extends Controller
             'city_id'     => (int)($addressInput['city_id'] ?? 0),
             'zone_id'     => (int)($addressInput['zone_id'] ?? 0),
             'city'        => '',
-            'neighborhood'=> '',
+            'neighborhood' => '',
             'notes'       => trim($_POST['order']['notes'] ?? ''),
         ];
 
@@ -910,6 +1015,7 @@ class PublicCartController extends Controller
         if ($clean['zone_id'] && isset($zoneMap[$clean['zone_id']])) {
             $zone = $zoneMap[$clean['zone_id']];
             $zoneCityId = (int)($zone['city_id'] ?? 0);
+
             if (!$clean['city_id'] || $clean['city_id'] !== $zoneCityId) {
                 $clean['city_id'] = $zoneCityId;
                 $clean['city'] = $cityMap[$zoneCityId] ?? '';
@@ -925,15 +1031,18 @@ class PublicCartController extends Controller
         $paymentInput = isset($_POST['payment']) && is_array($_POST['payment']) ? $_POST['payment'] : [];
         $paymentMethodId = (int)($paymentInput['method_id'] ?? 0);
         $paymentMethod = $paymentMethodId ? PaymentMethod::findForCompany($paymentMethodId, $companyId) : null;
+
         if (!$paymentMethod || (int)($paymentMethod['active'] ?? 0) !== 1) {
             $paymentMethodId = 0;
         }
         $clean['payment_method_id'] = $paymentMethodId;
 
         $errors = [];
+
         if ($clean['name'] === '') {
             $errors[] = 'Informe o nome do destinatário.';
         }
+
         if ($clean['phone'] === '') {
             $errors[] = 'Informe o telefone para contato.';
         }
@@ -943,15 +1052,19 @@ class PublicCartController extends Controller
         if ($clean['city_id'] <= 0 && !empty($cityMap)) {
             $errors[] = 'Selecione uma cidade atendida.';
         }
+
         if ($clean['zone_id'] <= 0 && !empty($zonesForSelectedCity)) {
             $errors[] = 'Selecione um bairro atendido.';
         }
+
         if ($clean['street'] === '') {
             $errors[] = 'Informe a rua/avenida.';
         }
+
         if ($clean['number'] === '') {
             $errors[] = 'Informe o número do endereço.';
         }
+
         if ($activePaymentMethods && $paymentMethodId <= 0) {
             $errors[] = 'Escolha um método de pagamento disponível.';
         }
@@ -969,8 +1082,10 @@ class PublicCartController extends Controller
         $orderItemsPayload = [];
         $subtotal = 0.0;
         $itemsSummary = [];
+
         foreach ($items as $item) {
             $productId = (int)($item['product']['id'] ?? 0);
+
             if ($productId <= 0) {
                 continue;
             }
@@ -1010,11 +1125,14 @@ class PublicCartController extends Controller
         $paymentInstructions = $paymentMethod ? trim((string)($paymentMethod['instructions'] ?? '')) : '';
 
         $orderNotesParts = [];
+
         if ($clean['notes'] !== '') {
             $orderNotesParts[] = 'Observações: ' . $clean['notes'];
         }
+
         if ($paymentMethodName !== '') {
             $paymentLine = 'Pagamento: ' . $paymentMethodName;
+
             if ($paymentInstructions !== '') {
                 $paymentLine .= ' — ' . $paymentInstructions;
             }
@@ -1079,7 +1197,7 @@ class PublicCartController extends Controller
             'subtotal'           => $subtotal,
             'delivery_fee'       => $deliveryFee,
             'payment_method'     => $paymentMethodName,
-            'payment_instructions'=> $paymentInstructions,
+            'payment_instructions' => $paymentInstructions,
             'address'            => $formattedAddress,
             'notes'              => $clean['notes'],
             'items'              => $itemsSummary,
@@ -1095,19 +1213,23 @@ class PublicCartController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo 'Método não permitido';
+
             return;
         }
 
         $slug = $params['slug'] ?? null;
         $company = Company::findBySlug($slug);
+
         if (!$company || (int)($company['active'] ?? 0) !== 1) {
             http_response_code(404);
             echo 'Empresa não encontrada';
+
             return;
         }
 
         $productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
         $requireLogin = (bool)(config('login_required') ?? false);
+
         if ($requireLogin && !AuthCustomer::current()) {
             $redirect = $productId > 0
                 ? base_url($slug . '/produto/' . $productId . '?login=1')
@@ -1117,9 +1239,11 @@ class PublicCartController extends Controller
         }
 
         $product = $productId > 0 ? Product::find($productId) : null;
+
         if (!$product || (int)($product['company_id'] ?? 0) !== (int)$company['id'] || (int)($product['active'] ?? 0) !== 1) {
             http_response_code(404);
             echo 'Produto não encontrado';
+
             return;
         }
 
@@ -1130,22 +1254,28 @@ class PublicCartController extends Controller
         $comboSelection = $this->resolveComboSelection($product, $postCombo);
 
         $baseCustomization = $this->snapshotCustomization($productId);
+
         if ($baseCustomization === null) {
             $baseCustomization = $this->defaultCustomizationSnapshot($productId);
         }
         $componentCustomizations = [];
+
         if ($comboSelection) {
             foreach ($comboSelection as $value) {
                 $ids = is_array($value) ? $value : [$value];
+
                 foreach ($ids as $sid) {
                     $sid = (int)$sid;
+
                     if ($sid <= 0) {
                         continue;
                     }
                     $snap = $this->snapshotCustomization($sid);
+
                     if ($snap === null) {
                         $snap = $this->defaultCustomizationSnapshot($sid);
                     }
+
                     if ($snap) {
                         $componentCustomizations[$sid] = $snap;
                     }
@@ -1177,18 +1307,22 @@ class PublicCartController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo 'Método não permitido';
+
             return;
         }
 
         $slug = $params['slug'] ?? null;
         $company = Company::findBySlug($slug);
+
         if (!$company || (int)($company['active'] ?? 0) !== 1) {
             http_response_code(404);
             echo 'Empresa não encontrada';
+
             return;
         }
 
         $requireLogin = (bool)(config('login_required') ?? false);
+
         if ($requireLogin && !AuthCustomer::current()) {
             $redirect = base_url($slug . '?login=1');
             header('Location: ' . $redirect);
@@ -1196,6 +1330,7 @@ class PublicCartController extends Controller
         }
 
         $uid = isset($_POST['uid']) ? (string)$_POST['uid'] : '';
+
         if ($uid === '') {
             header('Location: ' . base_url($slug . '/cart'));
             exit;
@@ -1205,13 +1340,16 @@ class PublicCartController extends Controller
         $qtyParam = isset($_POST['qty']) ? (int)$_POST['qty'] : null;
 
         $cartRef = $this->storage->getCart();
+
         foreach ($cartRef as $index => &$item) {
             if (!is_array($item)) {
                 continue;
             }
+
             if ((string)($item['uid'] ?? '') !== $uid) {
                 continue;
             }
+
             if ((int)($item['company_id'] ?? 0) !== (int)$company['id']) {
                 continue;
             }
@@ -1220,9 +1358,11 @@ class PublicCartController extends Controller
                 $item['qty'] = min(99, max(1, (int)($item['qty'] ?? 1) + 1));
                 break;
             }
+
             if ($action === 'dec') {
                 $current = (int)($item['qty'] ?? 1);
                 $newQty = max(0, $current - 1);
+
                 if ($newQty <= 0) {
                     unset($cartRef[$index]);
                 } else {
@@ -1230,6 +1370,7 @@ class PublicCartController extends Controller
                 }
                 break;
             }
+
             if ($qtyParam !== null) {
                 if ($qtyParam <= 0) {
                     unset($cartRef[$index]);
@@ -1244,6 +1385,7 @@ class PublicCartController extends Controller
         // Reindexa e persiste
         $cartRef = array_values($cartRef);
         $this->storage->setCart($cartRef);
+
         if (!$cartRef) {
             unset($_SESSION['checkout_address'], $_SESSION['checkout_flash']);
         }

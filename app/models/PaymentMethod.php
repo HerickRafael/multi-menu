@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../config/db.php';
 
 class PaymentMethod
@@ -9,6 +11,7 @@ class PaymentMethod
         try {
             $st = db()->prepare('SELECT * FROM payment_methods WHERE company_id = ? ORDER BY sort_order, name');
             $st->execute([$companyId]);
+
             return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
             if (stripos($e->getMessage(), 'payment_methods') !== false) {
@@ -23,6 +26,7 @@ class PaymentMethod
         try {
             $st = db()->prepare('SELECT * FROM payment_methods WHERE company_id = ? AND active = 1 ORDER BY sort_order, name');
             $st->execute([$companyId]);
+
             return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
             if (stripos($e->getMessage(), 'payment_methods') !== false) {
@@ -38,6 +42,7 @@ class PaymentMethod
             $st = db()->prepare('SELECT * FROM payment_methods WHERE id = ? AND company_id = ? LIMIT 1');
             $st->execute([$id, $companyId]);
             $row = $st->fetch(PDO::FETCH_ASSOC);
+
             return $row ?: null;
         } catch (PDOException $e) {
             if (stripos($e->getMessage(), 'payment_methods') !== false) {
@@ -52,7 +57,7 @@ class PaymentMethod
         $sortOrder = isset($data['sort_order']) ? (int)$data['sort_order'] : self::nextSortOrder((int)$data['company_id']);
         $st = db()->prepare(
             'INSERT INTO payment_methods (company_id, name, instructions, sort_order, active)
-             VALUES (?, ?, ?, ?, ?)' 
+             VALUES (?, ?, ?, ?, ?)'
         );
         $st->execute([
             (int)$data['company_id'],
@@ -61,6 +66,7 @@ class PaymentMethod
             $sortOrder,
             !empty($data['active']) ? 1 : 0,
         ]);
+
         return (int)db()->lastInsertId();
     }
 
@@ -92,6 +98,7 @@ class PaymentMethod
         $st = db()->prepare('SELECT MAX(sort_order) FROM payment_methods WHERE company_id = ?');
         $st->execute([$companyId]);
         $max = $st->fetchColumn();
+
         return $max !== null ? ((int)$max + 1) : 0;
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -12,12 +14,14 @@ class AdminPaymentMethodController extends Controller
     {
         Auth::start();
         $user = Auth::user();
+
         if (!$user) {
             header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
             exit;
         }
 
         $company = Company::findBySlug($slug);
+
         if (!$company) {
             echo 'Empresa inválida';
             exit;
@@ -108,6 +112,7 @@ class AdminPaymentMethodController extends Controller
         [$user, $company] = $this->guard($params['slug']);
         $id = (int)($params['id'] ?? 0);
         $method = PaymentMethod::findForCompany($id, (int)$company['id']);
+
         if (!$method) {
             $this->flash(['type' => 'error', 'message' => 'Método não encontrado.']);
             $this->redirectToIndex($company['slug']);

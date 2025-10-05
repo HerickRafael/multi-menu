@@ -1,13 +1,16 @@
 <?php
 // admin/orders/index.php — Pedidos (versão moderna)
 
-$title = "Pedidos - " . ($company['name'] ?? 'Empresa');
+$title = 'Pedidos - ' . ($company['name'] ?? 'Empresa');
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 $backUrl = $slug ? base_url('admin/' . $slug . '/dashboard') : base_url('admin');
 
 // helper de escape (se ainda não existir)
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 // filtros (status e busca por cliente)
@@ -24,19 +27,22 @@ $statusLabels = [
 
 // se precisar filtrar em memória (caso o controller não filtre)
 $filtered = $orders ?? [];
+
 if ($status !== '' && isset($statusLabels[$status])) {
-  $filtered = array_filter($filtered, fn($o) => (string)($o['status'] ?? '') === $status);
+    $filtered = array_filter($filtered, fn ($o) => (string)($o['status'] ?? '') === $status);
 }
+
 if ($q !== '') {
-  $qNorm = mb_strtolower($q, 'UTF-8');
-  $filtered = array_filter($filtered, function($o) use ($qNorm){
-    $name  = mb_strtolower((string)($o['customer_name'] ?? ''), 'UTF-8');
-    $phone = mb_strtolower((string)($o['customer_phone'] ?? ''), 'UTF-8');
-    $id    = (string)($o['id'] ?? '');
-    return strpos($name, $qNorm) !== false
-        || strpos($phone, $qNorm) !== false
-        || strpos($id, $qNorm) !== false;
-  });
+    $qNorm = mb_strtolower($q, 'UTF-8');
+    $filtered = array_filter($filtered, function ($o) use ($qNorm) {
+        $name  = mb_strtolower((string)($o['customer_name'] ?? ''), 'UTF-8');
+        $phone = mb_strtolower((string)($o['customer_phone'] ?? ''), 'UTF-8');
+        $id    = (string)($o['id'] ?? '');
+
+        return strpos($name, $qNorm) !== false
+            || strpos($phone, $qNorm) !== false
+            || strpos($id, $qNorm) !== false;
+    });
 }
 
 ob_start(); ?>
@@ -83,8 +89,8 @@ ob_start(); ?>
       <select name="status"
               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
         <option value="">Todos</option>
-        <?php foreach ($statusLabels as $k=>$label): ?>
-          <option value="<?= e($k) ?>" <?= $status===$k ? 'selected' : '' ?>><?= e($label) ?></option>
+        <?php foreach ($statusLabels as $k => $label): ?>
+          <option value="<?= e($k) ?>" <?= $status === $k ? 'selected' : '' ?>><?= e($label) ?></option>
         <?php endforeach; ?>
       </select>
     </label>
@@ -149,18 +155,18 @@ ob_start(); ?>
                 $st = (string)($o['status'] ?? 'pending');
                 $label = $statusLabels[$st] ?? ucfirst($st);
                 $badge = match ($st) {
-                  'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
-                  'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-                  'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
-                  default     => 'bg-amber-50 text-amber-700 ring-amber-200',
+                    'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
+                    'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                    'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
+                    default     => 'bg-amber-50 text-amber-700 ring-amber-200',
                 };
                 $dotClass = match ($st) {
-                  'paid'      => 'bg-blue-500',
-                  'completed' => 'bg-emerald-500',
-                  'canceled'  => 'bg-rose-500',
-                  default     => 'bg-amber-500',
+                    'paid'      => 'bg-blue-500',
+                    'completed' => 'bg-emerald-500',
+                    'canceled'  => 'bg-rose-500',
+                    default     => 'bg-amber-500',
                 };
-              ?>
+                ?>
               <tr class="hover:bg-slate-50/60">
                 <td class="p-3 align-middle font-medium text-slate-800">#<?= (int)($o['id'] ?? 0) ?></td>
 

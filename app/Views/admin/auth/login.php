@@ -1,5 +1,5 @@
 <?php
-$title = "Login - " . ($company['name'] ?? 'Empresa');
+$title = 'Login - ' . ($company['name'] ?? 'Empresa');
 ob_start(); ?>
 <h1 class="text-2xl font-bold mb-4">Login - <?= e($company['name'] ?? '') ?></h1>
 <?php if (!empty($error)): ?>

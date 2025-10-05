@@ -1,25 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../config/db.php';
 
 class Order
 {
     public static function listByCompany(PDO $db, int $companyId, ?string $status = null, int $limit = 50, int $offset = 0): array
     {
-        $sql = "SELECT * FROM orders WHERE company_id = :cid";
+        $sql = 'SELECT * FROM orders WHERE company_id = :cid';
         $args = [':cid' => $companyId];
+
         if ($status) {
-            $sql .= " AND status = :st";
+            $sql .= ' AND status = :st';
             $args[':st'] = $status;
         }
-        $sql .= " ORDER BY id DESC LIMIT :lim OFFSET :off";
+        $sql .= ' ORDER BY id DESC LIMIT :lim OFFSET :off';
         $st = $db->prepare($sql);
+
         foreach ($args as $k => $v) {
             $st->bindValue($k, $v);
         }
         $st->bindValue(':lim', $limit, PDO::PARAM_INT);
         $st->bindValue(':off', $offset, PDO::PARAM_INT);
         $st->execute();
+
         return $st->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -39,8 +44,8 @@ class Order
         ];
         $payload = array_merge($defaults, $data);
 
-        $sql = "INSERT INTO orders (company_id, customer_name, customer_phone, subtotal, delivery_fee, discount, total, status, notes, customer_address)
-                VALUES (:cid,:name,:phone,:sub,:fee,:disc,:tot,:status,:notes,:address)";
+        $sql = 'INSERT INTO orders (company_id, customer_name, customer_phone, subtotal, delivery_fee, discount, total, status, notes, customer_address)
+                VALUES (:cid,:name,:phone,:sub,:fee,:disc,:tot,:status,:notes,:address)';
         $stmt = $db->prepare($sql);
         try {
             $stmt->execute([
@@ -58,8 +63,8 @@ class Order
         } catch (PDOException $e) {
             // fallback for databases sem coluna customer_address
             if (stripos($e->getMessage(), 'customer_address') !== false) {
-                $stmt = $db->prepare("INSERT INTO orders (company_id, customer_name, customer_phone, subtotal, delivery_fee, discount, total, status, notes)
-                                      VALUES (:cid,:name,:phone,:sub,:fee,:disc,:tot,:status,:notes)");
+                $stmt = $db->prepare('INSERT INTO orders (company_id, customer_name, customer_phone, subtotal, delivery_fee, discount, total, status, notes)
+                                      VALUES (:cid,:name,:phone,:sub,:fee,:disc,:tot,:status,:notes)');
                 $stmt->execute([
                     ':cid'    => $payload['company_id'],
                     ':name'   => $payload['customer_name'],
@@ -81,8 +86,8 @@ class Order
 
     public static function addItem(PDO $db, int $orderId, array $item): void
     {
-        $sql = "INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total)
-                VALUES (:oid,:pid,:qty,:unit,:line)";
+        $sql = 'INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total)
+                VALUES (:oid,:pid,:qty,:unit,:line)';
         $st = $db->prepare($sql);
         $st->execute([
             ':oid'  => $orderId,
@@ -95,45 +100,51 @@ class Order
 
     public static function findWithItems(PDO $db, int $orderId, int $companyId): ?array
     {
-        $st = $db->prepare("SELECT * FROM orders WHERE id = ? AND company_id = ?");
+        $st = $db->prepare('SELECT * FROM orders WHERE id = ? AND company_id = ?');
         $st->execute([$orderId, $companyId]);
         $order = $st->fetch(PDO::FETCH_ASSOC);
+
         if (!$order) {
             return null;
         }
         $items = self::itemsForOrders($db, [$orderId]);
         $order['items'] = $items[$orderId] ?? [];
+
         return $order;
     }
 
     public static function findBasic(PDO $db, int $orderId, int $companyId): ?array
     {
-        $st = $db->prepare("SELECT * FROM orders WHERE id = ? AND company_id = ?");
+        $st = $db->prepare('SELECT * FROM orders WHERE id = ? AND company_id = ?');
         $st->execute([$orderId, $companyId]);
         $row = $st->fetch(PDO::FETCH_ASSOC);
+
         return $row ?: null;
     }
 
     public static function findForKds(PDO $db, int $orderId, int $companyId): ?array
     {
         $order = self::findBasic($db, $orderId, $companyId);
+
         if (!$order) {
             return null;
         }
         $items = self::itemsForOrders($db, [$orderId]);
         $order['items'] = $items[$orderId] ?? [];
+
         return self::serializeForKds($order, true);
     }
 
     public static function updateStatus(PDO $db, int $orderId, int $companyId, string $status): bool
     {
         $allowed = ['pending','paid','completed','canceled'];
+
         if (!in_array($status, $allowed, true)) {
             return false;
         }
 
         $updated = false;
-        $sql = "UPDATE orders SET status = :status, status_changed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = :id AND company_id = :company";
+        $sql = 'UPDATE orders SET status = :status, status_changed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = :id AND company_id = :company';
         $stmt = $db->prepare($sql);
         try {
             $updated = $stmt->execute([
@@ -143,7 +154,7 @@ class Order
             ]);
         } catch (PDOException $e) {
             if (stripos($e->getMessage(), 'status_changed_at') !== false || stripos($e->getMessage(), 'updated_at') !== false) {
-                $stmt = $db->prepare("UPDATE orders SET status = :status WHERE id = :id AND company_id = :company");
+                $stmt = $db->prepare('UPDATE orders SET status = :status WHERE id = :id AND company_id = :company');
                 $updated = $stmt->execute([
                     ':status'  => $status,
                     ':id'      => $orderId,
@@ -164,7 +175,8 @@ class Order
 
     public static function delete(PDO $db, int $orderId, int $companyId): bool
     {
-        $st = $db->prepare("DELETE FROM orders WHERE id = ? AND company_id = ?");
+        $st = $db->prepare('DELETE FROM orders WHERE id = ? AND company_id = ?');
+
         return $st->execute([$orderId, $companyId]);
     }
 
@@ -174,6 +186,7 @@ class Order
         $st = $pdo->prepare('SELECT COUNT(*) AS total FROM orders WHERE company_id = ?');
         $st->execute([$companyId]);
         $row = $st->fetch(PDO::FETCH_ASSOC);
+
         return (int)($row['total'] ?? 0);
     }
 
@@ -189,6 +202,7 @@ class Order
         $st->bindValue(':cid', $companyId, PDO::PARAM_INT);
         $st->bindValue(':lim', $limit, PDO::PARAM_INT);
         $st->execute();
+
         return $st->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -203,16 +217,19 @@ class Order
         $st = $db->prepare($sql);
         $st->execute([':cid' => $companyId]);
         $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+
         if (!$rows) {
             return [];
         }
-        $orderIds = array_map(static fn($row) => (int)$row['id'], $rows);
+        $orderIds = array_map(static fn ($row) => (int)$row['id'], $rows);
         $itemsMap = self::itemsForOrders($db, $orderIds);
         $result = [];
+
         foreach ($rows as $row) {
             $row['items'] = $itemsMap[$row['id']] ?? [];
             $result[] = self::serializeForKds($row, true);
         }
+
         return $result;
     }
 
@@ -220,6 +237,7 @@ class Order
     {
         $sinceIso = trim($sinceIso);
         $sinceTs = $sinceIso !== '' ? strtotime($sinceIso) : false;
+
         if (!$sinceTs) {
             return [
                 'orders'       => self::snapshot($db, $companyId),
@@ -278,8 +296,10 @@ class Order
 
         $activeRows = [];
         $removed = [];
+
         foreach ($rows as $row) {
             $status = (string)($row['status'] ?? '');
+
             if (!in_array($status, $statusFilter, true)) {
                 $removed[] = (int)$row['id'];
                 continue;
@@ -288,9 +308,11 @@ class Order
         }
 
         $orders = [];
+
         if ($activeRows) {
-            $orderIds = array_map(static fn($row) => (int)$row['id'], $activeRows);
+            $orderIds = array_map(static fn ($row) => (int)$row['id'], $activeRows);
             $itemsMap = self::itemsForOrders($db, $orderIds);
+
             foreach ($activeRows as $row) {
                 $row['items'] = $itemsMap[$row['id']] ?? [];
                 $orders[] = self::serializeForKds($row, true);
@@ -318,10 +340,12 @@ class Order
                 $st = $db->prepare($sql);
                 $st->execute([':cid' => $companyId]);
                 $row = $st->fetch(PDO::FETCH_ASSOC);
+
                 if (!$row || empty($row['last_change'])) {
                     continue;
                 }
                 $ts = strtotime((string)$row['last_change']);
+
                 if ($ts) {
                     return gmdate('c', $ts);
                 }
@@ -347,13 +371,16 @@ class Order
         $st = $db->prepare($sql);
         $st->execute($orderIds);
         $map = [];
+
         while ($row = $st->fetch(PDO::FETCH_ASSOC)) {
             $orderId = (int)$row['order_id'];
+
             if (!isset($map[$orderId])) {
                 $map[$orderId] = [];
             }
             $map[$orderId][] = $row;
         }
+
         return $map;
     }
 
@@ -364,6 +391,7 @@ class Order
                 return null;
             }
             $ts = strtotime((string)$value);
+
             return $ts ? gmdate('c', $ts) : null;
         };
 
@@ -389,8 +417,10 @@ class Order
         } else {
             $slaMinutes = (int)(function_exists('config') ? (config('kds_sla_minutes') ?? 20) : 20);
             $createdAt = $order['created_at'] ?? null;
+
             if ($slaMinutes > 0 && $createdAt) {
                 $deadline = strtotime($createdAt . ' +' . $slaMinutes . ' minutes');
+
                 if ($deadline) {
                     $result['sla_deadline'] = gmdate('c', $deadline);
                 }
@@ -400,6 +430,7 @@ class Order
         if ($withItems) {
             $items = [];
             $source = $order['items'] ?? [];
+
             foreach ($source as $item) {
                 $items[] = self::formatItemForKds($item);
             }
@@ -429,6 +460,7 @@ class Order
     public static function emitOrderEvent(PDO $db, int $orderId, int $companyId, string $eventType): void
     {
         $order = self::findBasic($db, $orderId, $companyId);
+
         if (!$order) {
             return;
         }
@@ -443,8 +475,8 @@ class Order
 
     private static function logEvent(PDO $db, int $orderId, int $companyId, string $eventType, ?string $status, array $payload = []): void
     {
-        $sql = "INSERT INTO order_events (order_id, company_id, event_type, status, payload)
-                VALUES (:order_id, :company_id, :event_type, :status, :payload)";
+        $sql = 'INSERT INTO order_events (order_id, company_id, event_type, status, payload)
+                VALUES (:order_id, :company_id, :event_type, :status, :payload)';
         $stmt = $db->prepare($sql);
         try {
             $stmt->execute([
@@ -465,11 +497,11 @@ class Order
     public static function latestEvents(PDO $db, int $companyId, int $afterId = 0, int $limit = 100): array
     {
         try {
-            $sql = "SELECT id, order_id, company_id, event_type, status, payload, created_at
+            $sql = 'SELECT id, order_id, company_id, event_type, status, payload, created_at
                     FROM order_events
                     WHERE company_id = :cid AND id > :after
                     ORDER BY id ASC
-                    LIMIT :lim";
+                    LIMIT :lim';
             $stmt = $db->prepare($sql);
             $stmt->bindValue(':cid', $companyId, PDO::PARAM_INT);
             $stmt->bindValue(':after', $afterId, PDO::PARAM_INT);
@@ -483,10 +515,13 @@ class Order
         }
 
         $events = [];
+
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $payload = null;
+
             if (!empty($row['payload'])) {
                 $decoded = json_decode($row['payload'], true);
+
                 if (json_last_error() === JSON_ERROR_NONE) {
                     $payload = $decoded;
                 }
@@ -501,6 +536,7 @@ class Order
                 'created_at' => $row['created_at'],
             ];
         }
+
         return $events;
     }
 
@@ -510,6 +546,7 @@ class Order
             $stmt = $db->prepare('SELECT MAX(id) AS max_id FROM order_events WHERE company_id = :cid');
             $stmt->execute([':cid' => $companyId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
             return (int)($row['max_id'] ?? 0);
         } catch (PDOException $e) {
             if (stripos($e->getMessage(), 'order_events') !== false) {

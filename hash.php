@@ -101,7 +101,7 @@ if ($action === 'check') {
       <label style="margin-top:10px">Hash gerado</label>
       <div class="result" id="hashOut"><?php echo $hashOut ? e($hashOut) : '—'; ?></div>
       <div class="actions">
-        <button class="ghost" type="button" onclick="copyHash()">Copiar</button>
+  <button class="ghost" type="button" data-action="copy" data-target="#hash-value">Copiar</button>
         <span class="small">Prefixo deve ser <strong>$2y$</strong>.</span>
       </div>
       <script>

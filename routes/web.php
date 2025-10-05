@@ -18,6 +18,8 @@ $router->post('/{slug}/cart/update',             'PublicCartController@update');
 $router->get('/{slug}/checkout',                 'PublicCartController@checkout');
 $router->get('/{slug}/checkout/success',         'PublicCartController@checkoutSuccess');
 $router->post('/{slug}/checkout',                'PublicCartController@submitCheckout');
+$router->get('/{slug}/profile',                  'PublicProfileController@index');
+$router->post('/{slug}/profile/update',          'PublicProfileController@update');
 
 /* ========= Rotas cliente ========= */
 $router->post('/{slug}/customer-login',          'CustomerAuthController@login');

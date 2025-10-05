@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -12,12 +14,14 @@ class AdminKdsController extends Controller
     {
         Auth::start();
         $user = Auth::user();
+
         if (!$user) {
             header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
             exit;
         }
 
         $company = Company::findBySlug($slug);
+
         if (!$company) {
             echo 'Empresa inválida';
             exit;
@@ -40,6 +44,7 @@ class AdminKdsController extends Controller
         $companyId = (int)$company['id'];
         $snapshot = Order::snapshot($db, $companyId);
         $hasCanceled = false;
+
         foreach ($snapshot as $order) {
             if (($order['status'] ?? '') === 'canceled') {
                 $hasCanceled = true;
@@ -50,6 +55,7 @@ class AdminKdsController extends Controller
         // Resolve bell URL (aceita http(s), //, caminho absoluto ou relativo ao app)
         $bellPath = (string)(config('kds_bell_url') ?? '');
         $bellUrl = '';
+
         if ($bellPath !== '') {
             if (preg_match('/^(https?:)?\/\//i', $bellPath)) {
                 $bellUrl = $bellPath;
@@ -90,6 +96,7 @@ class AdminKdsController extends Controller
         $companyId = (int)$company['id'];
 
         $sinceParam = isset($_GET['since']) ? trim((string)$_GET['since']) : '';
+
         if ($sinceParam !== '') {
             $delta = Order::snapshotDelta($db, $companyId, $sinceParam);
         } else {
@@ -132,6 +139,7 @@ class AdminKdsController extends Controller
         $companyId = (int)$company['id'];
 
         $input = json_decode(file_get_contents('php://input'), true);
+
         if (!is_array($input)) {
             $input = $_POST;
         }
@@ -147,6 +155,7 @@ class AdminKdsController extends Controller
         }
 
         $ok = Order::updateStatus($db, $orderId, $companyId, $status);
+
         if (!$ok) {
             http_response_code(400);
             header('Content-Type: application/json');

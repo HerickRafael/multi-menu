@@ -2,18 +2,30 @@
 // admin/ingredients/index.php — Lista de ingredientes (versão moderna, sem coluna de Produtos)
 
 // Helpers (caso a view seja renderizada isolada)
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
-if (!function_exists('base_url')) {
-  function base_url($p=''){
-    $b = rtrim($_SERVER['BASE_URL'] ?? '/', '/');
-    return $b . '/' . ltrim((string)$p, '/');
-  }
-}
-if (!function_exists('price_br')) {
-  function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); }
+if (!function_exists('e')) {
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
-$title = "Ingredientes - " . ($company['name'] ?? '');
+if (!function_exists('base_url')) {
+    function base_url($p = '')
+    {
+        $b = rtrim($_SERVER['BASE_URL'] ?? '/', '/');
+
+        return $b . '/' . ltrim((string)$p, '/');
+    }
+}
+
+if (!function_exists('price_br')) {
+    function price_br($v)
+    {
+        return 'R$ ' . number_format((float)$v, 2, ',', '.');
+    }
+}
+
+$title = 'Ingredientes - ' . ($company['name'] ?? '');
 $slug  = rawurlencode((string)($company['slug'] ?? ''));
 $selectedProduct = $productId ?? null;
 $search = trim((string)($q ?? ''));
@@ -155,14 +167,15 @@ ob_start(); ?>
             <td class="p-3 align-middle text-slate-700">
               <?php
                 $uVal = $item['unit_value'] ?? null;
-                if ($uVal !== null && $uVal !== '') {
-                  if (!is_string($uVal)) {
+
+            if ($uVal !== null && $uVal !== '') {
+                if (!is_string($uVal)) {
                     $uVal = rtrim(rtrim(number_format((float)$uVal, 3, ',', '.'), '0'), ',');
-                  }
                 }
-                $uTxt = trim((string)($item['unit'] ?? ''));
-                $unitDisplay = trim(($uVal !== null && $uVal !== '' ? $uVal : '1') . ' ' . $uTxt);
-              ?>
+            }
+            $uTxt = trim((string)($item['unit'] ?? ''));
+            $unitDisplay = trim(($uVal !== null && $uVal !== '' ? $uVal : '1') . ' ' . $uTxt);
+            ?>
               <?= e($unitDisplay) ?>
             </td>
 

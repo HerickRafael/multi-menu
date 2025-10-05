@@ -1,12 +1,15 @@
 <?php
 // admin/categories/index.php — Lista de categorias (versão moderna)
 
-$title = "Categorias - " . ($company['name'] ?? '');
+$title = 'Categorias - ' . ($company['name'] ?? '');
 $slug  = rawurlencode((string)($company['slug'] ?? ''));
 
 // helper de escape (se ainda não existir)
 if (!function_exists('e')) {
-  function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
 }
 
 ob_start(); ?>

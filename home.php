@@ -321,30 +321,7 @@ $showFooterMenu = true;
 <!-- MAIN (mesma largura do cabeçalho: p-5) -->
 <div class="max-w-5xl mx-auto p-4">
 
-<script>
-  // Modal de horários
-  (function(){
-    const modal = document.getElementById('hours-modal');
-    if (!modal) return;
-    function open(){ modal.classList.remove('hidden'); }
-    function close(){ modal.classList.add('hidden'); }
-    document.getElementById('btn-hours')?.addEventListener('click', open);
-    document.getElementById('btn-hours-ico')?.addEventListener('click', open);
-    document.getElementById('hours-close')?.addEventListener('click', close);
-    modal.addEventListener('click', (e)=>{ if (e.target===modal) close(); });
-  })();
-
-  // Modal de login
-  (function(){
-    const modal = document.getElementById('login-modal');
-    if (!modal) return;
-    function open(){ modal.classList.remove('hidden'); }
-    function close(){ modal.classList.add('hidden'); }
-    document.getElementById('btn-open-login')?.addEventListener('click', open);
-    document.getElementById('login-close')?.addEventListener('click', close);
-    modal.addEventListener('click', (e)=>{ if (e.target===modal) close(); });
-  })();
-</script>
+<!-- modals/tabs/search handled by public/assets/js/ui.js -->
 
 <!-- Abas (categorias) -->
 <?php $firstActiveAssigned = false; ?>
@@ -359,43 +336,10 @@ $showFooterMenu = true;
 <?php endforeach; ?>
 </div>
 
-<script>
-  // Destaque dinâmico das abas de categoria
-  (function(){
-    const tabs = Array.from(document.querySelectorAll('.category-tab'));
-    if (!tabs.length) return;
-
-    function activate(tab){
-      if (!tab) return;
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-    }
-
-    tabs.forEach(t => t.addEventListener('click', () => activate(t)));
-
-    function onScroll(){
-      let chosen = tabs[0];
-      const offset = 80;
-      tabs.forEach(t => {
-        const id = t.getAttribute('href').slice(1);
-        const anchor = document.getElementById(id);
-        const target = anchor?.nextElementSibling || anchor;
-        if (target && target.getBoundingClientRect().top - offset <= 0) {
-          chosen = t;
-        }
-      });
-      activate(chosen);
-    }
-
-    const initial = document.querySelector('.category-tab.active') || tabs[0];
-    activate(initial);
-    window.addEventListener('scroll', onScroll);
-    onScroll();
-  })();
-</script>
+<!-- tabs behavior handled by public/assets/js/ui.js -->
 
 <!-- Busca -->
-<form method="get" action="<?= e(base_url(rawurlencode((string)$company['slug']))) ?>" class="mb-4">
+<form method="get" action="<?= e(base_url(rawurlencode((string)$company['slug']))) ?>" class="mb-4" data-search-url="<?= e(base_url(rawurlencode((string)$company['slug']).'/buscar')) ?>">
   <input type="text" name="q" value="<?= e($q) ?>" placeholder="Digite para buscar um item"
          class="w-full border rounded-xl px-3 py-2" />
 </form>
@@ -413,29 +357,7 @@ $showFooterMenu = true;
   <?php endif; ?>
 </div>
 
-<script>
-  // Busca instantânea de produtos
-  (function(){
-    const input   = document.querySelector('input[name="q"]');
-    const results = document.getElementById('search-results');
-    const url     = '<?= base_url(rawurlencode((string)$company['slug']).'/buscar') ?>';
-    let timer;
-    input?.addEventListener('input', function(){
-      const term = input.value.trim();
-      clearTimeout(timer);
-      timer = setTimeout(async ()=>{
-        if (term === '') { results.innerHTML = ''; return; }
-        try {
-          const res  = await fetch(url + '?q=' + encodeURIComponent(term), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-          const html = await res.text();
-          results.innerHTML = html;
-        } catch (e) {
-          console.error(e);
-        }
-      }, 300);
-    });
-  })();
-</script>
+<!-- search handled by public/assets/js/ui.js -->
 
 <!-- ======== BLOCOS NO TOPO ======== -->
 <?php if ($mostraNovidade): ?>

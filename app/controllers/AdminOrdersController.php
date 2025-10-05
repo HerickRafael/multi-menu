@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -9,21 +11,33 @@ require_once __DIR__ . '/../models/Company.php';
 class AdminOrdersController extends Controller
 {
     /** Valida sessão, empresa e retorna [$u, $company] */
-    private function guard(string $slug): array {
+    private function guard(string $slug): array
+    {
         Auth::start();
         $u = Auth::user();
-          if (!$u) { header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login')); exit; }
+
+        if (!$u) {
+            header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
+            exit;
+        }
 
         $company = Company::findBySlug($slug);
-        if (!$company) { echo "Empresa inválida"; exit; }
+
+        if (!$company) {
+            echo 'Empresa inválida';
+            exit;
+        }
 
         if ($u['role'] !== 'root' && (int)$u['company_id'] !== (int)$company['id']) {
-            echo "Acesso negado"; exit;
+            echo 'Acesso negado';
+            exit;
         }
+
         return [$u, $company];
     }
 
-    public function index($params) {
+    public function index($params)
+    {
         $slug = $params['slug'];
         [$u, $company] = $this->guard($slug);
         $db = $this->db();
@@ -39,14 +53,21 @@ class AdminOrdersController extends Controller
         ]);
     }
 
-    public function show($params) {
+    public function show($params)
+    {
         $slug = $params['slug'];
         [$u, $company] = $this->guard($slug);
         $db = $this->db();
 
         $orderId = (int)($_GET['id'] ?? 0);
         $order = Order::findWithItems($db, $orderId, (int)$company['id']);
-        if (!$order) { http_response_code(404); echo "Pedido não encontrado"; return; }
+
+        if (!$order) {
+            http_response_code(404);
+            echo 'Pedido não encontrado';
+
+            return;
+        }
 
         return $this->view('admin/orders/show', [
             'order'      => $order,
@@ -55,7 +76,8 @@ class AdminOrdersController extends Controller
         ]);
     }
 
-    public function setStatus($params) {
+    public function setStatus($params)
+    {
         $slug = $params['slug'];
         [$u, $company] = $this->guard($slug);
         $db = $this->db();
@@ -68,10 +90,11 @@ class AdminOrdersController extends Controller
             exit;
         }
         http_response_code(400);
-        echo "Não foi possível atualizar o status";
+        echo 'Não foi possível atualizar o status';
     }
 
-    public function create($params) {
+    public function create($params)
+    {
         $slug = $params['slug'];
         [$u, $company] = $this->guard($slug);
         $db = $this->db();
@@ -93,7 +116,8 @@ class AdminOrdersController extends Controller
         ]);
     }
 
-    public function store($params) {
+    public function store($params)
+    {
         $slug = $params['slug'];
         [$u, $company] = $this->guard($slug);
         $db = $this->db();
@@ -107,17 +131,29 @@ class AdminOrdersController extends Controller
         $product_ids = $_POST['product_id'] ?? [];
         $quantities  = $_POST['quantity']   ?? [];
 
-        if (!$customer_name) { http_response_code(400); echo "Informe o nome do cliente."; return; }
+        if (!$customer_name) {
+            http_response_code(400);
+            echo 'Informe o nome do cliente.';
+
+            return;
+        }
 
         $items = [];
         $subtotal = 0.0;
+
         foreach ($product_ids as $i => $pid) {
             $pid = (int)$pid;
             $qty = (int)($quantities[$i] ?? 0);
-            if ($pid <= 0 || $qty <= 0) continue;
+
+            if ($pid <= 0 || $qty <= 0) {
+                continue;
+            }
 
             $prod = Product::find($pid);
-            if (!$prod || (int)$prod['company_id'] !== (int)$company['id']) continue;
+
+            if (!$prod || (int)$prod['company_id'] !== (int)$company['id']) {
+                continue;
+            }
 
             $unit = (float)($prod['promo_price'] ?: $prod['price']);
             $line = $unit * $qty;
@@ -131,7 +167,12 @@ class AdminOrdersController extends Controller
             $subtotal += $line;
         }
 
-        if (empty($items)) { http_response_code(400); echo "Adicione ao menos um item."; return; }
+        if (empty($items)) {
+            http_response_code(400);
+            echo 'Adicione ao menos um item.';
+
+            return;
+        }
 
         $total = max(0, $subtotal + $delivery_fee - $discount);
 
@@ -158,7 +199,8 @@ class AdminOrdersController extends Controller
         exit;
     }
 
-    public function destroy($params) {
+    public function destroy($params)
+    {
         $slug = $params['slug'];
         [$u, $company] = $this->guard($slug);
         $db = $this->db();
@@ -171,6 +213,6 @@ class AdminOrdersController extends Controller
         }
 
         http_response_code(400);
-        echo "Não foi possível excluir o pedido.";
+        echo 'Não foi possível excluir o pedido.';
     }
 }

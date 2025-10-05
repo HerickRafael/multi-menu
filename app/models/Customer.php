@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 class Customer
 {
     /**
@@ -16,17 +18,19 @@ class Customer
         // Se você já tem uma função global db() que retorna PDO, use-a:
         if (function_exists('db')) {
             $pdo = db();
+
             if ($pdo instanceof PDO) {
                 return $pdo;
             }
         }
 
         static $pdo = null;
+
         if ($pdo instanceof PDO) {
             return $pdo;
         }
 
-        $dsn  = getenv('DB_DSN')  ?: (defined('DB_DSN')  ? DB_DSN  : 'mysql:host=localhost;dbname=multimenu;charset=utf8mb4');
+        $dsn  = getenv('DB_DSN') ?: (defined('DB_DSN') ? DB_DSN : 'mysql:host=localhost;dbname=multimenu;charset=utf8mb4');
         $user = getenv('DB_USER') ?: (defined('DB_USER') ? DB_USER : 'root');
         $pass = getenv('DB_PASS') ?: (defined('DB_PASS') ? DB_PASS : '');
 
@@ -42,36 +46,39 @@ class Customer
     /** Empresas */
     public static function findCompanyBySlug(string $slug): ?array
     {
-        $sql = "SELECT * FROM companies WHERE slug = :slug LIMIT 1";
+        $sql = 'SELECT * FROM companies WHERE slug = :slug LIMIT 1';
         $st  = self::pdo()->prepare($sql);
         $st->execute([':slug' => $slug]);
         $row = $st->fetch();
+
         return $row ?: null;
     }
 
     /** Clientes */
     public static function findByCompanyAndE164(int $companyId, string $e164): ?array
     {
-        $sql = "SELECT * FROM customers WHERE company_id = :cid AND whatsapp_e164 = :e LIMIT 1";
+        $sql = 'SELECT * FROM customers WHERE company_id = :cid AND whatsapp_e164 = :e LIMIT 1';
         $st  = self::pdo()->prepare($sql);
         $st->execute([':cid' => $companyId, ':e' => $e164]);
         $row = $st->fetch();
+
         return $row ?: null;
     }
 
     public static function findById(int $id): ?array
     {
-        $sql = "SELECT * FROM customers WHERE id = :id LIMIT 1";
+        $sql = 'SELECT * FROM customers WHERE id = :id LIMIT 1';
         $st  = self::pdo()->prepare($sql);
         $st->execute([':id' => $id]);
         $row = $st->fetch();
+
         return $row ?: null;
     }
 
     public static function insert(array $data): int
     {
-        $sql = "INSERT INTO customers (company_id, name, whatsapp, whatsapp_e164, created_at, updated_at, last_login_at)
-                VALUES (:company_id, :name, :whatsapp, :e164, :created_at, :updated_at, :last_login_at)";
+        $sql = 'INSERT INTO customers (company_id, name, whatsapp, whatsapp_e164, created_at, updated_at, last_login_at)
+                VALUES (:company_id, :name, :whatsapp, :e164, :created_at, :updated_at, :last_login_at)';
         $pdo = self::pdo();
         $st  = $pdo->prepare($sql);
         $st->execute([
@@ -81,19 +88,20 @@ class Customer
             ':e164'         => $data['whatsapp_e164'],
             ':created_at'   => $data['created_at'],
             ':updated_at'   => $data['updated_at'],
-            ':last_login_at'=> $data['last_login_at'],
+            ':last_login_at' => $data['last_login_at'],
         ]);
+
         return (int) $pdo->lastInsertId();
     }
 
     public static function updateById(int $id, array $data): void
     {
-        $sql = "UPDATE customers
+        $sql = 'UPDATE customers
                    SET name = :name,
                        whatsapp = :whatsapp,
                        updated_at = :updated_at,
                        last_login_at = :last_login_at
-                 WHERE id = :id";
+                 WHERE id = :id';
         $st  = self::pdo()->prepare($sql);
         $st->execute([
             ':name'          => $data['name'],

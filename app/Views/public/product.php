@@ -4,15 +4,27 @@
  * Página pública do produto
  * ============================================================================ */
 
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
-if (!function_exists('price_br')) { function price_br($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); } }
+if (!function_exists('e')) {
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('price_br')) {
+    function price_br($v)
+    {
+        return 'R$ ' . number_format((float)$v, 2, ',', '.');
+    }
+}
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
-  $sessName = function_exists('config') ? (config('session_name') ?? 'mm_session') : 'mm_session';
-  if ($sessName && session_name() !== $sessName) {
-    session_name($sessName);
-  }
-  @session_start();
+    $sessName = function_exists('config') ? (config('session_name') ?? 'mm_session') : 'mm_session';
+
+    if ($sessName && session_name() !== $sessName) {
+        session_name($sessName);
+    }
+    @session_start();
 }
 
 /** Variáveis básicas */
@@ -36,92 +48,107 @@ $forceLoginModal = !empty($forceLoginModal);
 
 /** Helper para forçar caminho local em /uploads a partir de URL ou nome */
 if (!function_exists('local_upload_src')) {
-  function local_upload_src(?string $maybeUrlOrName, string $fallback = 'assets/logo-placeholder.png'): string {
-    $raw = trim((string)($maybeUrlOrName ?? ''));
-    if ($raw === '') return base_url($fallback);
-    $path = parse_url($raw, PHP_URL_PATH);
-    $base = basename($path ?: $raw);
-    if ($base === '' || $base === '/') return base_url($fallback);
-    return base_url('uploads/' . $base);
-  }
+    function local_upload_src(?string $maybeUrlOrName, string $fallback = 'assets/logo-placeholder.png'): string
+    {
+        $raw = trim((string)($maybeUrlOrName ?? ''));
+
+        if ($raw === '') {
+            return base_url($fallback);
+        }
+        $path = parse_url($raw, PHP_URL_PATH);
+        $base = basename($path ?: $raw);
+
+        if ($base === '' || $base === '/') {
+            return base_url($fallback);
+        }
+
+        return base_url('uploads/' . $base);
+    }
 }
 
 /** Normaliza grupos de combo vindos do backend */
 $comboGroupsRaw = is_array($comboGroups) ? $comboGroups : [];
 $comboGroups    = [];
+
 foreach ($comboGroupsRaw as $gIndex => $group) {
-  if (!is_array($group)) {
-    continue;
-  }
-
-  $itemsRaw = $group['items'] ?? [];
-  if (!is_array($itemsRaw) || !$itemsRaw) {
-    continue;
-  }
-
-  $items = [];
-  foreach ($itemsRaw as $item) {
-    if (!is_array($item)) {
-      continue;
+    if (!is_array($group)) {
+        continue;
     }
 
-    $simpleId = isset($item['simple_id'])
-      ? (int)$item['simple_id']
-      : (int)($item['simple_product_id'] ?? $item['product_id'] ?? 0);
-    if ($simpleId <= 0) {
-      continue;
+    $itemsRaw = $group['items'] ?? [];
+
+    if (!is_array($itemsRaw) || !$itemsRaw) {
+        continue;
     }
 
-    $comboItemId = isset($item['id']) ? (int)$item['id'] : $simpleId;
-    $basePrice   = null;
-    if (isset($item['base_price'])) {
-      $basePrice = (float)$item['base_price'];
-    } elseif (isset($item['price'])) {
-      $basePrice = (float)$item['price'];
+    $items = [];
+
+    foreach ($itemsRaw as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $simpleId = isset($item['simple_id'])
+          ? (int)$item['simple_id']
+          : (int)($item['simple_product_id'] ?? $item['product_id'] ?? 0);
+
+        if ($simpleId <= 0) {
+            continue;
+        }
+
+        $comboItemId = isset($item['id']) ? (int)$item['id'] : $simpleId;
+        $basePrice   = null;
+
+        if (isset($item['base_price'])) {
+            $basePrice = (float)$item['base_price'];
+        } elseif (isset($item['price'])) {
+            $basePrice = (float)$item['price'];
+        }
+
+        $delta = 0.0;
+
+        if (isset($item['delta'])) {
+            $delta = (float)$item['delta'];
+        } elseif (isset($item['delta_price'])) {
+            $delta = (float)$item['delta_price'];
+        }
+
+        $isDefault      = !empty($item['default']) || !empty($item['is_default']);
+        $allowCustomize = !empty($item['customizable']) || !empty($item['allow_customize']);
+
+        $items[] = [
+          'id'           => $comboItemId,
+          'simple_id'    => $simpleId,
+          'name'         => (string)($item['name'] ?? ''),
+          'image'        => $item['image'] ?? null,
+          'base_price'   => $basePrice,
+          'delta'        => $delta,
+          'default'      => $isDefault,
+          'customizable' => $allowCustomize,
+        ];
     }
 
-    $delta = 0.0;
-    if (isset($item['delta'])) {
-      $delta = (float)$item['delta'];
-    } elseif (isset($item['delta_price'])) {
-      $delta = (float)$item['delta_price'];
+    if (!$items) {
+        continue;
     }
 
-    $isDefault      = !empty($item['default']) || !empty($item['is_default']);
-    $allowCustomize = !empty($item['customizable']) || !empty($item['allow_customize']);
+    $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
+    $maxQty = isset($group['max']) ? (int)$group['max'] : (int)($group['max_qty'] ?? 1);
+    $type   = isset($group['type']) && $group['type'] !== '' ? (string)$group['type'] : 'single';
+    $name   = trim((string)($group['name'] ?? ''));
 
-    $items[] = [
-      'id'           => $comboItemId,
-      'simple_id'    => $simpleId,
-      'name'         => (string)($item['name'] ?? ''),
-      'image'        => $item['image'] ?? null,
-      'base_price'   => $basePrice,
-      'delta'        => $delta,
-      'default'      => $isDefault,
-      'customizable' => $allowCustomize,
+    if ($name === '') {
+        $name = 'Grupo ' . ((int)$gIndex + 1);
+    }
+
+    $comboGroups[] = [
+      'id'        => isset($group['id']) ? (int)$group['id'] : null,
+      'name'      => $name,
+      'type'      => $type,
+      'min'       => $minQty,
+      'max'       => $maxQty,
+      'items'     => array_values($items),
     ];
-  }
-
-  if (!$items) {
-    continue;
-  }
-
-  $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
-  $maxQty = isset($group['max']) ? (int)$group['max'] : (int)($group['max_qty'] ?? 1);
-  $type   = isset($group['type']) && $group['type'] !== '' ? (string)$group['type'] : 'single';
-  $name   = trim((string)($group['name'] ?? ''));
-  if ($name === '') {
-    $name = 'Grupo ' . ((int)$gIndex + 1);
-  }
-
-  $comboGroups[] = [
-    'id'        => isset($group['id']) ? (int)$group['id'] : null,
-    'name'      => $name,
-    'type'      => $type,
-    'min'       => $minQty,
-    'max'       => $maxQty,
-    'items'     => array_values($items),
-  ];
 }
 
 /** É combo? */
@@ -139,14 +166,14 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
 <style>
   :root{
     --bg:#f3f4f6; --card:#fff; --txt:#0f172a; --muted:#6b7280;
-    --border:#e5e7eb; --accent:#ef4444; --ring:#fbbf24;
-    --cta:#f59e0b; --cta-press:#d97706;
+    --border:#e5e7eb; --accent:#f59e0b; --accent-active:#d97706; --accent-ink:#ffffff;
+    --ring:#fbbf24;
     --hero-h: 360px;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
   .app{width:100%;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;background:var(--card);padding-bottom:96px;position:relative}
-  @media (min-width:768px){ .app{max-width:375px} }
+  @media (min-width:768px){ .app{max-width:420px} }
 
   /* ===== HERO ===== */
   .hero-wrap{position:relative;height:var(--hero-h);overflow:hidden}
@@ -204,10 +231,11 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
 
   /* ===== FOOTER/CTA ===== */
   .footer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06);width:100%;max-width:100%}
-  @media (min-width:768px){ .footer{max-width:375px} }
+  @media (min-width:768px){ .footer{max-width:420px} }
   .card{padding-bottom:82px}
-  .cta{width:100%;border:none;border-radius:16px;padding:14px 16px;background:var(--cta);color:#fff;font-weight:800;font-size:16px;cursor:pointer}
-  .cta:active{background:var(--cta-press)}
+  .cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:none;border-radius:18px;padding:0 24px;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:16px;text-decoration:none;cursor:pointer;text-align:center}
+  .cta:active{background:var(--accent-active)}
+  .cta[disabled]{opacity:.6;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -226,8 +254,8 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
     <!-- Imagem do produto (sempre do /uploads) -->
     <?php
       $imgSrc = local_upload_src($product['image'] ?? null);
-      $imgAlt = !empty($product['name']) ? $product['name'] : 'Imagem do produto';
-    ?>
+$imgAlt = !empty($product['name']) ? $product['name'] : 'Imagem do produto';
+?>
     <img class="hero-product" src="<?= e($imgSrc) ?>" alt="<?= e($imgAlt) ?>">
   </div>
 
@@ -239,29 +267,35 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
     <div class="price-row">
       <div class="price">
         <?php
-          $price = (float)($product['price'] ?? 0);
-          $rawPromo = $product['promo_price'] ?? null;
+      $price = (float)($product['price'] ?? 0);
+$rawPromo = $product['promo_price'] ?? null;
 
-          // Parse robusto de preço promocional
-          $promo = null;
-          if ($rawPromo !== null && $rawPromo !== '') {
-            $promoStr = is_array($rawPromo) ? reset($rawPromo) : $rawPromo;
-            $promoStr = trim((string)$promoStr);
-            if ($promoStr !== '') {
-              $promoStr = str_replace(' ', '', $promoStr);
-              if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
-                $promoStr = str_replace('.', '', $promoStr);
-              }
-              $promoStr = str_replace(',', '.', $promoStr);
-              if (is_numeric($promoStr)) $promo = (float)$promoStr;
-            }
-          }
+// Parse robusto de preço promocional
+$promo = null;
 
-          $hasPromo = $price > 0 && $promo !== null && $promo > 0 && $promo < $price;
+if ($rawPromo !== null && $rawPromo !== '') {
+    $promoStr = is_array($rawPromo) ? reset($rawPromo) : $rawPromo;
+    $promoStr = trim((string)$promoStr);
 
-          if ($hasPromo):
-            $discount = $price > 0 ? (int)floor((($price - $promo) / $price) * 100) : 0;
-        ?>
+    if ($promoStr !== '') {
+        $promoStr = str_replace(' ', '', $promoStr);
+
+        if (strpos($promoStr, ',') !== false && strpos($promoStr, '.') !== false) {
+            $promoStr = str_replace('.', '', $promoStr);
+        }
+        $promoStr = str_replace(',', '.', $promoStr);
+
+        if (is_numeric($promoStr)) {
+            $promo = (float)$promoStr;
+        }
+    }
+}
+
+$hasPromo = $price > 0 && $promo !== null && $promo > 0 && $promo < $price;
+
+if ($hasPromo):
+    $discount = $price > 0 ? (int)floor((($price - $promo) / $price) * 100) : 0;
+    ?>
           <div class="price-original"><?= price_br($price) ?></div>
           <div class="price-current-row">
             <span class="price-current"><?= price_br($promo) ?></span>
@@ -317,12 +351,12 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   <section class="combo" aria-label="Montar combo">
     <?php foreach ($comboGroups as $gi => $group): ?>
       <?php
-        $gname = (string)($group['name'] ?? ('Etapa '.($gi+1)));
+    $gname = (string)($group['name'] ?? ('Etapa '.($gi + 1)));
         $items = $group['items'] ?? [];
         $gType = $group['type'] ?? 'single';
         $gMin  = isset($group['min']) ? (int)$group['min'] : 0;
         $gMax  = isset($group['max']) ? (int)$group['max'] : 1;
-      ?>
+        ?>
       <div class="group">
         <h2><?= e($gname) ?></h2>
         <div class="choice-row"
@@ -332,26 +366,26 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
              data-max="<?= $gMax ?>">
           <?php foreach ($items as $ii => $opt): ?>
             <?php
-              $isDefault = !empty($opt['default']);
+                $isDefault = !empty($opt['default']);
               $optDelta  = isset($opt['delta']) ? (float)$opt['delta'] : 0.0;
               $basePrice = isset($opt['base_price']) && $opt['base_price'] !== null ? (float)$opt['base_price'] : null;
 
               if ($isDefault) {
-                $priceLabel = 'Incluído';
+                  $priceLabel = 'Incluído';
               } else {
-                if ($basePrice !== null) {
-                  $priceLabel = price_br($basePrice);
-                } elseif ($priceMode === 'sum') {
-                  $priceLabel = price_br($optDelta);
-                } else {
-                  if ($optDelta > 0) {
-                    $priceLabel = '+ ' . price_br($optDelta);
-                  } elseif ($optDelta < 0) {
-                    $priceLabel = '− ' . price_br(abs($optDelta));
+                  if ($basePrice !== null) {
+                      $priceLabel = price_br($basePrice);
+                  } elseif ($priceMode === 'sum') {
+                      $priceLabel = price_br($optDelta);
                   } else {
-                    $priceLabel = price_br(0);
+                      if ($optDelta > 0) {
+                          $priceLabel = '+ ' . price_br($optDelta);
+                      } elseif ($optDelta < 0) {
+                          $priceLabel = '− ' . price_br(abs($optDelta));
+                      } else {
+                          $priceLabel = price_br(0);
+                      }
                   }
-                }
               }
 
               $comboImg = local_upload_src($opt['image'] ?? null);
@@ -361,7 +395,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
               $choiceCustomUrl = $canCustomizeChoice
                 ? base_url($slug . '/produto/' . $simpleId . '/customizar?' . $parentQuery)
                 : null;
-            ?>
+              ?>
             <div class="choice <?= $isDefault ? 'sel' : '' ?>"
                  data-group="<?= (int)$gi ?>"
                  data-id="<?= (int)($opt['id'] ?? 0) ?>"
@@ -371,7 +405,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
                  <?php if ($basePrice !== null): ?>data-base-price="<?= e(number_format($basePrice, 2, '.', '')) ?>"<?php endif; ?>
                  data-customizable="<?= $canCustomizeChoice ? '1' : '0' ?>"
                  <?php if ($choiceCustomUrl): ?>data-custom-url="<?= e($choiceCustomUrl) ?>"<?php endif; ?>>
-              <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true':'false' ?>">
+              <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true' : 'false' ?>">
                 <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
                 <span class="mark" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -398,13 +432,14 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
       <?php foreach ($comboGroups as $gi => $group): ?>
         <?php
           $selId = null;
+
           foreach (($group['items'] ?? []) as $opt) {
-            if (!empty($opt['default'])) {
-              $selId = isset($opt['id']) ? (int)$opt['id'] : null;
-              break;
-            }
+              if (!empty($opt['default'])) {
+                  $selId = isset($opt['id']) ? (int)$opt['id'] : null;
+                  break;
+              }
           }
-        ?>
+          ?>
         <input type="hidden" name="combo[<?= (int)$gi ?>]" id="combo_field_<?= (int)$gi ?>" value="<?= $selId !== null ? (int)$selId : '' ?>">
       <?php endforeach; ?>
     <?php endif; ?>
@@ -421,7 +456,9 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
       <button type="button" id="login-close" class="ml-auto px-3 py-1.5 rounded-xl border">Fechar</button>
     </div>
     <form id="login-form" class="p-4" method="post" action="<?= base_url(rawurlencode((string)$company['slug']).'/customer-login') ?>">
-      <?php if (function_exists('csrf_field')) { echo csrf_field(); } ?>
+      <?php if (function_exists('csrf_field')) {
+          echo csrf_field();
+      } ?>
       <input type="hidden" name="redirect_to" value="<?= e($_SERVER['REQUEST_URI'] ?? '') ?>">
       <div class="mb-3">
         <label class="block text-sm font-medium mb-1">Nome</label>

@@ -2,12 +2,20 @@
 // admin/dashboard/index.php — Dashboard (estilo moderno coeso)
 
 // Helpers (caso a view seja renderizada isolada)
-if (!function_exists('e')) { function e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); } }
+if (!function_exists('e')) {
+    function e($s)
+    {
+        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    }
+}
+
 if (!function_exists('base_url')) {
-  function base_url($p=''){
-    $b = rtrim($_SERVER['BASE_URL'] ?? '/', '/');
-    return $b . '/' . ltrim((string)$p, '/');
-  }
+    function base_url($p = '')
+    {
+        $b = rtrim($_SERVER['BASE_URL'] ?? '/', '/');
+
+        return $b . '/' . ltrim((string)$p, '/');
+    }
 }
 
 // Normalizações seguras
@@ -23,13 +31,13 @@ $ordersCount        = (int)($ordersCount ?? 0);
 $activeSlug = (string)($activeSlug ?? ($company['slug'] ?? ''));
 $slug       = rawurlencode($activeSlug);
 $publicSlug = rawurlencode((string)($company['slug'] ?? ''));
-$title      = "Dashboard - " . ($company['name'] ?? 'Empresa');
+$title      = 'Dashboard - ' . ($company['name'] ?? 'Empresa');
 
 // Logo
 $companyLogo = $company['logo'] ?? 'assets/logo-placeholder.png';
 
 // Pequenos helpers
-$price = function($v){ return 'R$ ' . number_format((float)$v, 2, ',', '.'); };
+$price = function ($v) { return 'R$ ' . number_format((float)$v, 2, ',', '.'); };
 
 ob_start(); ?>
 
@@ -221,16 +229,17 @@ ob_start(); ?>
       <?php
         $iid = (int)($ing['id'] ?? 0);
         $pnRaw = $ing['product_names'] ?? null;
+
         if (is_string($pnRaw) && strpos($pnRaw, '||') !== false) {
-          $pn = array_values(array_filter(array_map('trim', explode('||', $pnRaw))));
+            $pn = array_values(array_filter(array_map('trim', explode('||', $pnRaw))));
         } elseif (is_string($pnRaw) && $pnRaw !== '') {
-          $pn = [$pnRaw];
+            $pn = [$pnRaw];
         } elseif (is_array($pnRaw)) {
-          $pn = $pnRaw;
+            $pn = $pnRaw;
         } else {
-          $pn = [];
+            $pn = [];
         }
-      ?>
+        ?>
       <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
         <a class="flex w-full items-center gap-3" href="<?= e(base_url('admin/' . $slug . '/ingredients/' . $iid . '/edit')) ?>">
           <?php $ingImage = trim((string)($ing['image_path'] ?? '')); ?>
@@ -282,36 +291,36 @@ ob_start(); ?>
   <?php
     // mesmo mapeamento/labels da página orders
     $statusLabels = [
-      'pending'   => 'Pendente',
-      'paid'      => 'Pago',
-      'completed' => 'Concluído',
-      'canceled'  => 'Cancelado',
+        'pending'   => 'Pendente',
+        'paid'      => 'Pago',
+        'completed' => 'Concluído',
+        'canceled'  => 'Cancelado',
     ];
-    $ordersToShow = array_slice($recentOrders, 0, 8);
-  ?>
+$ordersToShow = array_slice($recentOrders, 0, 8);
+?>
 
   <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
     <?php foreach ($ordersToShow as $o): $oid = (int)($o['id'] ?? 0); ?>
       <?php
-        $st    = (string)($o['status'] ?? 'pending');
+      $st    = (string)($o['status'] ?? 'pending');
         $label = $statusLabels[$st] ?? ucfirst($st);
 
         // classes do badge iguais ao admin/orders/index.php
         $badge = match ($st) {
-          'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
-          'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-          'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
-          default     => 'bg-amber-50 text-amber-700 ring-amber-200', // pending
+            'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
+            'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+            'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
+            default     => 'bg-amber-50 text-amber-700 ring-amber-200', // pending
         };
 
         // cor do pontinho
         $dot = match ($st) {
-          'paid'      => 'bg-blue-500',
-          'completed' => 'bg-emerald-500',
-          'canceled'  => 'bg-rose-500',
-          default     => 'bg-amber-500',
+            'paid'      => 'bg-blue-500',
+            'completed' => 'bg-emerald-500',
+            'canceled'  => 'bg-rose-500',
+            default     => 'bg-amber-500',
         };
-      ?>
+        ?>
       <li>
         <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
            href="<?= e(base_url('admin/' . $slug . '/orders/show?id=' . $oid)) ?>">

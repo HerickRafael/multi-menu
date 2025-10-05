@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../core/AuthCustomer.php';
 require_once __DIR__ . '/../models/Customer.php';
 require_once __DIR__ . '/../core/Helpers.php';
@@ -25,11 +27,13 @@ class CustomerAuthController extends Controller
         AuthCustomer::start();
 
         $slug = $params['slug'] ?? null;
+
         if (!$slug) {
             $this->json(['ok' => false, 'message' => 'Empresa inválida.'], 400);
         }
 
         $company = $this->findCompanyBySlug($slug);
+
         if (!$company) {
             $this->json(['ok' => false, 'message' => 'Empresa não encontrada.'], 404);
         }
@@ -42,6 +46,7 @@ class CustomerAuthController extends Controller
         }
 
         $e164 = normalize_whatsapp_e164($whatsRaw);
+
         if ($e164 === '' || strlen($e164) < 12) {
             $this->json(['ok' => false, 'message' => 'WhatsApp inválido.'], 400);
         }
@@ -89,7 +94,7 @@ class CustomerAuthController extends Controller
 
         // cookie 1 ano (opcional)
         setcookie('mm_customer_e164', $customer['whatsapp_e164'], [
-            'expires'  => time() + 60*60*24*365,
+            'expires'  => time() + 60 * 60 * 24 * 365,
             'path'     => '/',
             'secure'   => !empty($_SERVER['HTTPS']),
             'httponly' => true,
@@ -108,6 +113,7 @@ class CustomerAuthController extends Controller
             } elseif (preg_match('~^https?://~i', $redirectTarget)) {
                 $parsed = parse_url($redirectTarget);
                 $host = $_SERVER['HTTP_HOST'] ?? '';
+
                 if (!empty($parsed['host']) && strcasecmp($parsed['host'], $host) === 0) {
                     $redirectUrl = $redirectTarget;
                 }
@@ -118,6 +124,7 @@ class CustomerAuthController extends Controller
 
         $wantJson = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
                  || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+
         if ($wantJson) {
             $this->json(['ok' => true, 'redirect' => $redirectUrl]);
         }
@@ -145,6 +152,7 @@ class CustomerAuthController extends Controller
         $homeUrl = $slug ? base_url(rawurlencode($slug)) : base_url();
         $wantJson = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
                  || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+
         if ($wantJson) {
             $this->json(['ok' => true]);
         }

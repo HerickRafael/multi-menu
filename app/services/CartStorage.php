@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 // app/services/CartStorage.php
 
 require_once __DIR__ . '/../core/Helpers.php';
@@ -19,6 +21,7 @@ class CartStorage
         if (function_exists('db')) {
             try {
                 $pdo = db();
+
                 if ($pdo instanceof PDO) {
                     $this->dbAvailable = true;
                 }
@@ -37,9 +40,11 @@ class CartStorage
                 $port = isset($cfg['port']) ? (int)$cfg['port'] : 6379;
                 $timeout = isset($cfg['timeout']) ? (float)$cfg['timeout'] : 1.5;
                 $redis->connect($host, $port, $timeout);
+
                 if (!empty($cfg['password'])) {
                     $redis->auth($cfg['password']);
                 }
+
                 if (isset($cfg['database'])) {
                     $redis->select((int)$cfg['database']);
                 }
@@ -57,6 +62,7 @@ class CartStorage
         if (self::$instance === null) {
             self::$instance = new self();
         }
+
         return self::$instance;
     }
 
@@ -67,6 +73,7 @@ class CartStorage
                 Auth::start();
             } else {
                 $name = config('session_name') ?? 'mm_session';
+
                 if ($name && session_name() !== $name) {
                     session_name($name);
                 }
@@ -74,10 +81,12 @@ class CartStorage
             }
         }
         $sid = session_id();
+
         if (!$sid) {
             $sid = session_create_id();
             session_id($sid);
         }
+
         return $sid;
     }
 
@@ -92,6 +101,7 @@ class CartStorage
             return null;
         }
         $decoded = json_decode($payload, true);
+
         return is_array($decoded) ? $decoded : null;
     }
 
@@ -103,19 +113,24 @@ class CartStorage
     public function getCart(?string $sessionId = null): array
     {
         $sid = $sessionId ?: $this->ensureSession();
+
         if ($this->useRedis) {
             $cached = $this->decode($this->redis->get($this->key($sid, 'cart')));
+
             if ($cached !== null) {
                 $_SESSION['cart'] = $cached;
+
                 return $cached;
             }
         }
 
         if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
             $dbRow = $this->loadFromDatabase($sid);
+
             if ($dbRow !== null) {
                 $_SESSION['cart'] = $dbRow['cart'];
                 $_SESSION['customizations'] = $dbRow['customizations'];
+
                 if ($this->useRedis) {
                     $this->redis->setex($this->key($sid, 'cart'), $this->ttl, $this->encode($_SESSION['cart']));
                     $this->redis->setex($this->key($sid, 'customizations'), $this->ttl, $this->encode($_SESSION['customizations']));
@@ -133,6 +148,7 @@ class CartStorage
     public function setCart(array $cart, ?string $sessionId = null): void
     {
         $sid = $sessionId ?: $this->ensureSession();
+
         if ($this->useRedis) {
             $this->redis->setex($this->key($sid, 'cart'), $this->ttl, $this->encode($cart));
         }
@@ -144,6 +160,7 @@ class CartStorage
     public function clearCart(?string $sessionId = null): void
     {
         $sid = $sessionId ?: $this->ensureSession();
+
         if ($this->useRedis) {
             $this->redis->del($this->key($sid, 'cart'));
             $this->redis->del($this->key($sid, 'customizations'));
@@ -156,6 +173,7 @@ class CartStorage
     public function getCustomization(int $productId, ?string $sessionId = null): ?array
     {
         $customs = $this->getCustomizations($sessionId);
+
         return isset($customs[$productId]) && is_array($customs[$productId])
             ? $customs[$productId]
             : null;
@@ -171,6 +189,7 @@ class CartStorage
     public function removeCustomization(int $productId, ?string $sessionId = null): void
     {
         $customs = $this->getCustomizations($sessionId);
+
         if (isset($customs[$productId])) {
             unset($customs[$productId]);
             $this->saveCustomizations($customs, $sessionId);
@@ -180,19 +199,24 @@ class CartStorage
     public function getCustomizations(?string $sessionId = null): array
     {
         $sid = $sessionId ?: $this->ensureSession();
+
         if ($this->useRedis) {
             $cached = $this->decode($this->redis->get($this->key($sid, 'customizations')));
+
             if ($cached !== null) {
                 $_SESSION['customizations'] = $cached;
+
                 return $cached;
             }
         }
 
         if (!isset($_SESSION['customizations']) || !is_array($_SESSION['customizations'])) {
             $dbRow = $this->loadFromDatabase($sid);
+
             if ($dbRow !== null) {
                 $_SESSION['cart'] = $dbRow['cart'];
                 $_SESSION['customizations'] = $dbRow['customizations'];
+
                 if ($this->useRedis) {
                     $this->redis->setex($this->key($sid, 'cart'), $this->ttl, $this->encode($_SESSION['cart']));
                     $this->redis->setex($this->key($sid, 'customizations'), $this->ttl, $this->encode($_SESSION['customizations']));
@@ -210,6 +234,7 @@ class CartStorage
     private function saveCustomizations(array $customs, ?string $sessionId = null): void
     {
         $sid = $sessionId ?: $this->ensureSession();
+
         if ($this->useRedis) {
             if ($customs) {
                 $this->redis->setex($this->key($sid, 'customizations'), $this->ttl, $this->encode($customs));
@@ -228,23 +253,27 @@ class CartStorage
         }
         try {
             $pdo = db();
+
             if (!$pdo instanceof PDO) {
                 return null;
             }
             $stmt = $pdo->prepare('SELECT cart_json, customizations_json FROM cart_sessions WHERE session_id = ? LIMIT 1');
             $stmt->execute([$sid]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
             if (!$row) {
                 return null;
             }
             $cart = $this->decode($row['cart_json']);
             $customs = $this->decode($row['customizations_json']);
+
             return [
                 'cart' => $cart ?? [],
                 'customizations' => $customs ?? [],
             ];
         } catch (Throwable $e) {
             $this->dbAvailable = false;
+
             return null;
         }
     }
@@ -256,11 +285,14 @@ class CartStorage
         }
         try {
             $pdo = db();
+
             if (!$pdo instanceof PDO) {
                 return;
             }
+
             if (!$cart && !$customs) {
                 $this->deleteFromDatabase($sid);
+
                 return;
             }
             $stmt = $pdo->prepare('INSERT INTO cart_sessions (session_id, cart_json, customizations_json, created_at, updated_at)
@@ -285,6 +317,7 @@ class CartStorage
         }
         try {
             $pdo = db();
+
             if (!$pdo instanceof PDO) {
                 return;
             }
