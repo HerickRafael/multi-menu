@@ -105,6 +105,24 @@
     const login = initLoginModal();
     initCategoryTabs();
     initSearch();
+    // Intercept footer sacola/perfil clicks to open login modal when not logged
+    try {
+      if (login && typeof login.open === 'function') {
+        document.querySelectorAll('nav a').forEach(a => {
+          const href = a.getAttribute('href') || '';
+          // pattern match for cart or profile routes
+          if (/\/cart$/.test(href) || /\/profile$/.test(href)) {
+            a.addEventListener('click', function(e){
+              // if customer not logged, open login modal and prevent navigation
+              if (!window.__IS_CUSTOMER) {
+                e.preventDefault();
+                login.open();
+              }
+            });
+          }
+        });
+      }
+    } catch(e) { console.error(e); }
     // Delegated handlers for data-action
     document.body.addEventListener('click', function(e){
       const btn = e.target.closest('[data-action]');
