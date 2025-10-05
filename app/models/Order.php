@@ -216,6 +216,123 @@ class Order
         return $result;
     }
 
+    public static function snapshotDelta(PDO $db, int $companyId, string $sinceIso): array
+    {
+        $sinceIso = trim($sinceIso);
+        $sinceTs = $sinceIso !== '' ? strtotime($sinceIso) : false;
+        if (!$sinceTs) {
+            return [
+                'orders'       => self::snapshot($db, $companyId),
+                'removed_ids'  => [],
+                'full_refresh' => true,
+            ];
+        }
+
+        $sinceDb = date('Y-m-d H:i:s', $sinceTs);
+        $statusFilter = ['pending','paid','completed','canceled'];
+
+        $rows = [];
+        $executed = false;
+        $expressions = [
+            'COALESCE(status_changed_at, updated_at, created_at)',
+            'COALESCE(updated_at, created_at)',
+            'created_at',
+        ];
+
+        foreach ($expressions as $expr) {
+            $sql = "SELECT *
+                    FROM orders
+                    WHERE company_id = :cid
+                      AND $expr >= :since
+                    ORDER BY created_at ASC, id ASC
+                    LIMIT 150";
+            try {
+                $st = $db->prepare($sql);
+                $st->execute([
+                    ':cid'   => $companyId,
+                    ':since' => $sinceDb,
+                ]);
+                $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+                $executed = true;
+                break;
+            } catch (PDOException $e) {
+                continue;
+            }
+        }
+
+        if (!$executed) {
+            return [
+                'orders'       => self::snapshot($db, $companyId),
+                'removed_ids'  => [],
+                'full_refresh' => true,
+            ];
+        }
+
+        if (!$rows) {
+            return [
+                'orders'       => [],
+                'removed_ids'  => [],
+                'full_refresh' => false,
+            ];
+        }
+
+        $activeRows = [];
+        $removed = [];
+        foreach ($rows as $row) {
+            $status = (string)($row['status'] ?? '');
+            if (!in_array($status, $statusFilter, true)) {
+                $removed[] = (int)$row['id'];
+                continue;
+            }
+            $activeRows[] = $row;
+        }
+
+        $orders = [];
+        if ($activeRows) {
+            $orderIds = array_map(static fn($row) => (int)$row['id'], $activeRows);
+            $itemsMap = self::itemsForOrders($db, $orderIds);
+            foreach ($activeRows as $row) {
+                $row['items'] = $itemsMap[$row['id']] ?? [];
+                $orders[] = self::serializeForKds($row, true);
+            }
+        }
+
+        return [
+            'orders'       => $orders,
+            'removed_ids'  => $removed,
+            'full_refresh' => false,
+        ];
+    }
+
+    public static function latestChangeToken(PDO $db, int $companyId): ?string
+    {
+        $candidates = [
+            'COALESCE(status_changed_at, updated_at, created_at)',
+            'COALESCE(updated_at, created_at)',
+            'created_at',
+        ];
+
+        foreach ($candidates as $expression) {
+            $sql = "SELECT MAX($expression) AS last_change FROM orders WHERE company_id = :cid";
+            try {
+                $st = $db->prepare($sql);
+                $st->execute([':cid' => $companyId]);
+                $row = $st->fetch(PDO::FETCH_ASSOC);
+                if (!$row || empty($row['last_change'])) {
+                    continue;
+                }
+                $ts = strtotime((string)$row['last_change']);
+                if ($ts) {
+                    return gmdate('c', $ts);
+                }
+            } catch (PDOException $e) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
     private static function itemsForOrders(PDO $db, array $orderIds): array
     {
         if (!$orderIds) {

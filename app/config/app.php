@@ -22,4 +22,9 @@ return [
   // Quantos dias um produto aparece como "Novidade".
   // Coloque 0 para DESLIGAR completamente (seção e badge).
   'novidades_days' => 0,
+
+  // Configurações do KDS
+  'kds_refresh_ms' => 1500,
+  'kds_sla_minutes' => 20,
+  'kds_bell_url' => '',
 ];
