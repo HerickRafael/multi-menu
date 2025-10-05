@@ -9,7 +9,7 @@ if (!function_exists('e')) {
 $company = is_array($company ?? null) ? $company : [];
 $methods = is_array($methods ?? null) ? $methods : [];
 $flash   = is_array($flash ?? null) ? $flash : null;
-$old     = is_array($old ?? null) ? $old : ['name' => '', 'instructions' => '', 'sort_order' => 0, 'active' => 1];
+$old     = is_array($old ?? null) ? $old : ['name' => '', 'instructions' => '', 'sort_order' => 0, 'active' => 1, 'type' => 'others', 'pix_key' => '', 'meta' => []];
 $errors  = is_array($errors ?? null) ? $errors : [];
 $user    = $user ?? null;
 
@@ -42,19 +42,20 @@ ob_start();
     </a>
   </div>
     <script>
-      (function(){
+      document.addEventListener('DOMContentLoaded', function(){
         const type = document.getElementById('pm-type');
         const pixFields = document.getElementById('pm-pix-fields');
+        if (!type || !pixFields) return;
         function togglePix(){
-          if (!type || !pixFields) return;
           if (type.value === 'pix') {
             pixFields.classList.remove('hidden');
           } else {
             pixFields.classList.add('hidden');
           }
         }
-        if (type){ type.addEventListener('change', togglePix); togglePix(); }
-      })();
+        type.addEventListener('change', togglePix);
+        togglePix();
+      });
     </script>
 </header>
 
@@ -92,12 +93,13 @@ ob_start();
 
       <label class="grid gap-1 text-sm">
         <span class="font-semibold text-slate-700">Tipo</span>
+        <?php $oldType = $old['type'] ?? 'others'; ?>
         <select name="type" id="pm-type" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-          <option value="credit">Crédito</option>
-          <option value="debit">Débito</option>
-          <option value="others">Outros</option>
-          <option value="voucher">Vale-refeição</option>
-          <option value="pix">Pix</option>
+          <option value="credit" <?= $oldType === 'credit' ? 'selected' : '' ?>>Crédito</option>
+          <option value="debit" <?= $oldType === 'debit' ? 'selected' : '' ?>>Débito</option>
+          <option value="others" <?= $oldType === 'others' ? 'selected' : '' ?>>Outros</option>
+          <option value="voucher" <?= $oldType === 'voucher' ? 'selected' : '' ?>>Vale-refeição</option>
+          <option value="pix" <?= $oldType === 'pix' ? 'selected' : '' ?>>Pix</option>
         </select>
       </label>
 
@@ -106,15 +108,20 @@ ob_start();
         <textarea name="instructions" rows="3" placeholder="Recados exibidos após a escolha do cliente" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"><?= e($old['instructions'] ?? '') ?></textarea>
       </label>
 
-      <div id="pm-pix-fields" class="hidden grid gap-2">
+      <?php
+      $oldMeta = is_array($old['meta'] ?? null) ? $old['meta'] : [];
+      $oldPixKey = $old['pix_key'] ?? '';
+      ?>
+      <?php $pixFieldsClass = ($oldType === 'pix') ? 'grid gap-2' : 'hidden grid gap-2'; ?>
+      <div id="pm-pix-fields" class="<?= $pixFieldsClass ?>">
         <h3 class="text-sm font-semibold">Credenciais Pix</h3>
         <label class="grid gap-1 text-sm">
           <span class="font-semibold text-slate-700">Chave Pix</span>
-          <input type="text" name="meta[px_key]" placeholder="Ex.: 11999999999 ou chave aleatória" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+          <input type="text" name="pix_key" value="<?= e($oldPixKey) ?>" placeholder="Ex.: 11999999999 ou chave aleatória" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
         </label>
         <label class="grid gap-1 text-sm">
           <span class="font-semibold text-slate-700">Provedor (opcional)</span>
-          <input type="text" name="meta[px_provider]" placeholder="Ex.: Gerencianet, Pagar.me" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+          <input type="text" name="meta[px_provider]" value="<?= e($oldMeta['px_provider'] ?? '') ?>" placeholder="Ex.: Gerencianet, Pagar.me" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
         </label>
       </div>
 
@@ -170,6 +177,13 @@ ob_start();
           $methodId = (int)($method['id'] ?? 0);
           $methodSlug = $base . '/' . $methodId;
           $isActive = !empty($method['active']);
+          $pixKey = $method['pix_key'] ?? null;
+          if (!$pixKey && !empty($method['type']) && $method['type'] === 'pix' && !empty($method['meta'])) {
+              $m = is_string($method['meta']) ? json_decode($method['meta'], true) : (is_array($method['meta']) ? $method['meta'] : []);
+              if (is_array($m) && !empty($m['px_key'])) {
+                  $pixKey = $m['px_key'];
+              }
+          }
           ?>
         <div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
           <div class="flex items-center gap-3">
@@ -182,11 +196,8 @@ ob_start();
                 <?php $type = $method['type'] ?? 'others'; ?>
                 <div class="text-xs rounded-full px-2 py-1 <?= $type === 'pix' ? 'bg-emerald-100 text-emerald-700' : ($type === 'credit' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700') ?>"><?= e(ucfirst($type)) ?></div>
               </div>
-              <?php if (!empty($method['type']) && $method['type'] === 'pix' && !empty($method['meta'])):
-                  $m = is_string($method['meta']) ? json_decode($method['meta'], true) : (is_array($method['meta']) ? $method['meta'] : []);
-                  $px = $m['px_key'] ?? null;
-              ?>
-                <?php if ($px): ?><div class="text-xs text-slate-500">Chave Pix: <?= e($px) ?></div><?php endif; ?>
+              <?php if (!empty($method['type']) && $method['type'] === 'pix' && $pixKey): ?>
+                <div class="text-xs text-slate-500">Chave Pix: <?= e($pixKey) ?></div>
               <?php endif; ?>
               <div class="text-xs text-slate-500">ID #<?= $methodId ?></div>
             </div>
@@ -220,9 +231,34 @@ ob_start();
         }
 
         // render a method row element
+        function normalizeMeta(meta){
+          if (!meta) return {};
+          if (typeof meta === 'string') {
+            try {
+              const parsed = JSON.parse(meta);
+              return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch(e) {
+              return {};
+            }
+          }
+          return meta;
+        }
+
+        function updateToggleAppearance(chk){
+          if (!chk) return;
+          const span = chk.parentElement ? chk.parentElement.querySelector('span.w-10') : null;
+          if (!span) return;
+          span.classList.toggle('bg-rose-500', chk.checked);
+          span.classList.toggle('bg-slate-200', !chk.checked);
+          const ball = span.querySelector('span.absolute');
+          if (ball) ball.style.transform = 'translateX(' + (chk.checked ? '20px' : '0') + ')';
+        }
+
         function renderMethodRow(method){
           const id = parseInt(method.id, 10);
           const isActive = parseInt(method.active, 10) === 1;
+          const meta = normalizeMeta(method.meta);
+          const pixKey = method.pix_key || (meta ? meta.px_key : null);
           const div = document.createElement('div');
           div.className = 'flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3';
           div.innerHTML = `
@@ -235,7 +271,7 @@ ob_start();
                   <div class="font-semibold text-slate-800">${escapeHtml(method.name || '')}</div>
                   <div class="text-xs rounded-full px-2 py-1 ${method.type === 'pix' ? 'bg-emerald-100 text-emerald-700' : (method.type === 'credit' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700')}">${escapeHtml((method.type || 'others').charAt(0).toUpperCase() + (method.type || 'others').slice(1))}</div>
                 </div>
-                ${method.type === 'pix' && method.meta && method.meta.px_key ? `<div class="text-xs text-slate-500">Chave Pix: ${escapeHtml(method.meta.px_key)}</div>` : ''}
+                ${method.type === 'pix' && pixKey ? `<div class="text-xs text-slate-500">Chave Pix: ${escapeHtml(pixKey)}</div>` : ''}
                 <div class="text-xs text-slate-500">ID #${id}</div>
               </div>
             </div>
@@ -252,10 +288,20 @@ ob_start();
 
           const chk = div.querySelector('.pm-toggle');
           if (chk){
+            chk.dataset.wired = '1';
             chk.addEventListener('change', function(){
               const on = this.checked;
-              toggleMethod(id, on, function(success){ if (!success) chk.checked = !on; });
+              toggleMethod(id, on, function(response){
+                const success = response && response.success;
+                if (!success) {
+                  chk.checked = !on;
+                } else if (response && response.method) {
+                  chk.checked = parseInt(response.method.active, 10) === 1;
+                }
+                updateToggleAppearance(chk);
+              });
             });
+            updateToggleAppearance(chk);
           }
 
           return div;
@@ -267,16 +313,16 @@ ob_start();
             const body = new URLSearchParams();
             body.append('active', on ? '1' : '0');
             if (csrftoken) body.append('csrf_token', csrftoken);
-            const res = await fetch(url, { method: 'POST', body: body, credentials: 'same-origin' });
+            const res = await fetch(url, { method: 'POST', body: body, credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
             if (!res.ok) throw new Error('Network');
             const json = await res.json().catch(()=>null);
-            if (cb) cb(!!json && json.success);
-            return !!json && json.success;
+            if (cb) cb(json);
+            return json;
           } catch(e){
             console.error(e);
             alert('Erro ao atualizar o método. Atualize a página e tente novamente.');
-            if (cb) cb(false);
-            return false;
+            if (cb) cb(null);
+            return null;
           }
         }
 
@@ -288,8 +334,17 @@ ob_start();
             chk.addEventListener('change', function(){
               const id = this.dataset.id;
               const on = this.checked;
-              toggleMethod(id, on, function(success){ if (!success) chk.checked = !on; });
+              toggleMethod(id, on, function(response){
+                const success = response && response.success;
+                if (!success) {
+                  chk.checked = !on;
+                } else if (response && response.method) {
+                  chk.checked = parseInt(response.method.active, 10) === 1;
+                }
+                updateToggleAppearance(chk);
+              });
             });
+            updateToggleAppearance(chk);
           });
         }
 
@@ -304,7 +359,7 @@ ob_start();
               const body = new URLSearchParams();
               body.append('active', on);
               if (csrftoken) body.append('csrf_token', csrftoken);
-              const res = await fetch(url, { method: 'POST', body: body, credentials: 'same-origin' });
+              const res = await fetch(url, { method: 'POST', body: body, credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
               if (!res.ok) throw new Error('Network');
               const json = await res.json().catch(()=>null);
               if (!json || !json.success) throw new Error('Batch failed');
@@ -312,13 +367,7 @@ ob_start();
               // update UI without firing individual toggles
               document.querySelectorAll('.pm-toggle').forEach(function(chk){
                 chk.checked = toggleAll.checked;
-                const span = chk.parentElement.querySelector('span.w-10');
-                if (span){
-                  if (chk.checked) span.classList.remove('bg-slate-200'), span.classList.add('bg-rose-500');
-                  else span.classList.remove('bg-rose-500'), span.classList.add('bg-slate-200');
-                  const ball = span.querySelector('span.absolute');
-                  if (ball) ball.style.transform = 'translateX(' + (chk.checked ? '20px' : '0') + ')';
-                }
+                updateToggleAppearance(chk);
               });
             }catch(e){
               console.error(e);
@@ -342,7 +391,7 @@ ob_start();
             const data = new FormData(form);
             if (!data.has('active')) data.set('active', '0');
             try{
-              const res = await fetch(form.action, { method: form.method || 'POST', body: data, credentials: 'same-origin' });
+              const res = await fetch(form.action, { method: form.method || 'POST', body: data, credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
               if (!res.ok) throw new Error('Network');
               const json = await res.json().catch(()=>null);
               if (!json || !json.success || !json.method) throw new Error('Invalid response');
