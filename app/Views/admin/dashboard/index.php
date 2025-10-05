@@ -409,5 +409,7 @@ $ordersToShow = array_slice($recentOrders, 0, 8);
 </script>
 
 <?php
+// Close the main wrapper which was left open in some older templates
+echo "</div>\n";
 $content = ob_get_clean();
 include __DIR__ . '/../layout.php';

@@ -1,0 +1,126 @@
+
+<div class="mx-auto max-w-4xl p-4 space-y-4">
+
+<!-- ERROS -->
+
+<form id="product-form"
+      method="post"
+      action="http://127.0.0.1:8000/admin/wollburger/products"
+      enctype="multipart/form-data"
+      class="relative grid gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+
+  <!-- CSRF / METHOD -->
+    
+  <!-- TOOLBAR FIXA -->
+  <div class="form-toolbar sticky top-0 z-20 mb-0 border-b bg-white/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/60 sm:-m-4 sm:px-4 sm:py-2">
+    <div class="mx-auto flex w-full max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-2 text-sm text-slate-800">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
+          <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <strong>Novo produto</strong>
+      </div>
+      <div class="form-toolbar-actions flex flex-col gap-2 sm:flex-row">
+        <a href="http://127.0.0.1:8000/admin/wollburger/products"
+           class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm hover:bg-slate-50 sm:w-auto">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Cancelar
+        </a>
+        <button type="submit"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-xl admin-gradient-bg px-4 py-1.5 text-sm font-medium text-white shadow hover:opacity-95 sm:w-auto">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+
+ <!-- CARD: Dados básicos -->
+<fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+  <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+      <path d="M5 7h14M5 12h10M5 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    Dados básicos
+  </legend>
+
+  <label for="category_id" class="grid gap-1 mb-3">
+    <span class="text-sm text-slate-700">Categoria</span>
+    <select name="category_id" id="category_id" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400" aria-describedby="help-cat">
+      <option value="">— sem categoria —</option>
+              <option value="1" >
+          herick        </option>
+          </select>
+    <small id="help-cat" class="text-xs text-slate-500">Usado para agrupar o cardápio.</small>
+  </label>
+
+  <div class="grid gap-3 md:grid-cols-2">
+    <label for="name" class="grid gap-1">
+      <span class="text-sm text-slate-700">Nome <span class="text-red-500">*</span></span>
+      <input required name="name" id="name" value="" autocomplete="off"
+             class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+    </label>
+
+    <label for="sku" class="grid gap-1">
+      <span class="text-sm text-slate-700">SKU</span>
+      <div class="sku-lock relative">
+        <input name="sku" id="sku" value="1" placeholder="Gerado automaticamente" autocomplete="off"
+               readonly
+               class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 pr-12 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400">
+<button type="button" 
+  class="sku-lock-btn focus:outline-none focus:ring-0">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M8 0a4 4 0 0 1 4 4v2.05a2.5 2.5 0 0 1 2 2.45v5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 13.5v-5a2.5 2.5 0 0 1 2-2.45V4a4 4 0 0 1 4-4m0 1a3 3 0 0 0-3 3v2h6V4a3 3 0 0 0-3-3"/>
+</svg>
+  <span class="sku-lock-tooltip">Definido automaticamente em ordem crescente e sem repetições.</span>
+</button>
+
+      </div>
+    </label>
+  </div>
+</fieldset>
+
+
+  <!-- CARD: Tipo & Preço -->
+  <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M7 12h10M12 7v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Tipo & Preço
+    </legend>
+
+    <div class="grid gap-3 md:grid-cols-2">
+      <label for="type" class="grid gap-1">
+        <span class="text-sm text-slate-700">Tipo</span>
+                <select name="type" id="type" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400">
+          <option value="simple" selected>Simples</option>
+          <option value="combo"  >Combo</option>
+        </select>
+        <small class="text-xs text-slate-500">Combos usam Grupos. Simples têm Personalização.</small>
+      </label>
+
+      <label for="price_mode" class="grid gap-1">
+        <span class="text-sm text-slate-700">Modo de preço</span>
+                <select name="price_mode" id="price_mode" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-400">
+          <option value="fixed" selected>Fixo (preço base)</option>
+          <option value="sum"   >Somar itens do grupo</option>
+        </select>
+        <small class="text-xs text-slate-500">Em “Somar itens”, total = <code class="rounded bg-slate-100 px-1">preço base + deltas</code>.</small>
+      </label>
+    </div>
+
+    <div class="mt-3 grid gap-3 md:grid-cols-3">
+      <label for="price" class="grid gap-1">
+        <span class="text-sm text-slate-700">Preço base (R$)</span>
+        <input name="price" id="price" type="number" step="0.01" min="0" value="<br />
+<b>Fatal error</b>:  Uncaught TypeError: htmlspecialchars(): Argument #1 ($string) must be of type string, float given in /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php:33
+Stack trace:
+#0 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php(33): htmlspecialchars(0.0, 3, 'UTF-8')
+#1 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/views/admin/products/form.php(176): e(0.0)
+#2 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Controller.php(17): include('/Applications/X...')
+#3 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/controllers/AdminProductController.php(123): Controller-&gt;view('admin/products/...', Array)
+#4 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Router.php(58): AdminProductController-&gt;create(Array)
+#5 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/public/index.php(54): Router-&gt;dispatch('create', '/admin/wollburg...')
+#6 {main}
+  thrown in <b>/Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php</b> on line <b>33</b><br />

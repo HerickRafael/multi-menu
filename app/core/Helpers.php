@@ -30,7 +30,8 @@ function base_url(string $path = ''): string
 
 function e($s)
 {
-    return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
+    // Sempre converte para string para evitar TypeError quando $s for float/int/null
+    return htmlspecialchars((string)($s ?? ''), ENT_QUOTES, 'UTF-8');
 }
 
 if (!function_exists('normalize_color_hex')) {

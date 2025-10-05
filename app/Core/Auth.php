@@ -67,7 +67,7 @@ class Auth
     /* ========= Contexto de Empresa Ativa (para root trocar de empresa) ========= */
 
     /** Define o contexto de empresa ativa (também útil para owner/staff) */
-    public static function setActiveCompany(int $companyId, string $slug = null): void
+    public static function setActiveCompany(int $companyId, ?string $slug = null): void
     {
         $_SESSION['active_company_id'] = $companyId;
 

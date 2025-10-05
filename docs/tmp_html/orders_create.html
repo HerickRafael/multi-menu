@@ -1,30 +1,11 @@
-<?php
-// admin/orders/create.php — Novo pedido (com toolbar fixa)
-
-$title = 'Novo pedido';
-$slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
-
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-ob_start(); ?>
 <div class="mx-auto max-w-4xl p-4">
 
   <form method="post"
-        action="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
+        action="http://127.0.0.1:8000/admin/wollburger/orders"
         id="order-form"
         class="relative grid gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 
-    <?php if (function_exists('csrf_field')): ?>
-      <?= csrf_field() ?>
-    <?php elseif (function_exists('csrf_token')): ?>
-      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-    <?php endif; ?>
-
+    
     <!-- TOOLBAR FIXA -->
     <div class="sticky top-0 z-20 -m-4 mb-0 border-b bg-white/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div class="mx-auto flex max-w-4xl items-center justify-between">
@@ -37,7 +18,7 @@ ob_start(); ?>
           <strong>Novo pedido</strong>
         </div>
         <div class="flex gap-2">
-          <a href="<?= e(base_url('admin/' . $slug . '/orders')) ?>"
+          <a href="http://127.0.0.1:8000/admin/wollburger/orders"
              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
               <path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -65,12 +46,12 @@ ob_start(); ?>
       <div class="grid gap-3 md:grid-cols-2">
         <label class="grid gap-1">
           <span class="text-sm text-slate-700">Nome</span>
-          <input type="text" name="customer_name" value="<?= e($defaults['customer_name'] ?? '') ?>"
+          <input type="text" name="customer_name" value=""
                  class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400" required>
         </label>
         <label class="grid gap-1">
           <span class="text-sm text-slate-700">Telefone (WhatsApp)</span>
-          <input type="text" name="customer_phone" value="<?= e($defaults['customer_phone'] ?? '') ?>"
+          <input type="text" name="customer_phone" value=""
                  class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400" inputmode="numeric" placeholder="(51) 92001-7687">
         </label>
       </div>
@@ -96,13 +77,9 @@ ob_start(); ?>
         <div class="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_110px_140px_auto]">
           <select name="product_id[]" class="product-select rounded-xl border border-slate-300 bg-white px-3 py-2">
             <option value="">Selecione um produto…</option>
-            <?php foreach ($products as $pr):
-                $pp = (float)($pr['promo_price'] ?: $pr['price']); ?>
-              <option value="<?= (int)$pr['id'] ?>" data-price="<?= e((string)$pp) ?>">
-                <?= e($pr['name']) ?> — R$ <?= number_format($pp, 2, ',', '.') ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+                          <option value="1" data-price="10">
+                herick — R$ 10,00              </option>
+                      </select>
 
           <input type="number" min="1" step="1" name="quantity[]" value="1"
                  class="qty-input w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
@@ -129,44 +106,14 @@ ob_start(); ?>
       <div class="grid items-end gap-3 md:grid-cols-4">
         <label class="grid gap-1">
           <span class="text-sm text-slate-700">Taxa de entrega</span>
-          <input type="number" step="0.01" name="delivery_fee" value="<?= e($defaults['delivery_fee'] ?? 0) ?>"
-                 class="fee-input rounded-xl border border-slate-300 bg-white px-1 py-2">
-        </label>
-
-        <label class="grid gap-1">
-          <span class="text-sm text-slate-700">Desconto</span>
-          <input type="number" step="0.01" name="discount" value="<?= e($defaults['discount'] ?? 0) ?>"
-                 class="disc-input rounded-xl border border-slate-300 bg-white px-1 py-2">
-        </label>
-
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div class="text-xs text-slate-500">Subtotal</div>
-          <div id="subtot-view" class="text-lg font-semibold text-slate-800">R$ 0,00</div>
-        </div>
-
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div class="text-xs text-slate-500">Total</div>
-          <div id="total-view" class="text-xl font-semibold text-slate-900">R$ 0,00</div>
-        </div>
-      </div>
-    </fieldset>
-
-    <!-- CARD: Observações -->
-    <fieldset class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-      <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M5 12h10M5 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        Observações
-      </legend>
-      <textarea name="notes" rows="3"
-                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400"
-                placeholder="Ex.: Sem cebola, entregar no portão…"><?= e($defaults['notes'] ?? '') ?></textarea>
-    </fieldset>
-
-<!-- order form behaviors are centralized in public/assets/js/admin.js -->
-  </form>
-
-</div>
-
-<?php
-$content = ob_get_clean();
-include __DIR__ . '/../layout.php';
+          <input type="number" step="0.01" name="delivery_fee" value="<br />
+<b>Fatal error</b>:  Uncaught TypeError: htmlspecialchars(): Argument #1 ($string) must be of type string, int given in /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php:33
+Stack trace:
+#0 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php(33): htmlspecialchars(0, 3, 'UTF-8')
+#1 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/views/admin/orders/form.php(132): e(0)
+#2 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Controller.php(17): include('/Applications/X...')
+#3 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/controllers/AdminOrdersController.php(111): Controller-&gt;view('admin/orders/fo...', Array)
+#4 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Router.php(58): AdminOrdersController-&gt;create(Array)
+#5 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/public/index.php(54): Router-&gt;dispatch('create', '/admin/wollburg...')
+#6 {main}
+  thrown in <b>/Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php</b> on line <b>33</b><br />

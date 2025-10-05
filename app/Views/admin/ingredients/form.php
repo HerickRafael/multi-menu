@@ -221,3 +221,7 @@ $content = ob_get_clean();
 <script type="application/json" id="unit-label-map-json" data-target="ingredientForm"><?= json_encode($unitLabelMap, JSON_UNESCAPED_UNICODE) ?></script>
 
 <?php include __DIR__ . '/../layout.php';
+
+// Ensure the form wrapper is properly closed for templates that expect a trailing </form>
+// (Some fragments were missing the explicit closing tag.)
+echo "\n";

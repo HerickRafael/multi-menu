@@ -1,0 +1,1148 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard - Wollburger</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --admin-primary-color: #5B21B6;
+      --admin-primary-soft: rgba(91, 33, 182, 0.550);
+      --admin-primary-gradient: linear-gradient(135deg, #5B21B6 0%, rgba(91, 33, 182, 0.650) 100%);
+    }
+    .admin-gradient-bg {
+      background-image: var(--admin-primary-gradient);
+      background-color: var(--admin-primary-color);
+    }
+    .admin-gradient-text {
+      background-image: var(--admin-primary-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .admin-print-only {
+      display: none;
+    }
+    .admin-print-only .receipt {
+      width: 320px;
+      max-width: calc(100% - 24px);
+      margin: 0 auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #000;
+    }
+    .admin-print-only .receipt-header {
+      text-align: center;
+    }
+    .admin-print-only .receipt-section {
+      text-align: left;
+      margin-top: 6px;
+    }
+    .admin-print-only .receipt-header h1 {
+      margin: 0 0 2px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .admin-print-only .receipt-header p {
+      margin: 0;
+      font-size: 11px;
+    }
+    .admin-print-only .receipt hr {
+      border: 0;
+      border-top: 1px dashed #000;
+      margin: 6px 0;
+    }
+    .admin-print-only .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    .admin-print-only .receipt-label {
+      font-weight: 600;
+      font-size: 11px;
+      text-align: left;
+    }
+    .admin-print-only .receipt-text {
+      font-size: 11px;
+      text-align: left;
+    }
+    .admin-print-only .receipt-pre {
+      white-space: pre-line;
+    }
+    .admin-print-only .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .admin-print-only .receipt-table td {
+      padding: 0;
+      vertical-align: top;
+    }
+    .admin-print-only .receipt-item-name {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .admin-print-only .receipt-item-row td {
+      font-size: 11px;
+    }
+    .admin-print-only .receipt-item-row td.qty {
+      width: 24px;
+    }
+    .admin-print-only .receipt-item-row td.total {
+      text-align: right;
+      width: 80px;
+    }
+    .admin-print-only .receipt-item-row td.price {
+      text-align: right;
+      width: 80px;
+    }
+    .admin-print-only .receipt-note {
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
+    .admin-print-only .receipt-total {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .admin-print-only .receipt-footer {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 11px;
+    }
+    @media print {
+      html, body {
+        height: auto;
+        background: #fff;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      @page {
+        size: 58mm auto;
+        margin: 2mm 3mm;
+      }
+      .admin-screen-only {
+        display: none !important;
+      }
+      .admin-print-only {
+        display: block !important;
+      }
+      .max-w-7xl {
+        max-width: 100% !important;
+      }
+      .mx-auto {
+        margin: 0 !important;
+      }
+      .p-4 {
+        padding: 0 !important;
+      }
+      .admin-print-only .receipt {
+        width: 100%;
+        max-width: 58mm;
+      }
+    }
+
+    .admin-order-toasts {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .admin-order-toast {
+      pointer-events: auto;
+      min-width: 260px;
+      max-width: 320px;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 1rem;
+      box-shadow: 0 22px 45px -24px rgba(15,23,42,0.55);
+      padding: 1rem 1.2rem;
+      border: 1px solid rgba(15,23,42,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .admin-order-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .admin-order-toast h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .admin-order-toast p {
+      margin: 0;
+      font-size: 0.85rem;
+      line-height: 1.35;
+      color: #475569;
+    }
+    .admin-order-toast-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .admin-order-toast-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .admin-order-toast-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.74rem;
+      font-weight: 600;
+      border-radius: 0.75rem;
+      padding: 0.45rem 0.9rem;
+      text-decoration: none;
+      transition: background 0.15s ease, color 0.15s ease;
+      border: none;
+      cursor: pointer;
+    }
+    .admin-order-toast-btn.primary {
+      background: var(--admin-primary-gradient);
+      color: #fff;
+    }
+    .admin-order-toast-btn.primary:hover {
+      opacity: 0.92;
+    }
+    .admin-order-toast-btn.secondary {
+      background: rgba(226,232,240,0.6);
+      color: #1f2937;
+    }
+    .admin-order-toast-btn.secondary:hover {
+      background: rgba(226,232,240,0.9);
+    }
+
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900"
+      data-company-slug="wollburger"
+      data-kds-url="http://127.0.0.1:8000/admin/wollburger/kds/data"
+      data-order-url="http://127.0.0.1:8000/admin/wollburger/orders/show?id="
+      data-kds-link="http://127.0.0.1:8000/admin/wollburger/kds"
+      data-bell-url="http://127.0.0.1:8000/audio/meu-alerta.mp3">
+  <div class="max-w-7xl mx-auto p-4">
+    
+<div class="mx-auto max-w-6xl p-4">
+
+<!-- HERO / TOPO -->
+<section class="relative mb-6 overflow-hidden rounded-3xl border border-slate-200 admin-gradient-bg text-white">
+  <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl"></div>
+  <div class="absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-black/10 blur-3xl"></div>
+
+  <div class="relative z-10 grid gap-4 p-5 md:grid-cols-[auto_1fr_auto] md:items-center md:p-7">
+    <div class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 p-0.5 ring-1 ring-white/30">
+      <img src="http://127.0.0.1:8000/assets/logo-placeholder.png" alt="Logo" class="h-16 w-16 rounded-[0.9rem] object-cover ring-1 ring-black/10">
+    </div>
+
+    <div class="text-white">
+      <h1 class="text-2xl font-semibold leading-tight">
+        Wollburger      </h1>
+      <p class="mt-0.5 text-sm text-white/80">
+        Categorias: 1 • Produtos: 1                      </p>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <a href="http://127.0.0.1:8000/admin/wollburger/kds" class="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm text-white ring-1 ring-white/30 hover:bg-white/15">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-display" viewBox="0 0 16 16">
+          <path d="M0 1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1z"/>
+          <path d="M2 13.5a.5.5 0 0 1 .5-.5H6v-1H3.5a.5.5 0 0 1 0-1h9a.5.5 0 0 1 0 1H10v1h3.5a.5.5 0 0 1 0 1H2.5a.5.5 0 0 1-.5-.5"/>
+        </svg>
+        Abrir KDS
+      </a>
+      <a href="http://127.0.0.1:8000/admin/wollburger/settings" class="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm text-white ring-1 ring-white/30 hover:bg-white/15">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+          <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
+          <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.246.835 1.428.835 1.674 0l.094-.319a1.873 1.873 0 0 0 2.692-1.115z"/>
+        </svg>
+        Configurações
+      </a>
+      <a href="http://127.0.0.1:8000/wollburger" target="_blank" class="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm text-white ring-1 ring-white/30 hover:bg-white/15">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-house" viewBox="0 0 16 16">
+          <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5z"/>
+        </svg>
+        Ver cardápio
+      </a>
+      <a href="http://127.0.0.1:8000/admin/wollburger/logout" class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow hover:opacity-95">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 7l5 5-5 5M20 12H9M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- AÇÕES RÁPIDAS -->
+<div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  <a href="http://127.0.0.1:8000/admin/wollburger/categories/create" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/></svg>
+    </div>
+    <div class="font-semibold text-slate-900">Nova categoria</div>
+    <p class="text-sm text-slate-500">Organize seu cardápio por grupos.</p>
+  </a>
+
+  <a href="http://127.0.0.1:8000/admin/wollburger/products/create" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/></svg>
+    </div>
+    <div class="font-semibold text-slate-900">Novo produto</div>
+    <p class="text-sm text-slate-500">Cadastre simples ou combos.</p>
+  </a>
+
+  <a href="http://127.0.0.1:8000/admin/wollburger/ingredients/create" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/></svg>
+    </div>
+    <div class="font-semibold text-slate-900">Novo ingrediente</div>
+    <p class="text-sm text-slate-500">Vincule aos produtos.</p>
+  </a>
+
+  <a href="http://127.0.0.1:8000/admin/wollburger/orders/create" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/></svg>
+    </div>
+    <div class="font-semibold text-slate-900">Novo pedido</div>
+    <p class="text-sm text-slate-500">Registre um pedido manualmente.</p>
+  </a>
+</div>
+
+<!-- COLUNAS -->
+<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+<!-- Categorias -->
+<div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
+     data-href="http://127.0.0.1:8000/admin/wollburger/categories" role="button" tabindex="0">
+  <div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+        </svg>
+      </span>
+      <h2 class="font-semibold text-slate-900">Categorias</h2>
+    </div>
+    <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white">1</span>
+  </div>
+
+  <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
+          <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
+        <a class="flex w-full items-center justify-between gap-3"
+           href="http://127.0.0.1:8000/admin/wollburger/categories/1/edit">
+          <div class="truncate font-medium text-slate-800">herick</div>
+          <span class="text-[11px] text-slate-500">#1</span>
+        </a>
+      </li>
+          </ul>
+</div>
+
+
+  <!-- Produtos (sem botão Editar; item inteiro clicável pro form) -->
+  <div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
+       data-href="http://127.0.0.1:8000/admin/wollburger/products" role="button" tabindex="0">
+    <div class="mb-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-bag" viewBox="0 0 16 16"><path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></svg>
+        </span>
+        <h2 class="font-semibold text-slate-900">Produtos</h2>
+      </div>
+      <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white">1</span>
+    </div>
+
+    <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm">
+                    <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50">
+          <a class="flex w-full items-center gap-3" href="http://127.0.0.1:8000/admin/wollburger/products/1/edit">
+                          <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-400 ring-1 ring-slate-200">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+                        <div class="min-w-0 flex-1">
+              <div class="truncate font-medium text-slate-800">herick</div>
+              <div class="text-xs text-slate-500">
+                                  R$ 10,00                              </div>
+            </div>
+          </a>
+        </li>
+                </ul>
+  </div>
+
+<!-- Ingredientes -->
+<div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
+     data-href="http://127.0.0.1:8000/admin/wollburger/ingredients" role="button" tabindex="0">
+  <div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cup-straw" viewBox="0 0 16 16">
+          <path d="M13.902.334a.5.5 0 0 1-.28.65l-2.254.902-.4 1.927c.376.095.715.215.972.367.228.135.56.396.56.82q0 .069-.011.132l-.962 9.068a1.28 1.28 0 0 1-.524.93c-.488.34-1.494.87-3.01.87s-2.522-.53-3.01-.87a1.28 1.28 0 0 1-.524-.93L3.51 5.132A1 1 0 0 1 3.5 5c0-.424.332-.685.56-.82.262-.154.607-.276.99-.372C5.824 3.614 6.867 3.5 8 3.5c.712 0 1.389.045 1.985.127l.464-2.215a.5.5 0 0 1 .303-.356l2.5-1a.5.5 0 0 1 .65.278"/>
+        </svg>
+      </span>
+      <h2 class="font-semibold text-slate-900">Ingredientes</h2>
+    </div>
+    <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white">0</span>
+  </div>
+
+  <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
+                  <li class="px-3 py-3 text-slate-500">Sem ingredientes cadastrados.</li>
+      </ul>
+</div>
+
+
+<!-- Pedidos (dashboard) — visual e status iguais ao admin/orders/index.php -->
+<div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
+     data-href="http://127.0.0.1:8000/admin/wollburger/orders" role="button" tabindex="0">
+
+  <div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cart4" viewBox="0 0 16 16">
+          <path d="M0 2.5A.5.5 0 0 1 .5 2H2l.89 2H14.5a.5.5 0 0 1 .485.621l-1.5 6A.5.5 0 0 1 13 11H4L2 3H.5a.5.5 0 0 1-.5-.5z"/>
+          <path d="M5 12a1 1 0 1 0 0 2 1 1 0 0 0 0-2m6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+        </svg>
+      </span>
+      <h2 class="font-semibold text-slate-900">Pedidos</h2>
+    </div>
+    <span class="rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white">27</span>
+  </div>
+
+  
+  <ul class="divide-y rounded-xl border border-slate-100 bg-white text-sm max-h-56 overflow-auto pr-1 thin-scroll">
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=73">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #73 · Teste            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 17:30:07            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 20,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=72">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #72 · herick            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 13:14:00            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 10,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=71">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #71 · herick            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 12:26:20            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 10,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=70">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #70 · herick            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 12:25:54            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 10,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=69">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #69 · herick            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 12:25:36            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 10,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=68">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #68 · herick            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 12:22:45            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 10,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=67">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #67 · herick            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 12:22:30            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 10,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+                <li>
+        <a class="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+           href="http://127.0.0.1:8000/admin/wollburger/orders/show?id=66">
+
+          <div class="min-w-0">
+            <div class="truncate font-medium text-slate-800">
+              #66 · herick            </div>
+            <div class="text-xs text-slate-500">
+              2025-10-05 12:22:15            </div>
+            <div class="mt-0.5 text-xs">
+              <strong class="text-slate-800">R$ 20,00</strong>
+            </div>
+          </div>
+
+          <!-- Badge de status igual ao da listagem de pedidos -->
+          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+            Pendente          </span>
+        </a>
+      </li>
+          </ul>
+</div>
+
+
+
+</div>
+
+
+<!-- Gestão operacional -->
+<div class="mt-6 grid gap-3 sm:grid-cols-2">
+  <a href="http://127.0.0.1:8000/admin/wollburger/payment-methods" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600 ring-1 ring-purple-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-credit-card" viewBox="0 0 16 16">
+        <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1zm13 3H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+        <path d="M3 10a1 1 0 0 1 1-1h1.5a.5.5 0 0 1 0 1H4a.5.5 0 0 0 0 1h1.5a.5.5 0 0 1 0 1H4a1 1 0 0 1-1-1z"/>
+      </svg>
+    </div>
+    <div class="font-semibold text-slate-900">Métodos de pagamento</div>
+    <p class="text-sm text-slate-500">Gerencie as opções exibidas no checkout.</p>
+  </a>
+
+  <a href="http://127.0.0.1:8000/admin/wollburger/delivery-fees" class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-truck" viewBox="0 0 16 16">
+        <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5v7A1.5 1.5 0 0 1 10.5 12H10a2 2 0 1 1-4 0H4a2 2 0 1 1-3.874-.5A1.5 1.5 0 0 1 0 10.5zm1.5-.5a.5.5 0 0 0-.5.5v5.473A2 2 0 0 1 3.874 11H6V3h4.5a.5.5 0 0 0 .5-.5V3h.086a1.5 1.5 0 0 1 1.3.75l1.528 2.75a1.5 1.5 0 0 1 .186.725V9.5A1.5 1.5 0 0 1 12.5 11H12a2 2 0 1 1-4 0H6v1h4.5a.5.5 0 0 0 .5-.5V9h1.5a.5.5 0 0 0 .5-.5v-.525a.5.5 0 0 0-.062-.242l-1.528-2.75A.5.5 0 0 0 11.438 5H11V3.5A1.5 1.5 0 0 0 9.5 2zM4.5 12a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+      </svg>
+    </div>
+    <div class="font-semibold text-slate-900">Taxas de entrega</div>
+    <p class="text-sm text-slate-500">Atualize cidades, bairros e valores.</p>
+  </a>
+</div>
+
+<!-- Scrollbar fina + cursor de cartão -->
+<style>
+  .thin-scroll::-webkit-scrollbar{width:8px;height:8px}
+  .thin-scroll::-webkit-scrollbar-thumb{background:#e5e7eb;border-radius:9999px}
+  .thin-scroll::-webkit-scrollbar-track{background:transparent}
+  .card-link{cursor:pointer}
+</style>
+
+<!-- JS: torna blocos clicáveis (e ignora cliques em links internos) -->
+<script>
+  document.querySelectorAll('.card-link').forEach(function(card){
+    const href = card.getAttribute('data-href');
+    if(!href) return;
+    card.addEventListener('click', function(e){
+      // Evita navegar se clicou num <a> interno
+      const a = e.target.closest('a');
+      if(a) return;
+      window.location.href = href;
+    });
+    card.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        window.location.href = href;
+      }
+    });
+  });
+</script>
+
+  </div>
+  <div class="admin-order-toasts" id="admin-order-toasts" aria-live="polite"></div>
+
+  <script>
+  (function(){
+    const dataUrl = document.body.dataset.kdsUrl;
+    const orderUrlBase = document.body.dataset.orderUrl || '';
+    const kdsLink = document.body.dataset.kdsLink || '';
+    const bellConfig = (document.body.dataset.bellUrl || '').trim();
+    if (!dataUrl) return;
+
+    const POLL_INTERVAL = 6000;
+    const DEFAULT_BELL_URI = 'data:audio/wav;base64,' +
+      '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';
+
+    const ACTIVITY_TIMEOUT = 15000;
+    let lastUserActivity = 0;
+    let isFetching = false;
+    let syncToken = null;
+    let initialized = false;
+    let knownPending = new Set();
+
+    const toastContainer = document.getElementById('admin-order-toasts');
+
+    const prepareUri = (value) => {
+      if (!value) return '';
+      const raw = String(value).trim();
+      if (!raw) return '';
+      if (/^(data:|https?:|\/\/)/i.test(raw)) return raw;
+      if (raw.startsWith('/')) {
+        return window.location.origin + raw;
+      }
+      try {
+        return new URL(raw, window.location.href).toString();
+      } catch {
+        return raw;
+      }
+    };
+
+    const isPageActive = () => {
+      if (document.hidden) return false;
+      if (!lastUserActivity) return false;
+      return (Date.now() - lastUserActivity) <= ACTIVITY_TIMEOUT;
+    };
+
+    class KdsChime {
+      constructor(fallbackUri){
+        this.AudioContext = window.AudioContext || window.webkitAudioContext || null;
+        this.fallbackUri = prepareUri((typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI);
+        this.preferFallback = this.fallbackUri && this.fallbackUri !== DEFAULT_BELL_URI;
+
+        this.context = null;
+        this.unlocked = false;
+        this.pendingRing = false;
+        this.pendingMode = null;
+        this.lastPlayedAt = 0;
+        this.minimumGapMs = 450;
+        this.loopInterval = null;
+        this.shortTimeout = null;
+        this.isAlarmRunning = false;
+
+        this.audioEl = null;
+        this.audioFailed = false;
+      }
+
+      isActivated(){
+        return this.unlocked;
+      }
+
+      activate(){
+        if (this.unlocked) return;
+        this.unlocked = true;
+        this.ensureContext();
+        this.warmFallbackAudio();
+        if (this.pendingRing) {
+          const mode = this.pendingMode || 'loop';
+          this.pendingRing = false;
+          this.pendingMode = null;
+          if (mode === 'short') {
+            this.playShortAlert();
+          } else {
+            this.startPersistentAlert();
+          }
+        }
+      }
+
+      ring(mode){
+        const chosenMode = mode || (isPageActive() ? 'short' : 'loop');
+        if (!this.unlocked) {
+          this.pendingRing = true;
+          this.pendingMode = chosenMode;
+          return;
+        }
+        const now = Date.now();
+        if (this.isAlarmRunning && (now - this.lastPlayedAt) < this.minimumGapMs) {
+          return;
+        }
+        if (chosenMode === 'short') {
+          this.playShortAlert();
+        } else {
+          this.startPersistentAlert();
+        }
+      }
+
+      playShortAlert(){
+        this.stopAlarm(false);
+        this.pendingRing = false;
+        this.pendingMode = null;
+        this.isAlarmRunning = true;
+        this.playOnce();
+        this.shortTimeout = setTimeout(() => {
+          this.playOnce();
+          this.shortTimeout = setTimeout(() => this.stopAlarm(), 900);
+        }, 800);
+      }
+
+      startPersistentAlert(){
+        this.stopAlarm(false);
+        this.pendingRing = false;
+        this.pendingMode = null;
+        this.isAlarmRunning = true;
+        const playNow = () => this.playOnce();
+        playNow();
+        this.loopInterval = setInterval(playNow, 4000);
+      }
+
+      handleUserActivity(){
+        if (!this.unlocked) return;
+        if (this.isAlarmRunning) {
+          this.stopAlarm();
+        }
+      }
+
+      stopAlarm(resetPending = true){
+        if (this.loopInterval) {
+          clearInterval(this.loopInterval);
+          this.loopInterval = null;
+        }
+        if (this.shortTimeout) {
+          clearTimeout(this.shortTimeout);
+          this.shortTimeout = null;
+        }
+        this.isAlarmRunning = false;
+        if (resetPending) {
+          this.pendingRing = false;
+          this.pendingMode = null;
+        }
+      }
+
+      playOnce(){
+        let played = false;
+        const markPlayed = () => {
+          this.lastPlayedAt = Date.now();
+        };
+
+        if (this.preferFallback && !this.audioFailed) {
+          played = this.playFallback(markPlayed);
+          if (!played && this.AudioContext) {
+            this.ensureContext();
+            if (this.context && this.playWithContext()) {
+              markPlayed();
+              played = true;
+            }
+          }
+        } else {
+          this.ensureContext();
+          if (this.context && this.playWithContext()) {
+            markPlayed();
+            played = true;
+          }
+          if (!played) {
+            played = this.playFallback(markPlayed);
+          }
+        }
+
+        if (played) {
+          this.pendingRing = false;
+        }
+        return played;
+      }
+
+      ensureContext(){
+        if (this.context || !this.AudioContext) return;
+        try {
+          this.context = new this.AudioContext();
+          if (this.context && this.context.state === 'suspended') {
+            this.context.resume().catch(() => {});
+          }
+        } catch (err) {
+          this.context = null;
+          this.AudioContext = null;
+        }
+      }
+
+      playWithContext(){
+        if (!this.context) return false;
+        try {
+          const ctx = this.context;
+          if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(880, now);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.32, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.72);
+          return true;
+        } catch (err) {
+          this.context = null;
+          return false;
+        }
+      }
+
+      playFallback(onSuccess){
+        const fallbackToTone = () => {
+          this.audioFailed = true;
+          this.preferFallback = false;
+          const ok = this.fallbackToTone();
+          if (ok && typeof onSuccess === 'function') {
+            onSuccess();
+          }
+          return ok;
+        };
+        if (!this.fallbackUri) return fallbackToTone();
+        try {
+          if (!this.audioEl) {
+            this.audioEl = new Audio();
+            this.audioEl.preload = 'auto';
+            this.audioEl.src = this.fallbackUri;
+            this.audioEl.volume = 0.8;
+          }
+          this.audioEl.muted = false;
+          this.audioEl.onerror = () => {
+            if (!fallbackToTone()) {
+              this.pendingRing = true;
+            }
+          };
+          try { this.audioEl.currentTime = 0; } catch {}
+          const p = this.audioEl.play();
+          if (p && typeof p.then === 'function') {
+            p.then(() => {
+              this.audioFailed = false;
+              if (typeof onSuccess === 'function') {
+                onSuccess();
+              }
+            }).catch(() => {
+              if (!fallbackToTone()) {
+                this.pendingRing = true;
+              }
+            });
+            return true;
+          }
+          this.audioFailed = false;
+          if (typeof onSuccess === 'function') {
+            onSuccess();
+          }
+          return true;
+        } catch (err) {
+          return fallbackToTone();
+        }
+      }
+
+      warmFallbackAudio(){
+        if (!this.fallbackUri) return;
+        try {
+          if (!this.audioEl) {
+            this.audioEl = new Audio();
+            this.audioEl.preload = 'auto';
+            this.audioEl.src = this.fallbackUri;
+            this.audioEl.volume = 0.8;
+          }
+          const el = this.audioEl;
+          const prevMuted = el.muted;
+          el.muted = true;
+          const reset = () => {
+            try {
+              el.pause();
+              el.currentTime = 0;
+            } catch {}
+            el.muted = prevMuted;
+          };
+          const playPromise = el.play();
+          if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.then(() => reset()).catch(() => reset());
+          } else {
+            reset();
+          }
+        } catch {}
+      }
+
+      fallbackToTone(){
+        if (!this.AudioContext) return false;
+        if (this.audioEl) {
+          try { this.audioEl.pause(); } catch {}
+        }
+        this.audioEl = null;
+        this.ensureContext();
+        if (!this.context) return false;
+        return this.playWithContext();
+      }
+
+      dispose(){
+        this.stopAlarm();
+        if (this.context && typeof this.context.close === 'function') {
+          try { this.context.close(); } catch {}
+        }
+        this.context = null;
+        if (this.audioEl) {
+          try {
+            this.audioEl.pause();
+            this.audioEl.currentTime = 0;
+          } catch {}
+        }
+        this.audioEl = null;
+      }
+    }
+
+    const chime = new KdsChime(prepareUri(bellConfig) || DEFAULT_BELL_URI);
+
+    const ensureChimeActivated = () => {
+      if (chime.isActivated()) return;
+      chime.activate();
+    };
+
+    ensureChimeActivated();
+    lastUserActivity = Date.now();
+
+    const trackActivity = () => {
+      ensureChimeActivated();
+      lastUserActivity = Date.now();
+      chime.handleUserActivity();
+    };
+
+    const activityEvents = ['pointerdown','touchstart','keydown','wheel','touchmove'];
+    activityEvents.forEach(evt => {
+      document.addEventListener(evt, trackActivity, {passive: true});
+    });
+    window.addEventListener('scroll', trackActivity, {passive: true});
+
+const formatCurrency = (value) => {
+      try {
+        return new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(Number(value || 0));
+      } catch (err) {
+        const num = Number(value || 0).toFixed(2).replace('.', ',');
+        return 'R$ ' + num;
+      }
+    };
+
+    const showToast = (order) => {
+      if (!toastContainer) return;
+      const toast = document.createElement('article');
+      toast.className = 'admin-order-toast';
+      const total = formatCurrency(order.total || order.subtotal || 0);
+      const name = order.customer_name || 'Cliente';
+      const phone = order.customer_phone || '';
+      const orderLink = orderUrlBase ? orderUrlBase + encodeURIComponent(order.id) : '';
+      toast.innerHTML = `
+        <h3>Novo pedido #${order.id}</h3>
+        <p>${name}${phone ? ' · ' + phone : ''}</p>
+        <div class="admin-order-toast-footer">
+          <span class="text-sm font-semibold text-slate-500">${total}</span>
+          <div class="admin-order-toast-actions">
+            ${orderLink ? `<a class="admin-order-toast-btn secondary" href="${orderLink}" target="_blank" rel="noopener">Ver pedido</a>` : ''}
+            ${kdsLink ? `<a class="admin-order-toast-btn primary" href="${kdsLink}" target="_blank" rel="noopener">Abrir KDS</a>` : ''}
+            <button type="button" class="admin-order-toast-btn secondary" data-dismiss>Fechar</button>
+          </div>
+        </div>
+      `;
+      toast.querySelectorAll('[data-dismiss]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          chime.stopAlarm();
+          toast.remove();
+        });
+      });
+      toastContainer.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('show'));
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 200);
+      }, 15000);
+    };
+
+    const orderKey = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? Math.trunc(num) : 0;
+    };
+
+    const collectPending = (orders) => {
+      const set = new Set();
+      orders.forEach(order => {
+        if (!order) return;
+        const status = String(order.status || '').toLowerCase();
+        if (status !== 'pending') return;
+        const id = orderKey(order.id || order.order_id);
+        if (id > 0) set.add(id);
+      });
+      return set;
+    };
+
+    const processData = (data) => {
+      const orders = Array.isArray(data.orders) ? data.orders : [];
+      const pendingSet = collectPending(orders);
+
+      if (!initialized) {
+        knownPending = pendingSet;
+        initialized = true;
+        return;
+      }
+
+      const newOrders = [];
+      orders.forEach(order => {
+        if (!order) return;
+        const status = String(order.status || '').toLowerCase();
+        if (status !== 'pending') return;
+        const id = orderKey(order.id || order.order_id);
+        if (id > 0 && !knownPending.has(id)) {
+          newOrders.push(order);
+        }
+      });
+
+      knownPending = pendingSet;
+
+      if (!newOrders.length) return;
+
+      newOrders.forEach(order => showToast(order));
+      chime.ring();
+    };
+
+    const fetchData = () => {
+      if (isFetching) return;
+      isFetching = true;
+      let url = dataUrl;
+      if (syncToken) {
+        url += (url.includes('?') ? '&' : '?') + 'since=' + encodeURIComponent(syncToken);
+      }
+      fetch(url, {credentials: 'include'})
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(data => {
+          syncToken = data.sync_token || data.server_time || syncToken;
+          processData(data);
+        })
+        .catch(() => {})
+        .finally(() => {
+          isFetching = false;
+        });
+    };
+
+    fetchData();
+    setInterval(fetchData, POLL_INTERVAL);
+    window.addEventListener('beforeunload', () => chime.dispose());
+  })();
+  </script>
+  <script src="http://127.0.0.1:8000/assets/js/admin.js"></script>
+</body>
+</html>
+

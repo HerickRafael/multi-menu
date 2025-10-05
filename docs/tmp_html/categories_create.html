@@ -1,0 +1,61 @@
+
+<div class="mx-auto max-w-4xl p-4">
+
+<form id="category-form"
+      method="post"
+      action="http://127.0.0.1:8000/admin/wollburger/categories"
+      class="relative grid gap-6 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+
+  <!-- CSRF / METHOD -->
+    
+  <!-- TOOLBAR FIXA (idêntica ao bloco de Produto) -->
+  <div class="sticky top-0 z-20 -m-4 mb-0 border-b bg-white/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div class="mx-auto flex max-w-4xl items-center justify-between">
+      <div class="flex items-center gap-2 text-sm text-slate-800">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
+          <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <strong>Nova categoria</strong>
+      </div>
+      <div class="flex gap-2">
+        <a href="http://127.0.0.1:8000/admin/wollburger/categories"
+           class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Cancelar
+        </a>
+        <button type="submit"
+                class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-4 py-1.5 text-sm font-medium text-white shadow hover:opacity-95">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMPOS -->
+  <label class="grid gap-1">
+    <span class="text-sm font-medium text-slate-700">Nome</span>
+    <input name="name" value="" required
+           class="rounded-xl border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-400"
+           placeholder="Ex: Bebidas, Lanches">
+  </label>
+
+  <label class="grid gap-1">
+    <span class="text-sm font-medium text-slate-700">Ordem</span>
+    <input name="sort_order" type="number" min="0" step="1" value="<br />
+<b>Fatal error</b>:  Uncaught TypeError: htmlspecialchars(): Argument #1 ($string) must be of type string, int given in /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php:33
+Stack trace:
+#0 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php(33): htmlspecialchars(0, 3, 'UTF-8')
+#1 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/views/admin/categories/form.php(73): e(0)
+#2 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Controller.php(17): include('/Applications/X...')
+#3 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/controllers/AdminCategoryController.php(49): Controller-&gt;view('admin/categorie...', Array)
+#4 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Router.php(58): AdminCategoryController-&gt;create(Array)
+#5 /Applications/XAMPP/xamppfiles/htdocs/multi-menu/public/index.php(54): Router-&gt;dispatch('create', '/admin/wollburg...')
+#6 {main}
+  thrown in <b>/Applications/XAMPP/xamppfiles/htdocs/multi-menu/app/core/Helpers.php</b> on line <b>33</b><br />
