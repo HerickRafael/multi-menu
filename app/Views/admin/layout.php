@@ -317,7 +317,6 @@ if ($bellConfig !== '') {
       'h8HvwxnKo9Py30PusP1BDf8b/ChpM586Kj7SPZw5yzHdJoAZiwrv+qLrnN280cHIO8OCwbLDp8kD0y/fae3M/GIMMhtPKOYyTzoRPvI98jlTMo4nUBpsC9L7'+
       'euxb3lfSLclyw4HBeMM4yWbSbt6Q7On7ggtkGqAnYTL7OfU9Dj5GOtkyPigeG0sMtfxT7Rzf89KcyazD';
 
-    let unlocked = false;
     let isFetching = false;
     let syncToken = null;
     let initialized = false;
@@ -325,17 +324,11 @@ if ($bellConfig !== '') {
 
     const toastContainer = document.getElementById('admin-order-toasts');
 
-    const prepareUri = (value) => {
-      if (!value) return '';
-      if (/^(data:|https?:|\/\/)/i.test(value)) return value;
-      if (value.startsWith('/')) return window.location.origin + value;
-      try { return new URL(value, window.location.href).toString(); } catch { return value; }
-    };
-
     class KdsChime {
       constructor(fallbackUri){
+        // Preferir arquivo de áudio quando for fornecido (diferente do DEFAULT)
         this.AudioContext = window.AudioContext || window.webkitAudioContext || null;
-        this.fallbackUri = (typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI;
+        this.fallbackUri = this.prepareUri((typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI);
         this.preferFallback = this.fallbackUri && this.fallbackUri !== DEFAULT_BELL_URI;
 
         this.context = null;
@@ -349,12 +342,23 @@ if ($bellConfig !== '') {
 
         this.unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
         this.handleUnlockEvent = this.handleUnlockEvent.bind(this);
-        this.handleVisibility = this.handleVisibility.bind(this);
+        this.handleVisibility   = this.handleVisibility.bind(this);
 
         this.audioEl = null;
         this.audioFailed = false;
 
         this.bindUnlockListeners();
+      }
+
+      prepareUri(value){
+        if (typeof value !== 'string') return '';
+        const raw = value.trim();
+        if (!raw) return '';
+        if (/^(data:|blob:)/i.test(raw)) return raw;
+        if (/^https?:/i.test(raw)) return raw;
+        if (/^\/\//.test(raw)) return window.location.protocol + raw;
+        if (raw[0] === '/') return window.location.origin + raw;
+        try { return new URL(raw, window.location.href).toString(); } catch { return raw; }
       }
 
       bindUnlockListeners(){
@@ -387,12 +391,12 @@ if ($bellConfig !== '') {
       handleUnlockEvent(){
         if (this.unlocked) return;
         this.unlocked = true;
-        if (this.fallbackUri && this.fallbackUri !== DEFAULT_BELL_URI) {
-          this.preferFallback = true;
-          this.audioFailed = false;
+
+        // Só cria o contexto já no unlock se a preferência não for por arquivo
+        if (!this.preferFallback) {
+          this.ensureContext();
         }
-        this.ensureContext();
-        this.warmFallbackAudio();
+
         this.removeUnlockListeners();
         if (this.pendingRing) {
           this.startAlarm();
@@ -443,31 +447,23 @@ if ($bellConfig !== '') {
 
       playOnce(){
         let played = false;
-        const markPlayed = () => {
-          this.pendingRing = false;
-          this.lastPlayedAt = Date.now();
-        };
 
         if (this.preferFallback && !this.audioFailed) {
-          played = this.playFallback(markPlayed);
+          played = this.playFallback();
           if (!played && this.AudioContext) {
             this.ensureContext();
-            if (this.context && this.playWithContext()) {
-              markPlayed();
-              played = true;
-            }
+            if (this.context) played = this.playWithContext();
           }
         } else {
           this.ensureContext();
-          if (this.context && this.playWithContext()) {
-            markPlayed();
-            played = true;
-          }
-          if (!played) {
-            played = this.playFallback(markPlayed);
-          }
+          if (this.context) played = this.playWithContext();
+          if (!played) played = this.playFallback();
         }
 
+        if (played) {
+          this.pendingRing = false;
+          this.lastPlayedAt = Date.now();
+        }
         return played;
       }
 
@@ -476,9 +472,9 @@ if ($bellConfig !== '') {
         try {
           this.context = new this.AudioContext();
           if (this.context && this.context.state === 'suspended') {
-            this.context.resume().catch(() => {});
+            this.context.resume().catch(()=>{});
           }
-        } catch (err) {
+        } catch {
           this.context = null;
           this.AudioContext = null;
         }
@@ -488,7 +484,7 @@ if ($bellConfig !== '') {
         if (!this.context) return false;
         try {
           const ctx = this.context;
-          if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+          if (ctx.state === 'suspended') ctx.resume().catch(()=>{});
           const now = ctx.currentTime;
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -502,87 +498,39 @@ if ($bellConfig !== '') {
           osc.start(now);
           osc.stop(now + 0.72);
           return true;
-        } catch (err) {
+        } catch {
           this.context = null;
           return false;
         }
       }
 
-      playFallback(onSuccess){
+      playFallback(){
+        if (!this.fallbackUri) return false;
+
         const fallbackToTone = () => {
           this.audioFailed = true;
           this.preferFallback = false;
-          const ok = this.fallbackToTone();
-          if (ok && typeof onSuccess === 'function') {
-            onSuccess();
-          }
-          return ok;
+          return this.fallbackToTone();
         };
-        if (!this.fallbackUri) return fallbackToTone();
+
         try {
           if (!this.audioEl) {
             this.audioEl = new Audio();
             this.audioEl.preload = 'auto';
             this.audioEl.src = this.fallbackUri;
             this.audioEl.volume = 0.8;
+            this.audioEl.addEventListener('error', () => { fallbackToTone(); }, { once: true });
           }
-          this.audioEl.muted = false;
-          this.audioEl.onerror = () => {
-            if (!fallbackToTone()) {
-              this.pendingRing = true;
-            }
-          };
           try { this.audioEl.currentTime = 0; } catch {}
           const p = this.audioEl.play();
-          if (p && typeof p.then === 'function') {
-            p.then(() => {
-              this.audioFailed = false;
-              if (typeof onSuccess === 'function') {
-                onSuccess();
-              }
-            }).catch(() => {
-              if (!fallbackToTone()) {
-                this.pendingRing = true;
-              }
-            });
-            return true;
+          if (p && typeof p.catch === 'function') {
+            p.catch(() => { fallbackToTone(); });
           }
           this.audioFailed = false;
-          if (typeof onSuccess === 'function') {
-            onSuccess();
-          }
           return true;
-        } catch (err) {
+        } catch {
           return fallbackToTone();
         }
-      }
-
-      warmFallbackAudio(){
-        if (!this.fallbackUri) return;
-        try {
-          if (!this.audioEl) {
-            this.audioEl = new Audio();
-            this.audioEl.preload = 'auto';
-            this.audioEl.src = this.fallbackUri;
-            this.audioEl.volume = 0.8;
-          }
-          const el = this.audioEl;
-          const previousMute = el.muted;
-          el.muted = true;
-          const reset = () => {
-            try {
-              el.pause();
-              el.currentTime = 0;
-            } catch {}
-            el.muted = previousMute;
-          };
-          const playPromise = el.play();
-          if (playPromise && typeof playPromise.then === 'function') {
-            playPromise.then(() => reset()).catch(() => reset());
-          } else {
-            reset();
-          }
-        } catch {}
       }
 
       fallbackToTone(){
@@ -594,19 +542,6 @@ if ($bellConfig !== '') {
         this.ensureContext();
         if (!this.context) return false;
         return this.playWithContext();
-      }
-
-      stopLoops(){
-        if (this.loopInterval) {
-          clearInterval(this.loopInterval);
-          this.loopInterval = null;
-        }
-        if (this.loopTimeout) {
-          clearTimeout(this.loopTimeout);
-          this.loopTimeout = null;
-        }
-        this.loopContinuous = false;
-        this.pendingRing = false;
       }
 
       dispose(){
@@ -624,9 +559,27 @@ if ($bellConfig !== '') {
         }
         this.audioEl = null;
       }
+
+      clearLoopTimers(){
+        if (this.loopInterval) {
+          clearInterval(this.loopInterval);
+          this.loopInterval = null;
+        }
+        if (this.loopTimeout) {
+          clearTimeout(this.loopTimeout);
+          this.loopTimeout = null;
+        }
+        this.loopContinuous = false;
+      }
+
+      stopLoops(){
+        this.clearLoopTimers();
+        this.pendingRing = false;
+      }
     }
 
-    const chime = new KdsChime(prepareUri(bellConfig) || DEFAULT_BELL_URI);
+
+    const chime = new KdsChime(bellConfig || DEFAULT_BELL_URI);
 
     const formatCurrency = (value) => {
       try {
