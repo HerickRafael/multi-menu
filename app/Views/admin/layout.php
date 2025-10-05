@@ -250,6 +250,38 @@ if ($bellConfig !== '') {
     .admin-order-toast-btn.secondary:hover {
       background: rgba(226,232,240,0.9);
     }
+
+    .admin-sound-activate-btn {
+      position: fixed;
+      right: 1.25rem;
+      bottom: 1.25rem;
+      z-index: 10000;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 9999px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      background-image: var(--admin-primary-gradient);
+      color: #fff;
+      box-shadow: 0 18px 35px -18px rgba(15,23,42,0.45);
+      cursor: pointer;
+    }
+
+    .admin-sound-activate-btn:hover {
+      filter: brightness(1.05);
+    }
+
+    .admin-sound-activate-btn:focus {
+      outline: 3px solid rgba(59,130,246,0.45);
+      outline-offset: 2px;
+    }
+
+    .admin-sound-activate-btn.hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900"
@@ -262,6 +294,12 @@ if ($bellConfig !== '') {
     <?= $content ?? '' ?>
   </div>
   <div class="admin-order-toasts" id="admin-order-toasts" aria-live="polite"></div>
+  <?php if (!empty($kdsDataUrl)): ?>
+    <button type="button" id="admin-sound-activate" class="admin-sound-activate-btn">
+      <span aria-hidden="true">🔔</span>
+      <span>Ativar som</span>
+    </button>
+  <?php endif; ?>
 
   <script>
   (function(){
@@ -317,152 +355,169 @@ if ($bellConfig !== '') {
       'h8HvwxnKo9Py30PusP1BDf8b/ChpM586Kj7SPZw5yzHdJoAZiwrv+qLrnN280cHIO8OCwbLDp8kD0y/fae3M/GIMMhtPKOYyTzoRPvI98jlTMo4nUBpsC9L7'+
       'euxb3lfSLclyw4HBeMM4yWbSbt6Q7On7ggtkGqAnYTL7OfU9Dj5GOtkyPigeG0sMtfxT7Rzf89KcyazD';
 
+    const ACTIVITY_TIMEOUT = 15000;
+    let lastUserActivity = 0;
     let isFetching = false;
     let syncToken = null;
     let initialized = false;
     let knownPending = new Set();
 
     const toastContainer = document.getElementById('admin-order-toasts');
+    const soundButton = document.getElementById('admin-sound-activate');
+
+    const prepareUri = (value) => {
+      if (!value) return '';
+      const raw = String(value).trim();
+      if (!raw) return '';
+      if (/^(data:|https?:|\/\/)/i.test(raw)) return raw;
+      if (raw.startsWith('/')) {
+        return window.location.origin + raw;
+      }
+      try {
+        return new URL(raw, window.location.href).toString();
+      } catch {
+        return raw;
+      }
+    };
+
+    const isPageActive = () => {
+      if (document.hidden) return false;
+      if (!lastUserActivity) return false;
+      return (Date.now() - lastUserActivity) <= ACTIVITY_TIMEOUT;
+    };
 
     class KdsChime {
       constructor(fallbackUri){
-        // Preferir arquivo de áudio quando for fornecido (diferente do DEFAULT)
         this.AudioContext = window.AudioContext || window.webkitAudioContext || null;
-        this.fallbackUri = this.prepareUri((typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI);
+        this.fallbackUri = prepareUri((typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI);
         this.preferFallback = this.fallbackUri && this.fallbackUri !== DEFAULT_BELL_URI;
 
         this.context = null;
         this.unlocked = false;
         this.pendingRing = false;
+        this.pendingMode = null;
         this.lastPlayedAt = 0;
         this.minimumGapMs = 450;
         this.loopInterval = null;
-        this.loopTimeout = null;
-        this.loopContinuous = false;
-
-        this.unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
-        this.handleUnlockEvent = this.handleUnlockEvent.bind(this);
-        this.handleVisibility   = this.handleVisibility.bind(this);
+        this.shortTimeout = null;
+        this.isAlarmRunning = false;
 
         this.audioEl = null;
         this.audioFailed = false;
-
-        this.bindUnlockListeners();
       }
 
-      prepareUri(value){
-        if (typeof value !== 'string') return '';
-        const raw = value.trim();
-        if (!raw) return '';
-        if (/^(data:|blob:)/i.test(raw)) return raw;
-        if (/^https?:/i.test(raw)) return raw;
-        if (/^\/\//.test(raw)) return window.location.protocol + raw;
-        if (raw[0] === '/') return window.location.origin + raw;
-        try { return new URL(raw, window.location.href).toString(); } catch { return raw; }
+      isActivated(){
+        return this.unlocked;
       }
 
-      bindUnlockListeners(){
-        this.unlockEvents.forEach(evt => {
-          document.addEventListener(evt, this.handleUnlockEvent, {passive: true});
-        });
-        document.addEventListener('visibilitychange', this.handleVisibility);
-      }
-
-      removeUnlockListeners(){
-        this.unlockEvents.forEach(evt => {
-          document.removeEventListener(evt, this.handleUnlockEvent);
-        });
-        document.removeEventListener('visibilitychange', this.handleVisibility);
-      }
-
-      handleVisibility(){
-        if (document.hidden) {
-          if (!this.loopContinuous) {
-            this.startContinuousLoop();
-          }
-        } else {
-          if (this.loopContinuous || this.loopTimeout) {
-            this.stopLoops();
-            this.playVisiblePattern();
-          }
-        }
-      }
-
-      handleUnlockEvent(){
+      activate(){
         if (this.unlocked) return;
         this.unlocked = true;
-
-        // Só cria o contexto já no unlock se a preferência não for por arquivo
-        if (!this.preferFallback) {
-          this.ensureContext();
-        }
-
-        this.removeUnlockListeners();
+        this.ensureContext();
+        this.warmFallbackAudio();
         if (this.pendingRing) {
-          this.startAlarm();
+          const mode = this.pendingMode || 'loop';
+          this.pendingRing = false;
+          this.pendingMode = null;
+          if (mode === 'short') {
+            this.playShortAlert();
+          } else {
+            this.startPersistentAlert();
+          }
         }
       }
 
-      ring(){
+      ring(mode){
+        const chosenMode = mode || (isPageActive() ? 'short' : 'loop');
         if (!this.unlocked) {
           this.pendingRing = true;
+          this.pendingMode = chosenMode;
           return;
         }
         const now = Date.now();
-        if (now - this.lastPlayedAt < this.minimumGapMs) return;
-        this.startAlarm();
-      }
-
-      startAlarm(){
-        if (document.hidden) {
-          this.startContinuousLoop();
+        if (this.isAlarmRunning && (now - this.lastPlayedAt) < this.minimumGapMs) {
+          return;
+        }
+        if (chosenMode === 'short') {
+          this.playShortAlert();
         } else {
-          this.playVisiblePattern();
+          this.startPersistentAlert();
         }
       }
 
-      playVisiblePattern(){
-        this.stopLoops();
-        this.pendingRing = true;
+      playShortAlert(){
+        this.stopAlarm(false);
+        this.pendingRing = false;
+        this.pendingMode = null;
+        this.isAlarmRunning = true;
         this.playOnce();
-        this.loopTimeout = setTimeout(() => {
-          this.loopTimeout = null;
-          if (document.hidden) {
-            this.startContinuousLoop();
-            return;
-          }
+        this.shortTimeout = setTimeout(() => {
           this.playOnce();
-        }, 5000);
+          this.shortTimeout = setTimeout(() => this.stopAlarm(), 900);
+        }, 800);
       }
 
-      startContinuousLoop(){
-        this.stopLoops();
-        this.loopContinuous = true;
-        this.pendingRing = true;
-        this.playOnce();
-        this.loopInterval = setInterval(() => {
-          this.playOnce();
-        }, 5000);
+      startPersistentAlert(){
+        this.stopAlarm(false);
+        this.pendingRing = false;
+        this.pendingMode = null;
+        this.isAlarmRunning = true;
+        const playNow = () => this.playOnce();
+        playNow();
+        this.loopInterval = setInterval(playNow, 4000);
+      }
+
+      handleUserActivity(){
+        if (!this.unlocked) return;
+        if (this.isAlarmRunning) {
+          this.stopAlarm();
+        }
+      }
+
+      stopAlarm(resetPending = true){
+        if (this.loopInterval) {
+          clearInterval(this.loopInterval);
+          this.loopInterval = null;
+        }
+        if (this.shortTimeout) {
+          clearTimeout(this.shortTimeout);
+          this.shortTimeout = null;
+        }
+        this.isAlarmRunning = false;
+        if (resetPending) {
+          this.pendingRing = false;
+          this.pendingMode = null;
+        }
       }
 
       playOnce(){
         let played = false;
+        const markPlayed = () => {
+          this.lastPlayedAt = Date.now();
+        };
 
         if (this.preferFallback && !this.audioFailed) {
-          played = this.playFallback();
+          played = this.playFallback(markPlayed);
           if (!played && this.AudioContext) {
             this.ensureContext();
-            if (this.context) played = this.playWithContext();
+            if (this.context && this.playWithContext()) {
+              markPlayed();
+              played = true;
+            }
           }
         } else {
           this.ensureContext();
-          if (this.context) played = this.playWithContext();
-          if (!played) played = this.playFallback();
+          if (this.context && this.playWithContext()) {
+            markPlayed();
+            played = true;
+          }
+          if (!played) {
+            played = this.playFallback(markPlayed);
+          }
         }
 
         if (played) {
           this.pendingRing = false;
-          this.lastPlayedAt = Date.now();
         }
         return played;
       }
@@ -472,9 +527,9 @@ if ($bellConfig !== '') {
         try {
           this.context = new this.AudioContext();
           if (this.context && this.context.state === 'suspended') {
-            this.context.resume().catch(()=>{});
+            this.context.resume().catch(() => {});
           }
-        } catch {
+        } catch (err) {
           this.context = null;
           this.AudioContext = null;
         }
@@ -484,7 +539,7 @@ if ($bellConfig !== '') {
         if (!this.context) return false;
         try {
           const ctx = this.context;
-          if (ctx.state === 'suspended') ctx.resume().catch(()=>{});
+          if (ctx.state === 'suspended') ctx.resume().catch(() => {});
           const now = ctx.currentTime;
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -498,39 +553,87 @@ if ($bellConfig !== '') {
           osc.start(now);
           osc.stop(now + 0.72);
           return true;
-        } catch {
+        } catch (err) {
           this.context = null;
           return false;
         }
       }
 
-      playFallback(){
-        if (!this.fallbackUri) return false;
-
+      playFallback(onSuccess){
         const fallbackToTone = () => {
           this.audioFailed = true;
           this.preferFallback = false;
-          return this.fallbackToTone();
+          const ok = this.fallbackToTone();
+          if (ok && typeof onSuccess === 'function') {
+            onSuccess();
+          }
+          return ok;
         };
-
+        if (!this.fallbackUri) return fallbackToTone();
         try {
           if (!this.audioEl) {
             this.audioEl = new Audio();
             this.audioEl.preload = 'auto';
             this.audioEl.src = this.fallbackUri;
             this.audioEl.volume = 0.8;
-            this.audioEl.addEventListener('error', () => { fallbackToTone(); }, { once: true });
           }
+          this.audioEl.muted = false;
+          this.audioEl.onerror = () => {
+            if (!fallbackToTone()) {
+              this.pendingRing = true;
+            }
+          };
           try { this.audioEl.currentTime = 0; } catch {}
           const p = this.audioEl.play();
-          if (p && typeof p.catch === 'function') {
-            p.catch(() => { fallbackToTone(); });
+          if (p && typeof p.then === 'function') {
+            p.then(() => {
+              this.audioFailed = false;
+              if (typeof onSuccess === 'function') {
+                onSuccess();
+              }
+            }).catch(() => {
+              if (!fallbackToTone()) {
+                this.pendingRing = true;
+              }
+            });
+            return true;
           }
           this.audioFailed = false;
+          if (typeof onSuccess === 'function') {
+            onSuccess();
+          }
           return true;
-        } catch {
+        } catch (err) {
           return fallbackToTone();
         }
+      }
+
+      warmFallbackAudio(){
+        if (!this.fallbackUri) return;
+        try {
+          if (!this.audioEl) {
+            this.audioEl = new Audio();
+            this.audioEl.preload = 'auto';
+            this.audioEl.src = this.fallbackUri;
+            this.audioEl.volume = 0.8;
+          }
+          const el = this.audioEl;
+          const prevMuted = el.muted;
+          el.muted = true;
+          const reset = () => {
+            try {
+              el.pause();
+              el.currentTime = 0;
+            } catch {}
+            el.muted = prevMuted;
+          };
+          const playPromise = el.play();
+          if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.then(() => reset()).catch(() => reset());
+          } else {
+            reset();
+          }
+        } catch {}
       }
 
       fallbackToTone(){
@@ -545,8 +648,7 @@ if ($bellConfig !== '') {
       }
 
       dispose(){
-        this.removeUnlockListeners();
-        this.stopLoops();
+        this.stopAlarm();
         if (this.context && typeof this.context.close === 'function') {
           try { this.context.close(); } catch {}
         }
@@ -559,29 +661,30 @@ if ($bellConfig !== '') {
         }
         this.audioEl = null;
       }
-
-      clearLoopTimers(){
-        if (this.loopInterval) {
-          clearInterval(this.loopInterval);
-          this.loopInterval = null;
-        }
-        if (this.loopTimeout) {
-          clearTimeout(this.loopTimeout);
-          this.loopTimeout = null;
-        }
-        this.loopContinuous = false;
-      }
-
-      stopLoops(){
-        this.clearLoopTimers();
-        this.pendingRing = false;
-      }
     }
 
+    const chime = new KdsChime(prepareUri(bellConfig) || DEFAULT_BELL_URI);
 
-    const chime = new KdsChime(bellConfig || DEFAULT_BELL_URI);
+    if (soundButton) {
+      soundButton.addEventListener('click', () => {
+        chime.activate();
+        lastUserActivity = Date.now();
+        soundButton.classList.add('hidden');
+      });
+    }
 
-    const formatCurrency = (value) => {
+    const trackActivity = () => {
+      lastUserActivity = Date.now();
+      chime.handleUserActivity();
+    };
+
+    const activityEvents = ['pointerdown','touchstart','keydown','wheel','touchmove'];
+    activityEvents.forEach(evt => {
+      document.addEventListener(evt, trackActivity, {passive: true});
+    });
+    window.addEventListener('scroll', trackActivity, {passive: true});
+
+const formatCurrency = (value) => {
       try {
         return new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(Number(value || 0));
       } catch (err) {
@@ -612,7 +715,7 @@ if ($bellConfig !== '') {
       `;
       toast.querySelectorAll('[data-dismiss]').forEach(btn => {
         btn.addEventListener('click', () => {
-          chime.stopLoops();
+          chime.stopAlarm();
           toast.remove();
         });
       });
