@@ -9,9 +9,16 @@ if (!function_exists('e')) {
 $company = is_array($company ?? null) ? $company : [];
 $methods = is_array($methods ?? null) ? $methods : [];
 $flash   = is_array($flash ?? null) ? $flash : null;
-$old     = is_array($old ?? null) ? $old : ['name' => '', 'instructions' => '', 'sort_order' => 0, 'active' => 1];
+$old     = is_array($old ?? null) ? $old : ['name' => '', 'instructions' => '', 'sort_order' => 0, 'active' => 1, 'type' => 'credit', 'meta' => []];
 $errors  = is_array($errors ?? null) ? $errors : [];
 $user    = $user ?? null;
+
+$old['meta'] = is_array($old['meta'] ?? null) ? $old['meta'] : [];
+$oldType = is_string($old['type'] ?? null) ? $old['type'] : 'credit';
+$allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
+if (!in_array($oldType, $allowedTypes, true)) {
+    $oldType = 'credit';
+}
 
 $slug = rawurlencode((string)($company['slug'] ?? ''));
 $title = $title ?? ('Métodos de pagamento - ' . ($company['name'] ?? ''));
@@ -42,7 +49,7 @@ ob_start();
     </a>
   </div>
     <script>
-      (function(){
+      document.addEventListener('DOMContentLoaded', function(){
         const type = document.getElementById('pm-type');
         const pixFields = document.getElementById('pm-pix-fields');
         function togglePix(){
@@ -54,7 +61,7 @@ ob_start();
           }
         }
         if (type){ type.addEventListener('change', togglePix); togglePix(); }
-      })();
+      });
     </script>
 </header>
 
@@ -93,11 +100,11 @@ ob_start();
       <label class="grid gap-1 text-sm">
         <span class="font-semibold text-slate-700">Tipo</span>
         <select name="type" id="pm-type" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-          <option value="credit">Crédito</option>
-          <option value="debit">Débito</option>
-          <option value="others">Outros</option>
-          <option value="voucher">Vale-refeição</option>
-          <option value="pix">Pix</option>
+          <option value="credit" <?= $oldType === 'credit' ? 'selected' : '' ?>>Crédito</option>
+          <option value="debit" <?= $oldType === 'debit' ? 'selected' : '' ?>>Débito</option>
+          <option value="others" <?= $oldType === 'others' ? 'selected' : '' ?>>Outros</option>
+          <option value="voucher" <?= $oldType === 'voucher' ? 'selected' : '' ?>>Vale-refeição</option>
+          <option value="pix" <?= $oldType === 'pix' ? 'selected' : '' ?>>Pix</option>
         </select>
       </label>
 
@@ -106,15 +113,15 @@ ob_start();
         <textarea name="instructions" rows="3" placeholder="Recados exibidos após a escolha do cliente" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"><?= e($old['instructions'] ?? '') ?></textarea>
       </label>
 
-      <div id="pm-pix-fields" class="hidden grid gap-2">
+      <div id="pm-pix-fields" class="<?= $oldType === 'pix' ? 'grid gap-2' : 'hidden grid gap-2' ?>">
         <h3 class="text-sm font-semibold">Credenciais Pix</h3>
         <label class="grid gap-1 text-sm">
           <span class="font-semibold text-slate-700">Chave Pix</span>
-          <input type="text" name="meta[px_key]" placeholder="Ex.: 11999999999 ou chave aleatória" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+          <input type="text" name="meta[px_key]" value="<?= e($old['meta']['px_key'] ?? '') ?>" placeholder="Ex.: 11999999999 ou chave aleatória" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
         </label>
         <label class="grid gap-1 text-sm">
           <span class="font-semibold text-slate-700">Provedor (opcional)</span>
-          <input type="text" name="meta[px_provider]" placeholder="Ex.: Gerencianet, Pagar.me" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+          <input type="text" name="meta[px_provider]" value="<?= e($old['meta']['px_provider'] ?? '') ?>" placeholder="Ex.: Gerencianet, Pagar.me" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
         </label>
       </div>
 
@@ -354,7 +361,19 @@ ob_start();
               form.reset();
               const type = document.getElementById('pm-type');
               const pixFields = document.getElementById('pm-pix-fields');
-              if (type && pixFields) pixFields.classList.add('hidden');
+              if (type){
+                type.value = 'credit';
+                try {
+                  type.dispatchEvent(new Event('change'));
+                } catch (eventError) {
+                  var legacyEvent = document.createEvent('HTMLEvents');
+                  legacyEvent.initEvent('change', true, false);
+                  type.dispatchEvent(legacyEvent);
+                }
+              }
+              if (pixFields){
+                pixFields.classList.add('hidden');
+              }
             }catch(err){
               console.error(err);
               // fallback: submit normally so server can render errors
