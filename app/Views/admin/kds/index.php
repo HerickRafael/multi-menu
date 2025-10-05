@@ -163,20 +163,36 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
   class KdsChime {
     constructor(fallbackUri){
-      this.audioCtor = window.AudioContext || window.webkitAudioContext || null;
-      this.fallbackUri = (typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI;
-      this.preferFallback = this.fallbackUri !== DEFAULT_BELL_URI;
+      // Preferir arquivo de áudio quando for fornecido (diferente do DEFAULT)
+      this.AudioContext = window.AudioContext || window.webkitAudioContext || null;
+      this.fallbackUri = this.prepareUri((typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI);
+      this.preferFallback = this.fallbackUri && this.fallbackUri !== DEFAULT_BELL_URI;
+
       this.context = null;
       this.unlocked = false;
       this.pendingRing = false;
       this.lastPlayedAt = 0;
       this.minimumGapMs = 450;
+
       this.unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
       this.handleUnlockEvent = this.handleUnlockEvent.bind(this);
-      this.handleVisibility = this.handleVisibility.bind(this);
+      this.handleVisibility   = this.handleVisibility.bind(this);
+
       this.audioEl = null;
       this.audioFailed = false;
+
       this.bindUnlockListeners();
+    }
+
+    prepareUri(value){
+      if (typeof value !== 'string') return '';
+      const raw = value.trim();
+      if (!raw) return '';
+      if (/^(data:|blob:)/i.test(raw)) return raw;
+      if (/^https?:/i.test(raw)) return raw;
+      if (/^\/\//.test(raw)) return window.location.protocol + raw;
+      if (raw[0] === '/') return window.location.origin + raw;
+      try { return new URL(raw, window.location.href).toString(); } catch { return raw; }
     }
 
     bindUnlockListeners(){
@@ -200,13 +216,14 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     }
 
     handleUnlockEvent(){
-      if (this.unlocked) {
-        return;
-      }
+      if (this.unlocked) return;
       this.unlocked = true;
+
+      // Só cria o contexto já no unlock se a preferência não for por arquivo
       if (!this.preferFallback) {
         this.ensureContext();
       }
+
       this.removeUnlockListeners();
       if (this.pendingRing) {
         this.tryRing();
@@ -219,9 +236,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         return;
       }
       const now = Date.now();
-      if (now - this.lastPlayedAt < this.minimumGapMs) {
-        return;
-      }
+      if (now - this.lastPlayedAt < this.minimumGapMs) return;
       if (this.tryRing()) {
         this.lastPlayedAt = Date.now();
       }
@@ -229,38 +244,41 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
     tryRing(){
       let played = false;
+
       if (this.preferFallback && !this.audioFailed) {
         played = this.playFallback();
-        if (!played && this.audioCtor) {
+        if (!played && this.AudioContext) {
           this.ensureContext();
-          if (this.context) {
-            played = this.playWithContext();
-          }
+          if (this.context) played = this.playWithContext();
         }
       } else {
         this.ensureContext();
-        if (this.context) {
-          played = this.playWithContext();
-        }
-        if (!played) {
-          played = this.playFallback();
-        }
+        if (this.context) played = this.playWithContext();
+        if (!played) played = this.playFallback();
       }
-      if (played) {
-        this.pendingRing = false;
-      }
+
+      if (played) this.pendingRing = false;
       return played;
     }
 
-    playWithContext(){
-      if (!this.context) {
-        return false;
+    ensureContext(){
+      if (this.context || !this.AudioContext) return;
+      try {
+        this.context = new this.AudioContext();
+        if (this.context && this.context.state === 'suspended') {
+          this.context.resume().catch(()=>{});
+        }
+      } catch {
+        this.context = null;
+        this.AudioContext = null;
       }
+    }
+
+    playWithContext(){
+      if (!this.context) return false;
       try {
         const ctx = this.context;
-        if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
-        }
+        if (ctx.state === 'suspended') ctx.resume().catch(()=>{});
         const now = ctx.currentTime;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -274,103 +292,66 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         osc.start(now);
         osc.stop(now + 0.72);
         return true;
-      } catch (err) {
+      } catch {
         this.context = null;
         return false;
       }
     }
 
     playFallback(){
-      if (!this.fallbackUri) {
-        return false;
-      }
+      if (!this.fallbackUri) return false;
+
       const fallbackToTone = () => {
         this.audioFailed = true;
         this.preferFallback = false;
         return this.fallbackToTone();
       };
+
       try {
         if (!this.audioEl) {
           this.audioEl = new Audio();
           this.audioEl.preload = 'auto';
           this.audioEl.src = this.fallbackUri;
           this.audioEl.volume = 0.8;
-          this.audioEl.addEventListener('error', () => {
-            fallbackToTone();
-          }, { once: true });
+          this.audioEl.addEventListener('error', () => { fallbackToTone(); }, { once: true });
         }
-        try {
-          this.audioEl.currentTime = 0;
-        } catch (err) {
-          // ignore if cannot reset
-        }
-        const playPromise = this.audioEl.play();
-        if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise.catch(() => {
-            fallbackToTone();
-          });
+        try { this.audioEl.currentTime = 0; } catch {}
+        const p = this.audioEl.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => { fallbackToTone(); });
         }
         this.audioFailed = false;
         return true;
-      } catch (err) {
+      } catch {
         return fallbackToTone();
       }
+    }
+
+    fallbackToTone(){
+      if (!this.AudioContext) return false;
+      if (this.audioEl) {
+        try { this.audioEl.pause(); } catch {}
+      }
+      this.audioEl = null;
+      this.ensureContext();
+      if (!this.context) return false;
+      return this.playWithContext();
     }
 
     dispose(){
       this.removeUnlockListeners();
       this.pendingRing = false;
       if (this.context && typeof this.context.close === 'function') {
-        try {
-          this.context.close();
-        } catch (err) {
-          // ignore
-        }
+        try { this.context.close(); } catch {}
       }
       this.context = null;
       if (this.audioEl) {
         try {
           this.audioEl.pause();
           this.audioEl.currentTime = 0;
-        } catch (err) {
-          // ignore
-        }
+        } catch {}
       }
       this.audioEl = null;
-    }
-
-    ensureContext(){
-      if (this.context || !this.audioCtor) {
-        return;
-      }
-      try {
-        this.context = new this.audioCtor();
-        if (this.context && this.context.state === 'suspended') {
-          this.context.resume().catch(() => {});
-        }
-      } catch (err) {
-        this.context = null;
-        this.audioCtor = null;
-      }
-    }
-
-    fallbackToTone(){
-      if (!this.audioCtor) {
-        return false;
-      }
-      if (this.audioEl) {
-        try {
-          this.audioEl.pause();
-        } catch (err) {
-          // ignore
-        }
-      }
-      this.audioEl = null;
-      this.ensureContext();
-      if (!this.context) {
-        return false;
-      }
-      return this.playWithContext();
     }
   }
 
@@ -457,9 +438,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     startPolling(){
       this.pollInterval = this.resolveInterval();
       this.fetchData();
-      if (this.pollTimer) {
-        clearInterval(this.pollTimer);
-      }
+      if (this.pollTimer) clearInterval(this.pollTimer);
       this.pollTimer = setInterval(() => this.fetchData(), this.pollInterval);
     }
 

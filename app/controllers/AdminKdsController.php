@@ -47,6 +47,7 @@ class AdminKdsController extends Controller
             }
         }
 
+        // Resolve bell URL (aceita http(s), //, caminho absoluto ou relativo ao app)
         $bellPath = (string)(config('kds_bell_url') ?? '');
         $bellUrl = '';
         if ($bellPath !== '') {
