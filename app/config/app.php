@@ -18,6 +18,7 @@ return [
   ],
 
   'login_required' => true,
+  'kds_bell_url' => '/audio/meu-alerta.mp3',
 
   // Quantos dias um produto aparece como "Novidade".
   // Coloque 0 para DESLIGAR completamente (seção e badge).

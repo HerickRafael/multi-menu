@@ -163,8 +163,9 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
   class KdsChime {
     constructor(fallbackUri){
-      this.AudioContext = window.AudioContext || window.webkitAudioContext || null;
+      this.audioCtor = window.AudioContext || window.webkitAudioContext || null;
       this.fallbackUri = (typeof fallbackUri === 'string' && fallbackUri.trim()) ? fallbackUri.trim() : DEFAULT_BELL_URI;
+      this.preferFallback = this.fallbackUri !== DEFAULT_BELL_URI;
       this.context = null;
       this.unlocked = false;
       this.pendingRing = false;
@@ -173,6 +174,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       this.unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
       this.handleUnlockEvent = this.handleUnlockEvent.bind(this);
       this.handleVisibility = this.handleVisibility.bind(this);
+      this.audioEl = null;
       this.bindUnlockListeners();
     }
 
@@ -201,15 +203,8 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         return;
       }
       this.unlocked = true;
-      if (this.AudioContext) {
-        try {
-          this.context = new this.AudioContext();
-          if (this.context && this.context.state === 'suspended') {
-            this.context.resume().catch(() => {});
-          }
-        } catch (err) {
-          this.context = null;
-        }
+      if (!this.preferFallback) {
+        this.ensureContext();
       }
       this.removeUnlockListeners();
       if (this.pendingRing) {
@@ -233,11 +228,22 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 
     tryRing(){
       let played = false;
-      if (this.context) {
-        played = this.playWithContext();
-      }
-      if (!played) {
+      if (this.preferFallback) {
         played = this.playFallback();
+        if (!played && this.audioCtor) {
+          this.ensureContext();
+          if (this.context) {
+            played = this.playWithContext();
+          }
+        }
+      } else {
+        this.ensureContext();
+        if (this.context) {
+          played = this.playWithContext();
+        }
+        if (!played) {
+          played = this.playFallback();
+        }
       }
       if (played) {
         this.pendingRing = false;
@@ -278,9 +284,18 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         return false;
       }
       try {
-        const audio = new Audio(this.fallbackUri);
-        audio.volume = 0.8;
-        const playPromise = audio.play();
+        if (!this.audioEl) {
+          this.audioEl = new Audio();
+          this.audioEl.preload = 'auto';
+          this.audioEl.src = this.fallbackUri;
+          this.audioEl.volume = 0.8;
+        }
+        try {
+          this.audioEl.currentTime = 0;
+        } catch (err) {
+          // ignore if cannot reset
+        }
+        const playPromise = this.audioEl.play();
         if (playPromise && typeof playPromise.catch === 'function') {
           playPromise.catch(() => {});
         }
@@ -301,6 +316,30 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         }
       }
       this.context = null;
+      if (this.audioEl) {
+        try {
+          this.audioEl.pause();
+          this.audioEl.currentTime = 0;
+        } catch (err) {
+          // ignore
+        }
+      }
+      this.audioEl = null;
+    }
+
+    ensureContext(){
+      if (this.context || !this.audioCtor) {
+        return;
+      }
+      try {
+        this.context = new this.audioCtor();
+        if (this.context && this.context.state === 'suspended') {
+          this.context.resume().catch(() => {});
+        }
+      } catch (err) {
+        this.context = null;
+        this.audioCtor = null;
+      }
     }
   }
 
@@ -890,6 +929,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       if (this.chime && typeof this.chime.dispose === 'function') {
         this.chime.dispose();
       }
+      this.chime = null;
     }
   }
 
