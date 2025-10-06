@@ -69,6 +69,7 @@ if (!in_array($oldType, $allowedTypes, true)) {
     $oldType = 'credit';
 }
 
+// --- Normalizações e labels Pix (mantidos do branch com melhorias)
 $pixTypeLabels = [
     'email' => 'E-mail',
     'cpf' => 'CPF',
@@ -646,7 +647,15 @@ ob_start();
             const body = new URLSearchParams();
             body.append('active', on ? '1' : '0');
             if (csrftoken) body.append('csrf_token', csrftoken);
-            const res = await fetch(url, { method: 'POST', body, credentials: 'same-origin' });
+            const res = await fetch(url, {
+              method: 'POST',
+              body,
+              credentials: 'same-origin',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+              }
+            });
             if (!res.ok) throw new Error('Network');
             const json = await res.json().catch(() => null);
             if (!json || !json.success) throw new Error('Invalid response');
@@ -676,7 +685,15 @@ ob_start();
               const body = new URLSearchParams();
               body.append('active', on ? '1' : '0');
               if (csrftoken) body.append('csrf_token', csrftoken);
-              const res = await fetch(url, { method: 'POST', body, credentials: 'same-origin' });
+              const res = await fetch(url, {
+                method: 'POST',
+                body,
+                credentials: 'same-origin',
+                headers: {
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'Accept': 'application/json'
+                }
+              });
               if (!res.ok) throw new Error('Network');
               const json = await res.json().catch(() => null);
               if (!json || !json.success) throw new Error('Batch failed');
@@ -701,10 +718,19 @@ ob_start();
             }
             const editing = methodIdInput ? methodIdInput.value : '';
             try {
-              const res = await fetch(form.action, { method: form.method || 'POST', body: data, credentials: 'same-origin' });
+              const res = await fetch(form.action, {
+                method: form.method || 'POST',
+                body: data,
+                credentials: 'same-origin',
+                headers: {
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'Accept': 'application/json'
+                }
+              });
               if (!res.ok) throw new Error('Network');
               const json = await res.json().catch(() => null);
               if (!json || !json.success || !json.method) throw new Error('Invalid response');
+
               replaceMethodRow(json.method);
               if (!editing && json.method && json.method.sort_order !== undefined) {
                 const nextSort = (parseInt(json.method.sort_order, 10) || 0) + 1;
@@ -715,6 +741,7 @@ ob_start();
               }
             } catch (err) {
               console.error(err);
+              // fallback não-AJAX
               form.submit();
             }
           });
