@@ -42,6 +42,13 @@ if ($bellConfig !== '') {
       background-clip: text;
       color: transparent;
     }
+    /* Utilitários de cor primária do admin */
+    .admin-primary-text { color: var(--admin-primary-color); }
+    .admin-primary-underline { text-decoration-color: var(--admin-primary-color); }
+    .admin-primary-bg { background-color: var(--admin-primary-color); }
+    .admin-primary-soft-bg { background-color: var(--admin-primary-soft); }
+    .admin-primary-soft-badge { background-color: var(--admin-primary-soft); color: var(--admin-primary-color); }
+    .admin-primary-border { border-color: var(--admin-primary-color); }
     .admin-print-only {
       display: none;
     }

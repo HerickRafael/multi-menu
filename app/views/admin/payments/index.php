@@ -15,17 +15,27 @@ if (!function_exists('render_payment_method_row')) {
         $meta = is_array($method['meta'] ?? null) ? $method['meta'] : [];
         $isActive = !empty($method['active']);
         $methodJson = htmlspecialchars(json_encode($method, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
-        $trackClass = $isActive ? 'bg-rose-500' : 'bg-slate-200';
+  $trackClass = $isActive ? 'admin-primary-bg' : 'bg-slate-200';
         $thumbTransform = $isActive ? 'translateX(20px)' : 'translateX(0)';
-        $typeBadgeClass = $type === 'pix' ? 'bg-emerald-100 text-emerald-700' : ($type === 'credit' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700');
+  $typeBadgeClass = 'admin-primary-soft-badge';
         $typeLabel = ucfirst($type);
 
         ob_start();
         ?>
         <div class="pm-row flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3" data-id="<?= $methodId ?>" data-type="<?= e($type) ?>" data-method="<?= $methodJson ?>">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-slate-200">
-              <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none"><path d="M3 7h18M7 11h10M5 15h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-slate-200 overflow-hidden">
+              <?php $icon = is_string($meta['icon'] ?? null) ? trim((string)$meta['icon']) : ''; ?>
+              <?php if ($icon !== ''): ?>
+                <?php
+                  $isAbs = preg_match('/^https?:\/\//i', $icon) === 1;
+                  $isRoot = str_starts_with($icon, '/');
+                  $src = $isAbs || $isRoot ? $icon : base_url(ltrim($icon, '/'));
+                ?>
+                <img src="<?= e($src . (str_contains($src, '?') ? '&' : '?') . 'v=' . time()) ?>" alt="Bandeira" class="max-w-full max-h-full object-contain" />
+              <?php else: ?>
+                <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none"><path d="M3 7h18M7 11h10M5 15h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <?php endif; ?>
             </div>
             <div>
               <div class="flex items-center gap-2">
@@ -47,7 +57,8 @@ if (!function_exists('render_payment_method_row')) {
                 <span class="pm-toggle-thumb absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform" style="transform: <?= $thumbTransform ?>"></span>
               </span>
             </label>
-            <button type="button" class="pm-edit text-sm text-slate-500" data-id="<?= $methodId ?>">Editar</button>
+            <button type="button" class="pm-edit text-sm admin-primary-text hover:underline admin-primary-underline" data-id="<?= $methodId ?>">Editar</button>
+            <button type="button" class="pm-delete text-sm text-red-600 hover:underline underline-offset-4 decoration-red-600" data-id="<?= $methodId ?>">Apagar</button>
           </div>
         </div>
         <?php
@@ -148,19 +159,25 @@ ob_start();
     <script>
       document.addEventListener('DOMContentLoaded', function(){
         const type = document.getElementById('pm-type');
-        const pixFields = document.getElementById('pm-pix-fields');
+  const pixFields = document.getElementById('pm-pix-fields');
         const nameField = document.getElementById('pm-name-field');
-        const nameInput = document.getElementById('pm-name');
+  const nameInput = document.getElementById('pm-name');
+  const libInput = document.getElementById('pm-brand-lib-input');
+  const uploadField = document.getElementById('pm-upload-field');
+  const libraryField = document.getElementById('pm-library-field');
 
         function togglePixFields(){
           if (!type) return;
           const isPix = type.value === 'pix';
+          const libSelected = libInput && libInput.value ? true : false;
           if (pixFields) {
             pixFields.classList.toggle('hidden', !isPix);
           }
           if (nameField) {
-            nameField.classList.toggle('hidden', isPix);
+            nameField.classList.toggle('hidden', isPix || libSelected);
           }
+          if (uploadField) uploadField.classList.toggle('hidden', isPix || libSelected);
+          if (libraryField) libraryField.classList.toggle('hidden', isPix);
           if (nameInput) {
             if (!nameInput.dataset.originalRequired) {
               nameInput.dataset.originalRequired = nameInput.hasAttribute('required') ? '1' : '0';
@@ -208,7 +225,7 @@ ob_start();
     <h2 class="text-lg font-semibold text-slate-800">Adicionar novo método</h2>
     <p class="mb-4 text-sm text-slate-500">Defina o nome que será exibido para o cliente e, se necessário, descreva como o pagamento será realizado.</p>
 
-  <form method="post" action="<?= e($base) ?>" class="grid gap-3" id="pm-create-form">
+  <form method="post" action="<?= e($base) ?>" class="grid gap-3" id="pm-create-form" enctype="multipart/form-data">
       <?php if (function_exists('csrf_field')): ?>
         <?= csrf_field() ?>
       <?php elseif (function_exists('csrf_token')): ?>
@@ -231,6 +248,116 @@ ob_start();
           <option value="pix" <?= $oldType === 'pix' ? 'selected' : '' ?>>Pix</option>
         </select>
       </label>
+
+      <label id="pm-upload-field" class="grid gap-1 text-sm">
+        <span class="font-semibold text-slate-700">Bandeira (SVG/PNG/JPG)</span>
+        <input id="pm-brand-icon" type="file" name="brand_icon" accept=".svg,.png,.jpg,.jpeg,.webp" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+        <span class="text-xs text-slate-400">Use preferencialmente SVG ou PNG quadrado até ~1MB.</span>
+      </label>
+
+      <?php if (!empty($brandLibrary)): ?>
+      <div id="pm-library-field" class="grid gap-2 text-sm">
+        <span class="font-semibold text-slate-700">Escolher da biblioteca</span>
+        <input type="hidden" name="meta[icon]" id="pm-brand-lib-input" value="<?= e($old['meta']['icon'] ?? '') ?>">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="pm-brand-grid">
+          <?php foreach ($brandLibrary as $lib): $isSel = !empty($old['meta']['icon']) && $old['meta']['icon'] === $lib['url']; ?>
+            <button type="button"
+                    class="pm-brand-item group rounded-xl border <?= $isSel ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-slate-200' ?> bg-white p-2 hover:border-indigo-400 hover:ring-1 hover:ring-indigo-200 flex items-center gap-2"
+                    data-url="<?= e($lib['url']) ?>"
+                    data-label="<?= e($lib['label']) ?>">
+              <span class="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded bg-white">
+                <img src="<?= e($lib['url']) ?>" alt="<?= e($lib['label']) ?>" class="max-w-full max-h-full object-contain" />
+              </span>
+              <span class="text-xs text-slate-700 truncate" title="<?= e($lib['label']) ?>"><?= e($lib['label']) ?></span>
+            </button>
+          <?php endforeach; ?>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
+          <span>Pré-visualização:</span>
+          <img id="pm-brand-preview" src="<?= !empty($old['meta']['icon']) ? e($old['meta']['icon']) : '' ?>" alt="preview" class="h-6 w-auto object-contain" />
+        </div>
+      </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function(){
+          const grid = document.getElementById('pm-brand-grid');
+          const input = document.getElementById('pm-brand-lib-input');
+          const prev = document.getElementById('pm-brand-preview');
+          const file = document.getElementById('pm-brand-icon');
+          const nameField = document.getElementById('pm-name-field');
+          const uploadField = document.getElementById('pm-upload-field');
+          const libraryField = document.getElementById('pm-library-field');
+          const nameInput = document.getElementById('pm-name');
+          const typeSelect = document.getElementById('pm-type');
+          function selectBrand(url, label){
+            if (!grid || !input) return;
+            input.value = url || '';
+            if (prev) prev.src = url || '';
+            grid.querySelectorAll('.pm-brand-item').forEach(btn => {
+              const on = btn.dataset.url === url && !!url;
+              btn.classList.toggle('border-indigo-500', on);
+              btn.classList.toggle('ring-2', on);
+              btn.classList.toggle('ring-indigo-300', on);
+              btn.classList.toggle('border-slate-200', !on);
+              btn.classList.toggle('ring-0', !on);
+            });
+            // Oculta Nome e Upload quando uma bandeira da biblioteca for selecionada
+            const libSelected = !!url;
+            if (nameField) {
+              const isPix = typeSelect && typeSelect.value === 'pix';
+              nameField.classList.toggle('hidden', libSelected || isPix);
+            }
+            // controla required do campo nome em função da seleção da biblioteca
+            if (nameInput) {
+              if (!nameInput.dataset.originalRequired) {
+                nameInput.dataset.originalRequired = nameInput.hasAttribute('required') ? '1' : '0';
+              }
+              if (libSelected) {
+                nameInput.removeAttribute('required');
+              } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && typeSelect.value === 'pix')) {
+                nameInput.setAttribute('required', 'required');
+              }
+            }
+            if (uploadField) uploadField.classList.toggle('hidden', libSelected);
+            const isPixNow = typeSelect && typeSelect.value === 'pix';
+            if (libraryField && isPixNow) libraryField.classList.add('hidden');
+            // Preenche o nome automaticamente com o label da biblioteca, se fornecido
+            if (libSelected && label && nameInput) {
+              nameInput.value = label;
+            }
+          }
+          try { window.pmSelectBrand = selectBrand; } catch(_) {}
+          if (grid) {
+            grid.querySelectorAll('.pm-brand-item').forEach(btn => {
+              btn.addEventListener('click', function(){
+                const url = this.dataset.url || '';
+                const label = this.dataset.label || '';
+                // Apenas selecionar e ocultar campos; criação ocorrerá ao clicar em Salvar
+                selectBrand(url, label);
+                // ao escolher da biblioteca, limpamos arquivo selecionado (upload tem prioridade)
+                if (file) file.value = '';
+              });
+            });
+          }
+          if (file) {
+            file.addEventListener('change', function(){
+              // se o usuário escolher um arquivo, limpamos a seleção da biblioteca
+              if (this.files && this.files.length > 0) {
+                selectBrand('');
+              }
+            });
+          }
+          // aplica seleção inicial
+          if (input && input.value) {
+            selectBrand(input.value);
+          }
+          // aplica ocultação quando Pix estiver selecionado
+          if (libraryField && typeSelect && typeSelect.value === 'pix') {
+            libraryField.classList.add('hidden');
+            if (uploadField) uploadField.classList.add('hidden');
+          }
+        });
+      </script>
+      <?php endif; ?>
 
       <label class="grid gap-1 text-sm">
         <span class="font-semibold text-slate-700">Instruções (opcional)</span>
@@ -260,14 +387,10 @@ ob_start();
         </label>
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-2">
+      <div class="grid gap-3 sm:grid-cols-1">
         <label class="grid gap-1 text-sm">
           <span class="font-semibold text-slate-700">Ordem de exibição</span>
           <input type="number" name="sort_order" value="<?= e($old['sort_order'] ?? 0) ?>" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-        </label>
-        <label class="mt-6 inline-flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="active" value="1" <?= !empty($old['active']) ? 'checked' : '' ?> class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-          <span>Disponível no checkout</span>
         </label>
       </div>
 
@@ -285,8 +408,19 @@ ob_start();
 
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h2 class="text-lg font-semibold text-slate-800">Métodos cadastrados</h2>
+    <div class="mt-1 h-0.5 w-12 rounded admin-primary-bg"></div>
+    <!-- Abas de tipos -->
+    <div class="mt-3 flex items-center gap-6 text-sm">
+      <button type="button" class="pm-tab admin-primary-text underline underline-offset-8 decoration-2 admin-primary-underline" data-type="credit">Crédito</button>
+      <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="debit">Débito</button>
+      <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="others">Outros</button>
+      <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="voucher">Vale-refeição</button>
+      <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="pix">Pix</button>
+    </div>
+
+    <!-- Cabeçalho da lista -->
     <div class="mt-3 flex items-center justify-between">
-      <div class="text-sm font-medium text-slate-600">Gerencie os métodos cadastrados abaixo.</div>
+      <div class="text-sm font-semibold text-slate-700">Bandeira</div>
       <div class="flex items-center gap-3 text-sm text-slate-600">
         <span>Ativar todas</span>
         <label class="inline-flex items-center cursor-pointer">
@@ -321,12 +455,15 @@ ob_start();
 
         <script>
       (function(){
-        const base = '<?= $base ?>';
+  const base = '<?= $base ?>';
+  const siteBase = '<?= e(rtrim(base_url(), '/')) ?>';
         const csrftoken = <?= function_exists('csrf_token') ? ('"' . addslashes(csrf_token()) . '"') : 'null' ?>;
-        const list = document.getElementById('pm-list');
+  const list = document.getElementById('pm-list');
         const pixList = document.getElementById('pm-pix-list');
         const pixBlock = document.getElementById('pm-pix-block');
         const emptyMessage = document.getElementById('pm-empty');
+  const tabs = document.querySelectorAll('.pm-tab');
+  let currentType = 'credit';
         const toggleAll = document.getElementById('pm-toggle-all');
         const toggleAllTrack = document.querySelector('.pm-toggle-all-track');
         const toggleAllThumb = document.querySelector('.pm-toggle-all-thumb');
@@ -338,10 +475,12 @@ ob_start();
         const pixProviderInput = document.querySelector('input[name="meta[px_provider]"]');
         const pixHolderInput = document.querySelector('input[name="meta[px_holder_name]"]');
         const methodIdInput = document.getElementById('pm-method-id');
+    // expõe para outros scripts (ex.: modal)
+    try { window.PM_BASE = base; window.PM_CSRF = csrftoken; } catch (e) {}
         const submitLabel = document.getElementById('pm-submit-label');
         const instructionsInput = document.querySelector('textarea[name="instructions"]');
         const sortOrderInput = document.querySelector('input[name="sort_order"]');
-        const activeInput = document.querySelector('input[name="active"]');
+  // active é controlado apenas na lista; não há mais input 'active' no formulário
         let editingId = null;
         let defaultSortOrder = sortOrderInput ? sortOrderInput.value : '';
 
@@ -372,6 +511,13 @@ ob_start();
             .replace(/'/g, '&#039;');
         }
 
+        function resolveIconUrl(url) {
+          url = (url || '').trim();
+          if (!url) return '';
+          if (/^https?:\/\//i.test(url) || url.startsWith('/')) return url;
+          return siteBase + '/' + url.replace(/^\//, '');
+        }
+
         function updatePixKeyFeedback() {
           if (!pixKeyFeedback) return;
           const key = pixKeyInput ? pixKeyInput.value : '';
@@ -391,18 +537,60 @@ ob_start();
         }
 
         function updateEmptyStates() {
-          if (pixBlock && pixList) {
-            pixBlock.classList.toggle('hidden', pixList.children.length === 0);
-          }
           if (emptyMessage && list) {
-            const total = list.children.length + (pixList ? pixList.children.length : 0);
+            let total = 0;
+            if (currentType === 'pix') {
+              total = pixList ? pixList.children.length : 0;
+            } else {
+              total = Array.from(list.children).filter(ch => ch.style.display !== 'none').length;
+            }
             emptyMessage.classList.toggle('hidden', total > 0);
           }
         }
 
+        function setActiveTabVisual(type) {
+          tabs.forEach(btn => {
+            const isActive = btn.dataset.type === type;
+            btn.classList.toggle('admin-primary-text', isActive);
+            btn.classList.toggle('underline', isActive);
+            btn.classList.toggle('decoration-2', isActive);
+            btn.classList.toggle('admin-primary-underline', isActive);
+            btn.classList.toggle('underline-offset-8', isActive);
+            btn.classList.toggle('text-slate-500', !isActive);
+          });
+        }
+
+        function applyTypeFilter() {
+          if (!list) return;
+          if (currentType === 'pix') {
+            // esconde lista principal e mostra bloco Pix (se houver itens)
+            Array.from(list.children).forEach(row => { row.style.display = 'none'; });
+            if (pixBlock && pixList) {
+              pixBlock.classList.toggle('hidden', pixList.children.length === 0);
+            }
+          } else {
+            // mostra apenas itens do tipo selecionado e esconde bloco Pix
+            Array.from(list.children).forEach(row => {
+              const type = row.dataset.type || 'others';
+              row.style.display = (type === currentType) ? '' : 'none';
+            });
+            if (pixBlock) pixBlock.classList.add('hidden');
+          }
+          updateEmptyStates();
+        }
+
+        tabs.forEach(btn => {
+          btn.addEventListener('click', function(){
+            currentType = this.dataset.type || 'credit';
+            setActiveTabVisual(currentType);
+            applyTypeFilter();
+          });
+        });
+
         function setToggleVisual(track, on) {
           if (!track) return;
-          track.classList.toggle('bg-rose-500', !!on);
+          track.classList.toggle('bg-rose-500', false);
+          track.classList.toggle('admin-primary-bg', !!on);
           track.classList.toggle('bg-slate-200', !on);
           const thumb = track.querySelector('.pm-toggle-thumb');
           if (thumb) {
@@ -412,22 +600,15 @@ ob_start();
 
         function setToggleAllVisual(on) {
           if (!toggleAllTrack || !toggleAllThumb) return;
-          toggleAllTrack.classList.toggle('bg-rose-500', !!on);
+          toggleAllTrack.classList.toggle('bg-rose-500', false);
+          toggleAllTrack.classList.toggle('admin-primary-bg', !!on);
           toggleAllTrack.classList.toggle('bg-slate-200', !on);
           toggleAllThumb.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
         }
 
         function refreshToggleAllState() {
-          if (!toggleAll) return;
-          const toggles = document.querySelectorAll('.pm-row .pm-toggle');
-          if (!toggles.length) {
-            toggleAll.checked = false;
-            setToggleAllVisual(false);
-            return;
-          }
-          const allChecked = Array.from(toggles).every(chk => chk.checked);
-          toggleAll.checked = allChecked;
-          setToggleAllVisual(allChecked);
+          // no-op: o estado do "Ativar todas" não deve ser atualizado automaticamente por toggles individuais
+          return;
         }
 
         function parseMethodData(node) {
@@ -458,14 +639,46 @@ ob_start();
             });
           }
 
+          // garantir que clicar na trilha também acione o toggle (sem duplicar)
+          const track = row.querySelector('.pm-toggle-track');
+          if (track && !track.dataset.wired) {
+            track.dataset.wired = '1';
+            track.addEventListener('click', function(e){
+              // prevenir comportamento padrão e controlar toggle manualmente
+              e.preventDefault();
+              e.stopPropagation();
+              const cb = row.querySelector('.pm-toggle');
+              if (!cb) return;
+              const newState = !cb.checked;
+              cb.checked = newState;
+              // disparar change para reutilizar lógica existente
+              cb.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+          }
+
           const editBtn = row.querySelector('.pm-edit');
           if (editBtn && !editBtn.dataset.wired) {
             editBtn.dataset.wired = '1';
             editBtn.addEventListener('click', function(){
               const data = parseMethodData(row);
-              if (data) {
-                fillFormWithMethod(data);
+              if (data && typeof window.fillFormWithMethod === 'function') {
+                // expõe a função no escopo global para ser chamada aqui
+                window.fillFormWithMethod(data);
+              } else if (data) {
+                // fallback: chama a função local se estiver acessível
+                try { fillFormWithMethod(data); } catch(_) {}
               }
+            });
+          }
+
+
+          const deleteBtn = row.querySelector('.pm-delete');
+          if (deleteBtn && !deleteBtn.dataset.wired) {
+            deleteBtn.dataset.wired = '1';
+            deleteBtn.addEventListener('click', function(){
+              const id = this.dataset.id;
+              if (!confirm('Confirma remoção deste método de pagamento?')) return;
+              deleteMethod(id, row);
             });
           }
         }
@@ -497,11 +710,16 @@ ob_start();
           div.dataset.id = String(id);
           div.dataset.type = type;
           div.dataset.method = JSON.stringify(method);
-          const typeBadge = type === 'pix' ? 'bg-emerald-100 text-emerald-700' : (type === 'credit' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700');
+          const typeBadge = 'admin-primary-soft-badge';
+          let iconUrl = method.meta && method.meta.icon ? resolveIconUrl(method.meta.icon) : '';
+          if (iconUrl) {
+            const sep = iconUrl.includes('?') ? '&' : '?';
+            iconUrl = iconUrl + sep + 'v=' + Date.now();
+          }
           div.innerHTML = `
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-slate-200">
-                <svg class="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none"><path d="M3 7h18M7 11h10M5 15h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-slate-200 overflow-hidden">
+                ${iconUrl ? `<img src="${escapeHtml(iconUrl)}" alt="Bandeira" class="max-w-full max-h-full object-contain" />` : `<svg class=\"h-4 w-4 text-slate-500\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M3 7h18M7 11h10M5 15h14\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>`}
               </div>
               <div>
                 <div class="flex items-center gap-2">
@@ -514,11 +732,12 @@ ob_start();
             <div class="flex items-center gap-3">
               <label class="inline-flex items-center cursor-pointer">
                 <input data-id="${id}" type="checkbox" class="pm-toggle sr-only" ${isActive ? 'checked' : ''} />
-                <span class="pm-toggle-track w-10 h-6 ${isActive ? 'bg-rose-500' : 'bg-slate-200'} rounded-full relative transition-colors">
+                <span class="pm-toggle-track w-10 h-6 ${isActive ? 'admin-primary-bg' : 'bg-slate-200'} rounded-full relative transition-colors">
                   <span class="pm-toggle-thumb absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform" style="transform: ${isActive ? 'translateX(20px)' : 'translateX(0)'}"></span>
                 </span>
               </label>
               <button type="button" class="pm-edit text-sm text-slate-500" data-id="${id}">Editar</button>
+              <button type="button" class="pm-delete text-sm text-red-600" data-id="${id}">Apagar</button>
             </div>
           `;
           wireRowInteractions(div);
@@ -545,10 +764,13 @@ ob_start();
             target.insertBefore(newRow, target.firstChild);
           }
           updateEmptyStates();
+          // re-aplica filtro de tipo para respeitar a aba atual
+          if (typeof applyTypeFilter === 'function') applyTypeFilter();
           refreshToggleAllState();
+          return newRow;
         }
 
-        function fillFormWithMethod(method) {
+  function fillFormWithMethod(method) {
           if (!form) return;
           editingId = parseInt(method.id, 10) || null;
           form.action = editingId ? (base + '/' + editingId) : base;
@@ -564,9 +786,7 @@ ob_start();
           if (sortOrderInput) {
             sortOrderInput.value = method.sort_order != null ? method.sort_order : '';
           }
-          if (activeInput) {
-            activeInput.checked = parseInt(method.active, 10) === 1;
-          }
+          // não ajusta 'active' no formulário; controle apenas via lista
           if (typeSelect) {
             typeSelect.value = method.type || 'others';
           }
@@ -579,6 +799,23 @@ ob_start();
           if (pixHolderInput) {
             pixHolderInput.value = method.meta && method.meta.px_holder_name ? method.meta.px_holder_name : '';
           }
+          // sincroniza biblioteca de ícones
+          const brandInput = document.getElementById('pm-brand-lib-input');
+          const brandPrev = document.getElementById('pm-brand-preview');
+          const brandFile = document.getElementById('pm-brand-icon');
+          const rawIcon = method.meta && method.meta.icon ? method.meta.icon : '';
+          const url = rawIcon ? resolveIconUrl(rawIcon) : '';
+          if (brandInput) brandInput.value = rawIcon;
+          if (brandPrev) brandPrev.src = url || '';
+          if (brandFile) brandFile.value = '';
+          // Encontra o label correto a partir do grid da biblioteca (para garantir alinhamento ícone/label)
+          let labelForIcon = '';
+          try {
+            const btn = document.querySelector(`#pm-brand-grid .pm-brand-item[data-url="${CSS.escape(rawIcon)}"]`);
+            labelForIcon = btn ? (btn.getAttribute('data-label') || '').trim() : '';
+          } catch(_) {}
+          // Usa a mesma função de seleção usada no clique da biblioteca para garantir o mesmo destaque/ocultação
+          try { if (typeof window.pmSelectBrand === 'function') window.pmSelectBrand(rawIcon || '', labelForIcon); } catch(_) {}
           if (submitLabel) {
             submitLabel.textContent = 'Atualizar método';
           }
@@ -589,9 +826,11 @@ ob_start();
           if (form.scrollIntoView) {
             form.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
-        }
+  }
+  // expõe para uso fora do escopo imediato (ex.: handlers de linha)
+  try { window.fillFormWithMethod = fillFormWithMethod; } catch(_) {}
 
-        function resetForm(nextSortOrder) {
+  function resetForm(nextSortOrder) {
           if (!form) return;
           editingId = null;
           form.action = base;
@@ -610,9 +849,7 @@ ob_start();
           if (sortOrderInput) {
             sortOrderInput.value = nextSortOrder !== undefined ? nextSortOrder : defaultSortOrder;
           }
-          if (activeInput) {
-            activeInput.checked = true;
-          }
+          // sem campo 'active' no formulário
           if (typeSelect) {
             typeSelect.value = 'credit';
           }
@@ -625,11 +862,26 @@ ob_start();
           if (pixHolderInput) {
             pixHolderInput.value = '';
           }
+          // reset biblioteca de ícones
+          const brandInput = document.getElementById('pm-brand-lib-input');
+          const brandPrev = document.getElementById('pm-brand-preview');
+          const brandFile = document.getElementById('pm-brand-icon');
+          const grid = document.getElementById('pm-brand-grid');
+          if (brandInput) brandInput.value = '';
+          if (brandPrev) brandPrev.src = '';
+          if (brandFile) brandFile.value = '';
+          if (grid) {
+            grid.querySelectorAll('.pm-brand-item').forEach(btn => {
+              btn.classList.remove('border-indigo-500','ring-2','ring-indigo-300');
+              btn.classList.add('border-slate-200');
+            });
+          }
           if (typeof window.pmTogglePixFields === 'function') {
             window.pmTogglePixFields();
           }
           updatePixKeyFeedback();
-        }
+  }
+  try { window.pmResetForm = resetForm; } catch(_) {}
 
         function applyToggleStateToRow(row, on) {
           if (!row) return;
@@ -639,6 +891,7 @@ ob_start();
           }
           const track = row.querySelector('.pm-toggle-track');
           setToggleVisual(track, on);
+          // sem botão textual; nada a atualizar além do visual do toggle
         }
 
         async function toggleMethod(id, on, row, cb) {
@@ -672,7 +925,38 @@ ob_start();
             if (cb) cb(false);
             return false;
           } finally {
+            // master permanece independente
+          }
+        }
+
+        async function deleteMethod(id, row) {
+          try {
+            const url = base + '/' + id + '/delete';
+            const body = new URLSearchParams();
+            if (csrftoken) body.append('csrf_token', csrftoken);
+            const res = await fetch(url, {
+              method: 'POST',
+              body,
+              credentials: 'same-origin',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+              }
+            });
+            if (!res.ok) throw new Error('Network');
+            const json = await res.json().catch(() => null);
+            if (!json || !json.success) throw new Error('Invalid response');
+            // remove DOM row
+            if (row && row.parentNode) {
+              row.parentNode.removeChild(row);
+            }
+            updateEmptyStates();
             refreshToggleAllState();
+            return true;
+          } catch (err) {
+            console.error(err);
+            alert('Erro ao apagar o método. Atualize a página e tente novamente.');
+            return false;
           }
         }
 
@@ -713,9 +997,18 @@ ob_start();
           form.addEventListener('submit', async function(e){
             e.preventDefault();
             const data = new FormData(form);
-            if (!data.has('active')) {
-              data.set('active', '0');
-            }
+            // garante que a seleção da biblioteca siga no payload
+            try {
+              const lib = document.getElementById('pm-brand-lib-input');
+              if (lib && lib.value) data.set('meta[icon]', lib.value);
+              // se nome vazio e biblioteca selecionada, tentar preencher o nome com o label da opção
+              const nameEl = document.getElementById('pm-name');
+              if (nameEl && (!nameEl.value || nameEl.value.trim()==='') && lib && lib.value) {
+                const btn = document.querySelector(`#pm-brand-grid .pm-brand-item[data-url="${CSS.escape(lib.value)}"]`);
+                const label = btn ? (btn.getAttribute('data-label') || '').trim() : '';
+                if (label) data.set('name', label);
+              }
+            } catch(_) {}
             const editing = methodIdInput ? methodIdInput.value : '';
             try {
               const res = await fetch(form.action, {
@@ -728,16 +1021,33 @@ ob_start();
                 }
               });
               if (!res.ok) throw new Error('Network');
-              const json = await res.json().catch(() => null);
-              if (!json || !json.success || !json.method) throw new Error('Invalid response');
-
-              replaceMethodRow(json.method);
-              if (!editing && json.method && json.method.sort_order !== undefined) {
-                const nextSort = (parseInt(json.method.sort_order, 10) || 0) + 1;
-                defaultSortOrder = String(nextSort);
-                resetForm(defaultSortOrder);
+              const ct = res.headers.get('content-type') || '';
+              if (ct.includes('application/json')) {
+                const json = await res.json().catch(() => null);
+                if (!json || !json.success || !json.method) throw new Error('Invalid response');
+                const inserted = replaceMethodRow(json.method);
+                // foca na aba do tipo salvo e destaca o item
+                try {
+                  currentType = json.method.type || currentType;
+                  setActiveTabVisual(currentType);
+                  applyTypeFilter();
+                  if (inserted && inserted.scrollIntoView) inserted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  if (inserted) {
+                    inserted.classList.add('ring-2','ring-emerald-300');
+                    setTimeout(() => inserted.classList.remove('ring-2','ring-emerald-300'), 1500);
+                  }
+                } catch(_) {}
+                if (!editing && json.method && json.method.sort_order !== undefined) {
+                  const nextSort = (parseInt(json.method.sort_order, 10) || 0) + 1;
+                  defaultSortOrder = String(nextSort);
+                  resetForm(defaultSortOrder);
+                } else {
+                  resetForm();
+                }
               } else {
-                resetForm();
+                // Conteúdo não-JSON com 200 OK: tratar como sucesso e recarregar
+                window.location.reload();
+                return;
               }
             } catch (err) {
               console.error(err);
@@ -747,14 +1057,255 @@ ob_start();
           });
         }
 
-        document.querySelectorAll('.pm-row').forEach(wireRowInteractions);
-        updateEmptyStates();
-        refreshToggleAllState();
+  document.querySelectorAll('.pm-row').forEach(wireRowInteractions);
+  // define visual da aba inicial e aplica filtro
+  setActiveTabVisual(currentType);
+  applyTypeFilter();
+  updateEmptyStates();
+        // master permanece independente
       })();
     </script>
   </section>
 </div>
 
+</div>
+
+<!-- Modal de edição de método de pagamento -->
+<div id="pm-edit-modal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40"></div>
+  <div class="absolute inset-0 flex items-start justify-center p-4 sm:p-6 overflow-auto">
+    <div class="mt-6 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+        <h3 class="text-base font-semibold text-slate-800">Editar método</h3>
+        <button type="button" id="pm-edit-close" class="text-slate-500 hover:text-slate-700">✕</button>
+      </div>
+      <form id="pm-edit-modal-form" class="p-5 grid gap-3">
+        <input type="hidden" id="pm-edit-id" value="">
+        <label id="pm-edit-name-field" class="grid gap-1 text-sm">
+          <span class="font-semibold text-slate-700">Nome da bandeira</span>
+          <input id="pm-edit-name" type="text" name="name" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm" placeholder="Ex.: Visa, MasterCard">
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="font-semibold text-slate-700">Tipo</span>
+          <select id="pm-edit-type" name="type" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+            <option value="credit">Crédito</option>
+            <option value="debit">Débito</option>
+            <option value="others">Outros</option>
+            <option value="voucher">Vale-refeição</option>
+            <option value="pix">Pix</option>
+          </select>
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="font-semibold text-slate-700">Instruções (opcional)</span>
+          <textarea id="pm-edit-instructions" name="instructions" rows="3" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm"></textarea>
+        </label>
+        <label class="grid gap-1 text-sm">
+          <span class="font-semibold text-slate-700">Ordem de exibição</span>
+          <input id="pm-edit-sort" type="number" name="sort_order" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm">
+        </label>
+
+        <label id="pm-edit-upload-field" class="grid gap-1 text-sm">
+          <span class="font-semibold text-slate-700">Bandeira (SVG/PNG/JPG)</span>
+          <input id="pm-edit-brand-icon" type="file" name="brand_icon" accept=".svg,.png,.jpg,.jpeg,.webp" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+          <span class="text-xs text-slate-400">Use preferencialmente SVG ou PNG quadrado até ~1MB.</span>
+        </label>
+
+        <?php if (!empty($brandLibrary)): ?>
+        <div id="pm-edit-library-field" class="grid gap-2 text-sm">
+          <span class="font-semibold text-slate-700">Escolher da biblioteca</span>
+          <input type="hidden" name="meta[icon]" id="pm-edit-brand-lib-input" value="">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="pm-edit-brand-grid">
+            <?php foreach ($brandLibrary as $lib): ?>
+              <button type="button"
+                      class="pm-edit-brand-item group rounded-xl border border-slate-200 bg-white p-2 hover:border-indigo-400 hover:ring-1 hover:ring-indigo-200 flex items-center gap-2"
+                      data-url="<?= e($lib['url']) ?>"
+                      data-label="<?= e($lib['label']) ?>">
+                <span class="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded bg-white">
+                  <img src="<?= e($lib['url']) ?>" alt="<?= e($lib['label']) ?>" class="max-w-full max-h-full object-contain" />
+                </span>
+                <span class="text-xs text-slate-700 truncate" title="<?= e($lib['label']) ?>"><?= e($lib['label']) ?></span>
+              </button>
+            <?php endforeach; ?>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
+            <span>Pré-visualização:</span>
+            <img id="pm-edit-brand-preview" src="" alt="preview" class="h-6 w-auto object-contain" />
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <div class="mt-2 flex items-center justify-end gap-2">
+          <button type="button" id="pm-edit-cancel" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">Cancelar</button>
+          <button type="submit" class="rounded-xl admin-gradient-bg px-4 py-2 text-sm font-medium text-white shadow hover:opacity-95">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function(){
+      const modal = document.getElementById('pm-edit-modal');
+      const form = document.getElementById('pm-edit-modal-form');
+      const btnClose = document.getElementById('pm-edit-close');
+      const btnCancel = document.getElementById('pm-edit-cancel');
+
+      function open(){ modal.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+      function close(){ modal.classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
+
+      function selectBrand(url, label){
+        const input = document.getElementById('pm-edit-brand-lib-input');
+        const prev = document.getElementById('pm-edit-brand-preview');
+        const grid = document.getElementById('pm-edit-brand-grid');
+        const file = document.getElementById('pm-edit-brand-icon');
+        const uploadField = document.getElementById('pm-edit-upload-field');
+        const nameInput = document.getElementById('pm-edit-name');
+        const nameWrapper = document.getElementById('pm-edit-name-field');
+        const typeSelect = document.getElementById('pm-edit-type');
+        if (input) input.value = url || '';
+        if (prev) prev.src = url || '';
+        if (grid) {
+          grid.querySelectorAll('.pm-edit-brand-item').forEach(btn => {
+            const on = btn.dataset.url === url && !!url;
+            btn.classList.toggle('border-indigo-500', on);
+            btn.classList.toggle('ring-2', on);
+            btn.classList.toggle('ring-indigo-300', on);
+            btn.classList.toggle('border-slate-200', !on);
+            btn.classList.toggle('ring-0', !on);
+          });
+        }
+        if (file && url) file.value = '';
+        const libSelected = !!url;
+        if (uploadField) uploadField.classList.toggle('hidden', libSelected);
+        if (nameWrapper) {
+          const isPix = typeSelect && typeSelect.value === 'pix';
+          nameWrapper.classList.toggle('hidden', libSelected || isPix);
+        }
+        if (nameInput) {
+          if (!nameInput.dataset.originalRequired) {
+            nameInput.dataset.originalRequired = nameInput.hasAttribute('required') ? '1' : '0';
+          }
+          if (libSelected) {
+            nameInput.removeAttribute('required');
+          } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && typeSelect.value === 'pix')) {
+            nameInput.setAttribute('required', 'required');
+          }
+        }
+        if (libSelected && label && nameInput) {
+          nameInput.value = label;
+        }
+      }
+
+      if (btnClose) btnClose.addEventListener('click', close);
+      if (btnCancel) btnCancel.addEventListener('click', close);
+      if (modal) {
+        modal.addEventListener('click', function(e){ if (e.target === modal) close(); });
+      }
+
+  const grid = document.getElementById('pm-edit-brand-grid');
+  const file = document.getElementById('pm-edit-brand-icon');
+  const libraryField = document.getElementById('pm-edit-library-field');
+  const typeSelect = document.getElementById('pm-edit-type');
+      if (grid) {
+        grid.querySelectorAll('.pm-edit-brand-item').forEach(btn => {
+      btn.addEventListener('click', function(){ selectBrand(this.dataset.url || '', this.dataset.label || ''); });
+        });
+      }
+      if (file) {
+        file.addEventListener('change', function(){ if (this.files && this.files.length > 0) selectBrand(''); });
+      }
+
+      // Modal desativado: edição agora usa o formulário "Adicionar novo método".
+      // Mantemos o código do modal por compatibilidade, mas não abrimos mais.
+      window.pmOpenEditModal = function(method){
+        if (!method) return;
+        try { if (typeof window.fillFormWithMethod === 'function') window.fillFormWithMethod(method); } catch(_) {}
+        close();
+      }
+
+      // esconde biblioteca/upload quando tipo = pix
+      function syncPixVisibility(){
+        const isPix = typeSelect && typeSelect.value === 'pix';
+        if (libraryField) libraryField.classList.toggle('hidden', isPix);
+        const uploadField = document.getElementById('pm-edit-upload-field');
+        if (uploadField) uploadField.classList.toggle('hidden', isPix);
+        const nameWrapper = document.getElementById('pm-edit-name-field');
+        if (nameWrapper) nameWrapper.classList.toggle('hidden', isPix);
+      }
+      if (typeSelect) typeSelect.addEventListener('change', syncPixVisibility);
+      syncPixVisibility();
+
+      if (form) {
+        form.addEventListener('submit', async function(e){
+          e.preventDefault();
+          const id = document.getElementById('pm-edit-id').value;
+          // constrói URL de ação de forma robusta
+          let actionBase = '';
+          if (typeof window.PM_BASE !== 'undefined' && window.PM_BASE) {
+            actionBase = window.PM_BASE;
+          } else {
+            const createForm = document.getElementById('pm-create-form');
+            actionBase = createForm ? (createForm.getAttribute('action') || '') : '';
+          }
+          const action = actionBase.replace(/\/?$/, '') + '/' + id;
+          const data = new FormData(form);
+          // se nome vazio e biblioteca selecionada, preenche com label
+          try {
+            const nameEl = document.getElementById('pm-edit-name');
+            const lib = document.getElementById('pm-edit-brand-lib-input');
+            if (nameEl && (!nameEl.value || nameEl.value.trim() === '') && lib && lib.value) {
+              const btn = document.querySelector(`#pm-edit-brand-grid .pm-edit-brand-item[data-url="${CSS.escape(lib.value)}"]`);
+              const label = btn ? (btn.getAttribute('data-label') || '').trim() : '';
+              if (label) data.set('name', label);
+            }
+          } catch(_) {}
+          // garante envio do meta[icon] selecionado
+          const libInput = document.getElementById('pm-edit-brand-lib-input');
+          if (libInput && libInput.value) data.set('meta[icon]', libInput.value);
+          // tenta obter CSRF de várias fontes
+          let csrf = (typeof window.PM_CSRF !== 'undefined' && window.PM_CSRF) ? window.PM_CSRF : '';
+          if (!csrf) {
+            const createForm = document.getElementById('pm-create-form');
+            const tokenInput = createForm ? createForm.querySelector('input[name="csrf_token"]') : null;
+            csrf = tokenInput ? (tokenInput.value || '') : '';
+          }
+          if (csrf) data.append('csrf_token', csrf);
+          try {
+            const res = await fetch(action, {
+              method: 'POST',
+              body: data,
+              credentials: 'same-origin',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+              }
+            });
+            if (!res.ok) {
+              const text = await res.text().catch(() => '');
+              throw new Error(`HTTP ${res.status} ${res.statusText} - ${text.slice(0,200)}`);
+            }
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              let json = null;
+              try { json = await res.json(); } catch(err) {
+                const text = await res.text().catch(() => '');
+                throw new Error('JSON parse failed: ' + text.slice(0,200));
+              }
+              if (!json || !json.success || !json.method) throw new Error('Invalid response payload');
+              replaceMethodRow(json.method);
+              close();
+            } else {
+              // Conteúdo não-JSON (possível redirect/HTML), mas HTTP 200: trata como sucesso e recarrega
+              close();
+              window.location.reload();
+              return;
+            }
+          } catch (err) {
+            console.error(err);
+            alert('Erro ao salvar. Tente novamente.');
+          }
+        });
+      }
+    })();
+  </script>
 </div>
 
 <?php

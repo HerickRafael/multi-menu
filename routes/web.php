@@ -61,10 +61,10 @@ $router->post('/admin/{slug}/categories/{id}/del',   'AdminCategoryController@de
 // Métodos de pagamento
 $router->get('/admin/{slug}/payment-methods',        'AdminPaymentMethodController@index');
 $router->post('/admin/{slug}/payment-methods',       'AdminPaymentMethodController@store');
+// Batch update (ativar/desativar todos) — precisa vir antes da rota com {id}
+$router->post('/admin/{slug}/payment-methods/batch', 'AdminPaymentMethodController@batchUpdate');
 $router->post('/admin/{slug}/payment-methods/{id}',  'AdminPaymentMethodController@update');
 $router->post('/admin/{slug}/payment-methods/{id}/delete', 'AdminPaymentMethodController@destroy');
-// Batch update (ativar/desativar todos)
-$router->post('/admin/{slug}/payment-methods/batch', 'AdminPaymentMethodController@batchUpdate');
 
 // Produtos (CRUD)
 $router->get('/admin/{slug}/products',               'AdminProductController@index');

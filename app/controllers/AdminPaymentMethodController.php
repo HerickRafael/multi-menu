@@ -10,6 +10,111 @@ require_once __DIR__ . '/../models/PaymentMethod.php';
 
 class AdminPaymentMethodController extends Controller
 {
+    private function labelFromLibraryIcon(string $iconPath): string
+    {
+        // Espera caminho como "/assets/card-brands/slug.ext"
+        $base = trim($iconPath);
+        $slug = strtolower(pathinfo($base, PATHINFO_FILENAME));
+        $labels = [
+            'visa' => 'Visa',
+            'mastercard' => 'Mastercard',
+            'elo' => 'Elo',
+            'hipercard' => 'Hipercard',
+            'amex' => 'American Express',
+            'diners' => 'Diners Club',
+            'pix' => 'Pix',
+            'credit' => 'Crédito',
+            'debit' => 'Débito',
+            'voucher' => 'Vale-refeição',
+            'others' => 'Outros',
+        ];
+        if (isset($labels[$slug])) {
+            return $labels[$slug];
+        }
+        $fallback = ucwords(str_replace(['-', '_'], ' ', $slug));
+        return $fallback !== '' ? $fallback : 'Pagamento';
+    }
+    private function listBrandLibrary(): array
+    {
+        $root = dirname(__DIR__, 2);
+        $dir = $root . '/public/assets/card-brands';
+        $urlBase = '/assets/card-brands';
+        $allowed = ['svg', 'png', 'jpg', 'jpeg', 'webp'];
+        $labels = [
+            'visa' => 'Visa',
+            'mastercard' => 'Mastercard',
+            'elo' => 'Elo',
+            'hipercard' => 'Hipercard',
+            'amex' => 'American Express',
+            'diners' => 'Diners Club',
+            'pix' => 'Pix',
+            'credit' => 'Crédito (genérico)',
+            'debit' => 'Débito (genérico)',
+            'voucher' => 'Vale-refeição (genérico)',
+            'others' => 'Outros (genérico)'
+        ];
+        $items = [];
+        if (is_dir($dir)) {
+            foreach (scandir($dir) ?: [] as $file) {
+                if ($file === '.' || $file === '..') continue;
+                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowed, true)) continue;
+                $slug = strtolower(pathinfo($file, PATHINFO_FILENAME));
+                // não listar Pix na biblioteca (ícone interno será usado para Pix)
+                if ($slug === 'pix') continue;
+                $items[] = [
+                    'slug' => $slug,
+                    'label' => $labels[$slug] ?? ucwords(str_replace(['-', '_'], ' ', $slug)),
+                    'url' => $urlBase . '/' . $file,
+                ];
+            }
+        }
+        // ordena por label
+        usort($items, fn($a, $b) => strcmp($a['label'], $b['label']));
+        return $items;
+    }
+    private function uploadBrandIcon(): ?string
+    {
+        if (empty($_FILES['brand_icon']) || !is_array($_FILES['brand_icon'])) {
+            return null;
+        }
+        $f = $_FILES['brand_icon'];
+        if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return null;
+        }
+        $tmp = (string)($f['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            return null;
+        }
+
+        $name = (string)($f['name'] ?? 'icon');
+        $size = (int)($f['size'] ?? 0);
+        // limite de ~2MB
+        if ($size <= 0 || $size > 2 * 1024 * 1024) {
+            return null;
+        }
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        $allowed = ['svg', 'png', 'jpg', 'jpeg', 'webp'];
+        if (!in_array($ext, $allowed, true)) {
+            return null;
+        }
+
+        $root = dirname(__DIR__, 2); // raiz do projeto
+        $uploadDir = $root . '/public/uploads';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0775, true);
+        }
+        $rand = random_int(1000, 9999);
+        $fileName = 'pm_brand_' . time() . '_' . $rand . '.' . $ext;
+        $destPath = $uploadDir . '/' . $fileName;
+
+        if (!move_uploaded_file($tmp, $destPath)) {
+            return null;
+        }
+
+        // caminho público relativo
+        return '/uploads/' . $fileName;
+    }
     private function detectPixKeyType(string $key): string
     {
         $key = trim($key);
@@ -123,8 +228,9 @@ class AdminPaymentMethodController extends Controller
         unset($_SESSION['flash_payment'], $_SESSION['old_payment'], $_SESSION['errors_payment']);
 
         $title = 'Métodos de pagamento - ' . ($company['name'] ?? '');
+        $brandLibrary = $this->listBrandLibrary();
 
-        return $this->view('admin/payments/index', compact('company', 'user', 'methods', 'flash', 'old', 'errors', 'title'));
+        return $this->view('admin/payments/index', compact('company', 'user', 'methods', 'flash', 'old', 'errors', 'title', 'brandLibrary'));
     }
 
     private function isAjaxRequest(): bool
@@ -143,12 +249,13 @@ class AdminPaymentMethodController extends Controller
         $slug = (string)($params['slug'] ?? '');
         [$user, $company] = $this->guard($slug);
 
-        $name = trim($_POST['name'] ?? '');
+    $name = trim($_POST['name'] ?? '');
         $instructions = trim($_POST['instructions'] ?? '');
         $sortOrder = isset($_POST['sort_order']) && $_POST['sort_order'] !== ''
             ? (int)$_POST['sort_order']
             : PaymentMethod::nextSortOrder((int)$company['id']);
-        $active = isset($_POST['active']) ? 1 : 0;
+    // active não é mais definido no formulário de criação; controle é pela lista
+    $active = 1; // por padrão, novo método entra ativo (pode ser alterado depois nos toggles)
 
         $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
         $type = trim($_POST['type'] ?? 'others');
@@ -160,20 +267,6 @@ class AdminPaymentMethodController extends Controller
         $meta = $this->normaliseMeta($_POST['meta'] ?? []);
         if ($type === 'pix' && $name === '') {
             $name = 'Pix';
-        }
-
-        if ($name === '') {
-            $this->errors(['Informe o nome do método de pagamento.']);
-            $this->previous([
-                'name' => $name,
-                'instructions' => $instructions,
-                'sort_order' => $sortOrder,
-                'active' => $active,
-                'type' => $type,
-                'meta' => $meta,
-            ]);
-            $this->flash(['type' => 'error', 'message' => 'Não foi possível salvar o método.']);
-            $this->redirectToIndex($company['slug']);
         }
 
         // mapear pix_key (e metadados) quando tipo = pix
@@ -206,6 +299,43 @@ class AdminPaymentMethodController extends Controller
             unset($meta['px_key'], $meta['px_provider'], $meta['px_holder_name'], $meta['px_key_type']);
         }
 
+        // ícone: para Pix, não usa biblioteca nem upload
+        if ($type === 'pix') {
+            unset($meta['icon']);
+        } else {
+            // upload tem prioridade; caso contrário, aceitar seleção da biblioteca
+            $icon = $this->uploadBrandIcon();
+            if ($icon) {
+                $meta['icon'] = $icon;
+            } else {
+                $libIcon = trim((string)($meta['icon'] ?? ''));
+                if ($libIcon !== '' && str_starts_with($libIcon, '/assets/card-brands/')) {
+                    $meta['icon'] = $libIcon;
+                } else {
+                    unset($meta['icon']);
+                }
+            }
+        }
+
+        // se veio ícone da biblioteca e nome vazio (e não é Pix), deduz o nome pela biblioteca
+        if ($type !== 'pix' && $name === '' && !empty($meta['icon']) && str_starts_with((string)$meta['icon'], '/assets/card-brands/')) {
+            $name = $this->labelFromLibraryIcon((string)$meta['icon']);
+        }
+
+        // validação final do nome (após tratar biblioteca/pix)
+        if ($name === '') {
+            $this->errors(['Informe o nome do método de pagamento.']);
+            $this->previous([
+                'name' => $name,
+                'instructions' => $instructions,
+                'sort_order' => $sortOrder,
+                'active' => $active,
+                'type' => $type,
+                'meta' => $meta,
+            ]);
+            $this->flash(['type' => 'error', 'message' => 'Não foi possível salvar o método.']);
+            $this->redirectToIndex($company['slug']);
+        }
         // para tipo pix, salva nome canônico
         $saveName = $type === 'pix' ? 'Pix' : $name;
 
@@ -255,7 +385,12 @@ class AdminPaymentMethodController extends Controller
         $sortOrder = isset($_POST['sort_order']) && $_POST['sort_order'] !== ''
             ? (int)$_POST['sort_order']
             : (int)$method['sort_order'];
-        $active = isset($_POST['active']) ? 1 : 0;
+        // active pode vir no update (toggle via AJAX) ou não; quando não vier, mantém o atual
+        if (isset($_POST['active'])) {
+            $active = ($_POST['active'] == '1') ? 1 : 0;
+        } else {
+            $active = (int)($method['active'] ?? 0);
+        }
 
         $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
         $type = trim($_POST['type'] ?? ($method['type'] ?? 'others'));
@@ -298,6 +433,31 @@ class AdminPaymentMethodController extends Controller
             $sortOrder = (int)$method['sort_order'];
             $type = (string)($method['type'] ?? 'others');
             $meta = $existingMeta;
+        }
+
+        // ícone: para Pix, não usa biblioteca nem upload; para outros, upload substitui; senão, aceitar biblioteca
+        if ($type === 'pix') {
+            unset($meta['icon']);
+        } else {
+            $icon = $this->uploadBrandIcon();
+            if ($icon) {
+                $meta['icon'] = $icon;
+            } else {
+                $libIcon = trim((string)($meta['icon'] ?? ''));
+                if ($libIcon !== '' && str_starts_with($libIcon, '/assets/card-brands/')) {
+                    $meta['icon'] = $libIcon;
+                } else {
+                    if (!isset($existingMeta['icon'])) {
+                        unset($meta['icon']);
+                    }
+                }
+            }
+        }
+
+        // se veio ícone da biblioteca e nome vazio (e não é Pix), deduz o nome pela biblioteca
+        if ($type !== 'pix' && $name === '' && !empty($meta['icon']) && str_starts_with((string)$meta['icon'], '/assets/card-brands/')) {
+            $name = $this->labelFromLibraryIcon((string)$meta['icon']);
+            $hasName = true;
         }
 
         // mapear pix_key (e metadados) quando tipo = pix
@@ -396,7 +556,14 @@ class AdminPaymentMethodController extends Controller
 
         $id = (int)($params['id'] ?? 0);
         PaymentMethod::delete($id, (int)$company['id']);
-        $this->flash(['type' => 'success', 'message' => 'Método removido.']);
+
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'id' => $id]);
+            exit;
+        }
+
+        $this->flash(['type' => 'success', 'message' => 'M e9todo removido.']);
         $this->redirectToIndex($company['slug']);
     }
 }
