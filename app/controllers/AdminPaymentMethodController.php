@@ -34,6 +34,61 @@ class AdminPaymentMethodController extends Controller
         $fallback = ucwords(str_replace(['-', '_'], ' ', $slug));
         return $fallback !== '' ? $fallback : 'Pagamento';
     }
+
+    private function normaliseLibraryIcon($icon): ?string
+    {
+        if (!is_string($icon)) {
+            return null;
+        }
+
+        $icon = trim($icon);
+        if ($icon === '') {
+            return null;
+        }
+
+        if (str_starts_with($icon, '/assets/card-brands/')) {
+            return $icon;
+        }
+
+        if (str_starts_with($icon, 'assets/card-brands/')) {
+            return '/' . ltrim($icon, '/');
+        }
+
+        if (preg_match('#^https?://#i', $icon)) {
+            $baseUrl = function_exists('base_url') ? (string)base_url() : '';
+            $baseHost = $baseUrl !== '' ? parse_url($baseUrl, PHP_URL_HOST) : null;
+            $basePort = $baseUrl !== '' ? parse_url($baseUrl, PHP_URL_PORT) : null;
+
+            $iconHost = parse_url($icon, PHP_URL_HOST);
+            $iconPort = parse_url($icon, PHP_URL_PORT);
+            if ($baseHost && $iconHost && strcasecmp($baseHost, $iconHost) !== 0) {
+                return null;
+            }
+            if ($basePort !== null && $iconPort !== null && (int)$basePort !== (int)$iconPort) {
+                return null;
+            }
+            if ($basePort === null && $iconPort !== null && !in_array((int)$iconPort, [80, 443], true)) {
+                return null;
+            }
+
+            $path = parse_url($icon, PHP_URL_PATH) ?: '';
+            if ($path !== '') {
+                $basePath = $baseUrl !== '' ? (parse_url($baseUrl, PHP_URL_PATH) ?? '') : '';
+                $basePath = $basePath !== '' ? rtrim($basePath, '/') : '';
+                if ($basePath !== '' && str_starts_with($path, $basePath)) {
+                    $path = substr($path, strlen($basePath));
+                    if ($path === '' || $path[0] !== '/') {
+                        $path = '/' . ltrim($path, '/');
+                    }
+                }
+                if (str_starts_with($path, '/assets/card-brands/')) {
+                    return $path;
+                }
+            }
+        }
+
+        return null;
+    }
     private function listBrandLibrary(): array
     {
         $root = dirname(__DIR__, 2);
@@ -65,6 +120,7 @@ class AdminPaymentMethodController extends Controller
                     'slug' => $slug,
                     'label' => $labels[$slug] ?? ucwords(str_replace(['-', '_'], ' ', $slug)),
                     'url' => function_exists('base_url') ? base_url('assets/card-brands/' . $file) : '/assets/card-brands/' . $file,
+                    'value' => '/assets/card-brands/' . $file,
                 ];
             }
         }
@@ -307,8 +363,8 @@ class AdminPaymentMethodController extends Controller
             if ($icon) {
                 $meta['icon'] = $icon;
             } else {
-                $libIcon = trim((string)($meta['icon'] ?? ''));
-                if ($libIcon !== '' && str_starts_with($libIcon, '/assets/card-brands/')) {
+                $libIcon = $this->normaliseLibraryIcon($meta['icon'] ?? null);
+                if ($libIcon !== null) {
                     $meta['icon'] = $libIcon;
                 } else {
                     unset($meta['icon']);
@@ -442,8 +498,8 @@ class AdminPaymentMethodController extends Controller
             if ($icon) {
                 $meta['icon'] = $icon;
             } else {
-                $libIcon = trim((string)($meta['icon'] ?? ''));
-                if ($libIcon !== '' && str_starts_with($libIcon, '/assets/card-brands/')) {
+                $libIcon = $this->normaliseLibraryIcon($meta['icon'] ?? null);
+                if ($libIcon !== null) {
                     $meta['icon'] = $libIcon;
                 } else {
                     if (!isset($existingMeta['icon'])) {
