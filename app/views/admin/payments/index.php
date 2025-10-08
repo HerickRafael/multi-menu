@@ -25,12 +25,24 @@ if (!function_exists('render_payment_method_row')) {
         <div class="pm-row flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3" data-id="<?= $methodId ?>" data-type="<?= e($type) ?>" data-method="<?= $methodJson ?>">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-slate-200 overflow-hidden">
-              <?php $icon = is_string($meta['icon'] ?? null) ? trim((string)$meta['icon']) : ''; ?>
+              <?php 
+              $icon = is_string($meta['icon'] ?? null) ? trim((string)$meta['icon']) : ''; 
+              
+              // Se é PIX e não tem ícone definido, usar o ícone PIX padrão
+              if ($type === 'pix' && $icon === '') {
+                $icon = 'assets/card-brands/pix.svg';
+              }
+              ?>
               <?php if ($icon !== ''): ?>
                 <?php
                   $isAbs = preg_match('/^https?:\/\//i', $icon) === 1;
-                  $isRoot = str_starts_with($icon, '/');
-                  $src = $isAbs || $isRoot ? $icon : base_url(ltrim($icon, '/'));
+                  if ($isAbs) {
+                    $src = $icon;
+                  } else {
+                    // Para URLs relativas (começando com / ou não), sempre usar base_url
+                    $cleanIcon = ltrim($icon, '/');
+                    $src = function_exists('base_url') ? base_url($cleanIcon) : '/' . $cleanIcon;
+                  }
                 ?>
                 <img src="<?= e($src . (str_contains($src, '?') ? '&' : '?') . 'v=' . time()) ?>" alt="Bandeira" class="max-w-full max-h-full object-contain" />
               <?php else: ?>

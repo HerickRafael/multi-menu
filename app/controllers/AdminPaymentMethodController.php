@@ -38,7 +38,6 @@ class AdminPaymentMethodController extends Controller
     {
         $root = dirname(__DIR__, 2);
         $dir = $root . '/public/assets/card-brands';
-        $urlBase = '/assets/card-brands';
         $allowed = ['svg', 'png', 'jpg', 'jpeg', 'webp'];
         $labels = [
             'visa' => 'Visa',
@@ -65,7 +64,7 @@ class AdminPaymentMethodController extends Controller
                 $items[] = [
                     'slug' => $slug,
                     'label' => $labels[$slug] ?? ucwords(str_replace(['-', '_'], ' ', $slug)),
-                    'url' => $urlBase . '/' . $file,
+                    'url' => function_exists('base_url') ? base_url('assets/card-brands/' . $file) : '/assets/card-brands/' . $file,
                 ];
             }
         }

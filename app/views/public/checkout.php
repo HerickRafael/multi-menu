@@ -61,9 +61,25 @@ foreach ($paymentMethods as $method) {
     }
 }
 
+// Auto-select PIX if no method is pre-selected or if PIX is available
 if (!$selectedPayment && $paymentMethods) {
-    $selectedPayment = $paymentMethods[0];
-    $selectedPaymentId = (int)($selectedPayment['id'] ?? 0);
+    // First try to find PIX method
+    $pixMethod = null;
+    foreach ($paymentMethods as $method) {
+        if (($method['type'] ?? '') === 'pix') {
+            $pixMethod = $method;
+            break;
+        }
+    }
+    
+    if ($pixMethod) {
+        $selectedPayment = $pixMethod;
+        $selectedPaymentId = (int)($selectedPayment['id'] ?? 0);
+    } else {
+        // Fallback to first available method
+        $selectedPayment = $paymentMethods[0];
+        $selectedPaymentId = (int)($selectedPayment['id'] ?? 0);
+    }
 }
 $paymentInstructions = (string)($selectedPayment['instructions'] ?? '');
 $flash = is_array($flash ?? null) ? $flash : null;
@@ -128,11 +144,34 @@ foreach ($zonesByCity as $cityId => $zoneList) {
   .summary-total .row{display:flex;justify-content:space-between;font-weight:700;font-size:15px;}
   .summary-total .grand{font-size:18px;}
   .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:600;align-self:flex-start;}
-  .methods{display:flex;gap:10px;flex-wrap:wrap;}
-  .method-btn{flex:1 1 140px;border:1px solid var(--border);border-radius:12px;padding:12px;font-size:14px;font-weight:600;background:#f9fafb;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;}
-  .method-btn.active{border-color:#1d4ed8;background:#e0e7ff;color:#1d4ed8;}
+  .payment-methods{display:grid;gap:12px;}
+  .payment-type-btn{border:1px solid var(--border);border-radius:12px;padding:16px;font-size:16px;font-weight:600;background:#f9fafb;cursor:pointer;display:flex;align-items:center;justify-content:space-between;text-align:left;transition:all 0.2s ease;}
+  .payment-type-btn:hover{background:#f1f5f9;}
+  .payment-type-btn.active{border-color:var(--accent);background:#fef3c7;}
+  .payment-type-btn .payment-info{display:flex;align-items:center;gap:12px;}
+  .payment-type-btn .payment-icon{width:24px;height:24px;flex-shrink:0;object-fit:contain;}
+  .payment-type-btn .payment-text{display:flex;flex-direction:column;gap:2px;}
+  .payment-type-btn .payment-title{font-size:16px;font-weight:600;}
+  .payment-type-btn .payment-subtitle{font-size:13px;color:#64748b;font-weight:400;}
+  .payment-type-btn .arrow{width:20px;height:20px;opacity:0.5;transition:transform 0.2s ease;}
+  .payment-type-btn.active .arrow{transform:rotate(90deg);opacity:1;}
+  .card-brands{margin-top:12px;display:none;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;}
+  .card-brands.show{display:grid;}
+  .brand-btn{border:1px solid var(--border);border-radius:8px;padding:12px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;transition:all 0.2s ease;}
+  .brand-btn:hover{background:#f1f5f9;border-color:#94a3b8;}
+  .brand-btn.active{border-color:var(--accent);background:#fef3c7;box-shadow:0 0 0 2px rgba(245,158,11,.2);}
+  .brand-btn img{width:32px;height:20px;object-fit:contain;}
+  .brand-btn span{font-size:11px;font-weight:500;color:#64748b;}
   .payment-note{font-size:13px;color:#334155;background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;line-height:1.45;}
   .payment-note.hidden{display:none;}
+  .pix-key-section{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .pix-key-value{flex:1;font-family:monospace;font-size:13px;font-weight:600;color:#334155;word-break:break-all;}
+  .copy-btn{background:var(--accent);color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;transition:background 0.2s ease;min-width:50px;}
+  .copy-btn:hover{background:var(--accent-active);}
+  .copy-btn:active{background:#b45309;}
+  .copy-btn.copied{background:#059669;}
+  .pix-detail{margin-top:6px;font-size:13px;color:#6b7280;}
+  .pix-detail strong{color:#334155;}
   .checkout-footer{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:100%;background:var(--card);border-top:1px solid var(--border);padding:12px 16px 18px;box-shadow:0 -10px 30px -18px rgba(15,23,42,.35);}
   @media (min-width:768px){
     .app{max-width:420px}
@@ -249,33 +288,304 @@ foreach ($zonesByCity as $cityId => $zoneList) {
     <section class="card">
       <h2>Pagamento</h2>
       <?php if ($paymentMethods): ?>
-        <div class="methods">
-          <?php foreach ($paymentMethods as $method):
-              $methodId = (int)($method['id'] ?? 0);
-              $isActive = $methodId === $selectedPaymentId;
-              ?>
-            <?php $type = $method['type'] ?? 'others';
-                  $metaArr = [];
-                  if (!empty($method['meta'])) {
-                    $metaArr = is_string($method['meta']) ? json_decode($method['meta'], true) : (is_array($method['meta']) ? $method['meta'] : []);
-                  }
-                  $pxKey = $method['pix_key'] ?? ($metaArr['px_key'] ?? null);
-            ?>
-            <button type="button" class="method-btn<?= $isActive ? ' active' : '' ?>" data-id="<?= $methodId ?>" data-instructions="<?= e($method['instructions'] ?? '') ?>" data-type="<?= e($type) ?>" data-px-key="<?= e($pxKey ?? '') ?>">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span><?= e($method['name'] ?? 'Pagamento') ?></span>
-                <span class="badge" style="padding:4px 8px;font-size:12px;"><?= e(ucfirst($type)) ?></span>
+        <div class="payment-methods">
+          <?php 
+          $pixMethods = [];
+          $creditMethods = [];
+          $debitMethods = [];
+          $voucherMethods = [];
+          $otherMethods = [];
+          
+          foreach ($paymentMethods as $method) {
+            $type = $method['type'] ?? 'others';
+            if ($type === 'pix') {
+              $pixMethods[] = $method;
+            } elseif ($type === 'credit') {
+              $creditMethods[] = $method;
+            } elseif ($type === 'debit') {
+              $debitMethods[] = $method;
+            } elseif ($type === 'voucher') {
+              $voucherMethods[] = $method;
+            } else {
+              $otherMethods[] = $method;
+            }
+          }
+          ?>
+          
+          <?php if ($pixMethods): ?>
+            <!-- PIX Payment Option -->
+            <div class="payment-type-btn<?= ($selectedPayment && ($selectedPayment['type'] ?? '') === 'pix') ? ' active' : '' ?>" data-type="pix" onclick="selectPaymentType('pix')">
+              <div class="payment-info">
+                <img src="<?= function_exists('base_url') ? base_url('assets/card-brands/pix.svg') : '/assets/card-brands/pix.svg' ?>" alt="PIX" class="payment-icon">
+                <div class="payment-text">
+                  <div class="payment-title">PIX</div>
+                  <div class="payment-subtitle">Aprovação instantânea</div>
+                </div>
               </div>
-            </button>
-          <?php endforeach; ?>
+            </div>
+            
+            <!-- Payment Instructions Block -->
+            <div id="payment-instructions" class="payment-note<?= $paymentInstructions ? '' : ' hidden' ?>">
+              <?= $paymentInstructions ? nl2br(e($paymentInstructions)) : '' ?>
+            </div>
+          <?php endif; ?>
+          
+          <?php if ($creditMethods): ?>
+            <!-- Credit Card Payment Option -->
+            <div class="payment-type-btn" data-type="credit" onclick="selectPaymentType('credit')">
+              <div class="payment-info">
+                <img src="<?= function_exists('base_url') ? base_url('assets/card-brands/credit.svg') : '/assets/card-brands/credit.svg' ?>" alt="Cartão de Crédito" class="payment-icon">
+                <div class="payment-text">
+                  <div class="payment-title">Cartão de crédito</div>
+                  <div class="payment-subtitle">
+                    <?php 
+                    $creditNames = array_map(function($method) { return $method['name'] ?? 'Cartão'; }, $creditMethods);
+                    echo e(implode(', ', array_slice($creditNames, 0, 3)) . (count($creditNames) > 3 ? ' e mais' : ''));
+                    ?>
+                  </div>
+                </div>
+              </div>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            
+            <!-- Credit Card Brands Selection -->
+            <div class="card-brands" id="credit-brands">
+              <?php foreach ($creditMethods as $creditMethod): ?>
+                <?php
+                $methodId = (int)($creditMethod['id'] ?? 0);
+                $methodName = $creditMethod['name'] ?? 'Cartão';
+                $metaArr = [];
+                if (!empty($creditMethod['meta'])) {
+                  $metaArr = is_string($creditMethod['meta']) ? json_decode($creditMethod['meta'], true) : (is_array($creditMethod['meta']) ? $creditMethod['meta'] : []);
+                }
+                $iconUrl = $metaArr['icon'] ?? '';
+                
+                // Se não tiver ícone personalizado, tentar mapear baseado no nome
+                if (empty($iconUrl)) {
+                  $nameLower = strtolower($methodName);
+                  $brandMapping = [
+                    'visa' => 'visa.svg',
+                    'mastercard' => 'mastercard.svg', 
+                    'master' => 'mastercard.svg',
+                    'elo' => 'elo.svg',
+                    'hipercard' => 'hipercard.svg',
+                    'hiper' => 'hipercard.svg',
+                    'diners' => 'diners.svg',
+                    'american express' => 'others.svg',
+                    'amex' => 'others.svg'
+                  ];
+                  
+                  $detectedBrand = 'credit.svg';
+                  foreach ($brandMapping as $keyword => $brandFile) {
+                    if (strpos($nameLower, $keyword) !== false) {
+                      $detectedBrand = $brandFile;
+                      break;
+                    }
+                  }
+                  $iconUrl = 'assets/card-brands/' . $detectedBrand;
+                }
+                
+                // Converter path relativo para URL completa se necessário
+                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
+                } elseif (str_starts_with($iconUrl, '/assets/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                }
+                ?>
+                <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('credit', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
+                  <img src="<?= e($iconUrl) ?>" alt="<?= e($methodName) ?>" onerror="this.src='<?= function_exists('base_url') ? base_url('assets/card-brands/credit.svg') : '/assets/card-brands/credit.svg' ?>'">
+                  <span><?= e($methodName) ?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+          
+          <?php if ($debitMethods): ?>
+            <!-- Debit Card Payment Option -->
+            <div class="payment-type-btn" data-type="debit" onclick="selectPaymentType('debit')">
+              <div class="payment-info">
+                <img src="<?= function_exists('base_url') ? base_url('assets/card-brands/debit.svg') : '/assets/card-brands/debit.svg' ?>" alt="Cartão de Débito" class="payment-icon">
+                <div class="payment-text">
+                  <div class="payment-title">Cartão de débito</div>
+                  <div class="payment-subtitle">
+                    <?php 
+                    $debitNames = array_map(function($method) { return $method['name'] ?? 'Débito'; }, $debitMethods);
+                    echo e(implode(', ', array_slice($debitNames, 0, 3)) . (count($debitNames) > 3 ? ' e mais' : ''));
+                    ?>
+                  </div>
+                </div>
+              </div>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            
+            <!-- Debit Card Brands Selection -->
+            <div class="card-brands" id="debit-brands">
+              <?php foreach ($debitMethods as $debitMethod): ?>
+                <?php
+                $methodId = (int)($debitMethod['id'] ?? 0);
+                $methodName = $debitMethod['name'] ?? 'Débito';
+                $metaArr = [];
+                if (!empty($debitMethod['meta'])) {
+                  $metaArr = is_string($debitMethod['meta']) ? json_decode($debitMethod['meta'], true) : (is_array($debitMethod['meta']) ? $debitMethod['meta'] : []);
+                }
+                $iconUrl = $metaArr['icon'] ?? '';
+                
+                // Se não tiver ícone personalizado, tentar mapear baseado no nome
+                if (empty($iconUrl)) {
+                  $nameLower = strtolower($methodName);
+                  $brandMapping = [
+                    'visa' => 'visa.svg',
+                    'mastercard' => 'mastercard.svg', 
+                    'master' => 'mastercard.svg',
+                    'elo' => 'elo.svg',
+                    'hipercard' => 'hipercard.svg',
+                    'hiper' => 'hipercard.svg',
+                    'diners' => 'diners.svg'
+                  ];
+                  
+                  $detectedBrand = 'debit.svg';
+                  foreach ($brandMapping as $keyword => $brandFile) {
+                    if (strpos($nameLower, $keyword) !== false) {
+                      $detectedBrand = $brandFile;
+                      break;
+                    }
+                  }
+                  $iconUrl = 'assets/card-brands/' . $detectedBrand;
+                }
+                
+                // Converter path relativo para URL completa se necessário
+                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
+                } elseif (str_starts_with($iconUrl, '/assets/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                }
+                ?>
+                <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('debit', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
+                  <img src="<?= e($iconUrl) ?>" alt="<?= e($methodName) ?>" onerror="this.src='<?= function_exists('base_url') ? base_url('assets/card-brands/debit.svg') : '/assets/card-brands/debit.svg' ?>'">
+                  <span><?= e($methodName) ?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+          
+          <?php if ($voucherMethods): ?>
+            <!-- Voucher Payment Option -->
+            <div class="payment-type-btn" data-type="voucher" onclick="selectPaymentType('voucher')">
+              <div class="payment-info">
+                <img src="<?= function_exists('base_url') ? base_url('assets/card-brands/voucher.svg') : '/assets/card-brands/voucher.svg' ?>" alt="Vale-refeição" class="payment-icon">
+                <div class="payment-text">
+                  <div class="payment-title">Vale-refeição</div>
+                  <div class="payment-subtitle">
+                    <?php 
+                    $voucherNames = array_map(function($method) { return $method['name'] ?? 'Vale'; }, $voucherMethods);
+                    echo e(implode(', ', array_slice($voucherNames, 0, 3)) . (count($voucherNames) > 3 ? ' e mais' : ''));
+                    ?>
+                  </div>
+                </div>
+              </div>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            
+            <!-- Voucher Brands Selection -->
+            <div class="card-brands" id="voucher-brands">
+              <?php foreach ($voucherMethods as $voucherMethod): ?>
+                <?php
+                $methodId = (int)($voucherMethod['id'] ?? 0);
+                $methodName = $voucherMethod['name'] ?? 'Vale';
+                $metaArr = [];
+                if (!empty($voucherMethod['meta'])) {
+                  $metaArr = is_string($voucherMethod['meta']) ? json_decode($voucherMethod['meta'], true) : (is_array($voucherMethod['meta']) ? $voucherMethod['meta'] : []);
+                }
+                $iconUrl = $metaArr['icon'] ?? '';
+                
+                // Se não tiver ícone personalizado, usar ícone genérico
+                if (empty($iconUrl)) {
+                  $iconUrl = 'assets/card-brands/voucher.svg';
+                }
+                
+                // Converter path relativo para URL completa se necessário
+                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
+                } elseif (str_starts_with($iconUrl, '/assets/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                }
+                ?>
+                <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('voucher', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
+                  <img src="<?= e($iconUrl) ?>" alt="<?= e($methodName) ?>" onerror="this.src='<?= function_exists('base_url') ? base_url('assets/card-brands/voucher.svg') : '/assets/card-brands/voucher.svg' ?>'">
+                  <span><?= e($methodName) ?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+          
+          <?php if ($otherMethods): ?>
+            <!-- Other Payment Option -->
+            <div class="payment-type-btn" data-type="others" onclick="selectPaymentType('others')">
+              <div class="payment-info">
+                <img src="<?= function_exists('base_url') ? base_url('assets/card-brands/others.svg') : '/assets/card-brands/others.svg' ?>" alt="Outros" class="payment-icon">
+                <div class="payment-text">
+                  <div class="payment-title">Outros</div>
+                  <div class="payment-subtitle">
+                    <?php 
+                    $otherNames = array_map(function($method) { return $method['name'] ?? 'Outros'; }, $otherMethods);
+                    echo e(implode(', ', array_slice($otherNames, 0, 3)) . (count($otherNames) > 3 ? ' e mais' : ''));
+                    ?>
+                  </div>
+                </div>
+              </div>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            
+            <!-- Other Methods Selection -->
+            <div class="card-brands" id="others-brands">
+              <?php foreach ($otherMethods as $otherMethod): ?>
+                <?php
+                $methodId = (int)($otherMethod['id'] ?? 0);
+                $methodName = $otherMethod['name'] ?? 'Outros';
+                $metaArr = [];
+                if (!empty($otherMethod['meta'])) {
+                  $metaArr = is_string($otherMethod['meta']) ? json_decode($otherMethod['meta'], true) : (is_array($otherMethod['meta']) ? $otherMethod['meta'] : []);
+                }
+                $iconUrl = $metaArr['icon'] ?? '';
+                
+                // Se não tiver ícone personalizado, usar ícone genérico
+                if (empty($iconUrl)) {
+                  $iconUrl = 'assets/card-brands/others.svg';
+                }
+                
+                // Converter path relativo para URL completa se necessário
+                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
+                } elseif (str_starts_with($iconUrl, '/assets/')) {
+                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                }
+                ?>
+                <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('others', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
+                  <img src="<?= e($iconUrl) ?>" alt="<?= e($methodName) ?>" onerror="this.src='<?= function_exists('base_url') ? base_url('assets/card-brands/others.svg') : '/assets/card-brands/others.svg' ?>'">
+                  <span><?= e($methodName) ?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
         </div>
+        
+        <!-- Hidden inputs for payment method data -->
         <input type="hidden" name="payment[method_id]" id="payment-method-id" value="<?= $selectedPaymentId ?>">
-        <div id="payment-instructions" class="payment-note<?= $paymentInstructions ? '' : ' hidden' ?>">
-          <?= $paymentInstructions ? nl2br(e($paymentInstructions)) : '' ?>
-        </div>
+        <input type="hidden" name="payment[type]" id="payment-type" value="">
+        <input type="hidden" name="payment[brand]" id="payment-brand" value="">
       <?php else: ?>
         <div class="payment-note">Nenhum método de pagamento cadastrado. Entre em contato com a loja para mais informações.</div>
         <input type="hidden" name="payment[method_id]" id="payment-method-id" value="0">
+        <input type="hidden" name="payment[type]" id="payment-type" value="">
+        <input type="hidden" name="payment[brand]" id="payment-brand" value="">
         <div id="payment-instructions" class="payment-note hidden"></div>
       <?php endif; ?>
       <label class="field">
@@ -308,9 +618,306 @@ foreach ($zonesByCity as $cityId => $zoneList) {
   const deliveryInput = document.getElementById('delivery-fee-input');
   const deliveryAmount = document.getElementById('delivery-amount');
   const totalAmount = document.getElementById('total-amount');
-  const paymentButtons = document.querySelectorAll('.method-btn');
   const paymentInput = document.getElementById('payment-method-id');
+  const paymentTypeInput = document.getElementById('payment-type');
+  const paymentBrandInput = document.getElementById('payment-brand');
   const paymentBox = document.getElementById('payment-instructions');
+
+  // Payment data
+  const paymentMethods = {
+    <?php 
+    $jsPaymentMethods = [];
+    foreach ($paymentMethods as $method) {
+      $methodId = (int)($method['id'] ?? 0);
+      $type = $method['type'] ?? 'others';
+      $metaArr = [];
+      if (!empty($method['meta'])) {
+        $metaArr = is_string($method['meta']) ? json_decode($method['meta'], true) : (is_array($method['meta']) ? $method['meta'] : []);
+      }
+      $pxKey = $method['pix_key'] ?? ($metaArr['px_key'] ?? null);
+      
+      $jsPaymentMethods[] = $methodId . ': {
+        id: ' . $methodId . ',
+        name: "' . addslashes($method['name'] ?? 'Pagamento') . '",
+        type: "' . $type . '",
+        instructions: "' . addslashes($method['instructions'] ?? '') . '",
+        pix_key: "' . addslashes($pxKey ?? '') . '",
+        meta: ' . json_encode($metaArr, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '
+      }';
+    }
+    echo implode(',', $jsPaymentMethods);
+    ?>
+  };
+
+  let selectedPaymentType = '';
+  let selectedCardBrand = '';
+  let selectedMethodId = <?= (int)$selectedPaymentId ?>;
+
+  // Payment functions
+  window.selectPaymentType = function(type) {
+    const selectedBtn = document.querySelector(`.payment-type-btn[data-type="${type}"]`);
+    const isCurrentlyActive = selectedBtn && selectedBtn.classList.contains('active');
+    
+    // Remove active state from all payment type buttons
+    document.querySelectorAll('.payment-type-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Hide all brand sections
+    document.querySelectorAll('.card-brands').forEach(brands => brands.classList.remove('show'));
+    
+    // Hide PIX instructions when switching to other methods
+    if (type !== 'pix' && paymentBox) {
+      paymentBox.innerHTML = '';
+      paymentBox.classList.add('hidden');
+    }
+    
+    // If clicking the same button that was active, just close it (toggle behavior)
+    if (isCurrentlyActive) {
+      selectedPaymentType = '';
+      selectedMethodId = 0;
+      selectedCardBrand = '';
+      // Hide payment instructions when deselecting
+      if (paymentBox) {
+        paymentBox.innerHTML = '';
+        paymentBox.classList.add('hidden');
+      }
+      updatePaymentData();
+      return;
+    }
+    
+    // Add active state to selected type
+    if (selectedBtn) {
+      selectedBtn.classList.add('active');
+    }
+    
+    selectedPaymentType = type;
+    
+    if (type === 'credit') {
+      // Show credit card brands
+      const cardBrandsDiv = document.getElementById('credit-brands');
+      if (cardBrandsDiv) {
+        cardBrandsDiv.classList.add('show');
+      }
+      selectedCardBrand = '';
+      selectedMethodId = 0;
+      updatePaymentData();
+    } else if (type === 'debit') {
+      // Show debit card brands
+      const debitBrandsDiv = document.getElementById('debit-brands');
+      if (debitBrandsDiv) {
+        debitBrandsDiv.classList.add('show');
+      }
+      selectedCardBrand = '';
+      selectedMethodId = 0;
+      updatePaymentData();
+    } else if (type === 'voucher') {
+      // Show voucher brands
+      const voucherBrandsDiv = document.getElementById('voucher-brands');
+      if (voucherBrandsDiv) {
+        voucherBrandsDiv.classList.add('show');
+      }
+      selectedCardBrand = '';
+      selectedMethodId = 0;
+      updatePaymentData();
+    } else if (type === 'others') {
+      // Show other methods
+      const otherBrandsDiv = document.getElementById('others-brands');
+      if (otherBrandsDiv) {
+        otherBrandsDiv.classList.add('show');
+      }
+      selectedCardBrand = '';
+      selectedMethodId = 0;
+      updatePaymentData();
+    } else if (type === 'pix') {
+      // Find first PIX method and select it
+      const pixMethod = Object.values(paymentMethods).find(method => method.type === 'pix');
+      if (pixMethod) {
+        selectedMethodId = pixMethod.id;
+        updatePaymentData();
+        showPaymentInstructions(pixMethod);
+      }
+    }
+  };
+
+  window.selectCardBrand = function(paymentType, brand, methodId) {
+    // Check if this brand is currently active
+    const currentBrandsDiv = document.getElementById(paymentType + '-brands');
+    const selectedBtn = currentBrandsDiv?.querySelector(`.brand-btn[data-brand="${brand}"]`);
+    const isCurrentlyActive = selectedBtn && selectedBtn.classList.contains('active');
+    
+    // Remove active state from all brand buttons in the current type
+    if (currentBrandsDiv) {
+      currentBrandsDiv.querySelectorAll('.brand-btn').forEach(btn => btn.classList.remove('active'));
+    }
+    
+    // If clicking the same brand that was active, just deselect it (toggle behavior)
+    if (isCurrentlyActive) {
+      selectedCardBrand = '';
+      selectedMethodId = 0;
+      // Hide payment instructions when deselecting
+      if (paymentBox) {
+        paymentBox.innerHTML = '';
+        paymentBox.classList.add('hidden');
+      }
+      updatePaymentData();
+      return;
+    }
+    
+    // Add active state to selected brand
+    if (selectedBtn) {
+      selectedBtn.classList.add('active');
+    }
+    
+    selectedCardBrand = brand;
+    
+    // Use the specific method ID if provided
+    if (methodId) {
+      selectedMethodId = methodId;
+    } else {
+      // Find first method of the current type
+      const typeMethod = Object.values(paymentMethods).find(method => method.type === paymentType);
+      if (typeMethod) {
+        selectedMethodId = typeMethod.id;
+      }
+    }
+    
+    updatePaymentData();
+    
+    const method = paymentMethods[selectedMethodId];
+    if (method) {
+      showPaymentInstructions(method);
+    }
+  };
+
+  function updatePaymentData() {
+    if (paymentInput) paymentInput.value = selectedMethodId || '';
+    if (paymentTypeInput) paymentTypeInput.value = selectedPaymentType || '';
+    if (paymentBrandInput) paymentBrandInput.value = selectedCardBrand || '';
+  }
+
+  function showPaymentInstructions(method) {
+    if (!paymentBox) return;
+    
+    const instructions = method.instructions || '';
+    const type = method.type || '';
+    const pxKey = method.pix_key || '';
+    
+    if (type === 'pix' && pxKey) {
+      // Parse meta data for PIX
+      let metaData = {};
+      if (method.meta) {
+        try {
+          metaData = typeof method.meta === 'string' ? JSON.parse(method.meta) : method.meta;
+        } catch (e) {
+          metaData = {};
+        }
+      }
+      
+      const holderName = metaData.px_holder_name || '';
+      const provider = metaData.px_provider || '';
+      
+      let pixHtml = `<strong>Chave Pix:</strong>
+        <div class="pix-key-section">
+          <div class="pix-key-value" id="pix-key-value">${pxKey}</div>
+          <button type="button" class="copy-btn" onclick="copyPixKey('${pxKey}')" id="copy-pix-btn">Copiar</button>
+        </div>`;
+      
+      if (holderName) {
+        pixHtml += `<div class="pix-detail"><strong>Titular:</strong> ${holderName}</div>`;
+      }
+      
+      if (provider) {
+        pixHtml += `<div class="pix-detail"><strong>Instituição:</strong> ${provider}</div>`;
+      }
+      
+      if (instructions) {
+        pixHtml += `<div style="margin-top:8px;">${instructions.replace(/\n/g, '<br>')}</div>`;
+      }
+      
+      paymentBox.innerHTML = pixHtml;
+      paymentBox.classList.remove('hidden');
+    } else if (instructions) {
+      paymentBox.innerHTML = instructions.replace(/\n/g, '<br>');
+      paymentBox.classList.remove('hidden');
+    } else {
+      paymentBox.innerHTML = '';
+      paymentBox.classList.add('hidden');
+    }
+  }
+
+  // Function to copy PIX key
+  window.copyPixKey = function(pixKey) {
+    const copyBtn = document.getElementById('copy-pix-btn');
+    
+    // Try to use the Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(pixKey).then(() => {
+        showCopySuccess(copyBtn);
+      }).catch(() => {
+        fallbackCopyTextToClipboard(pixKey, copyBtn);
+      });
+    } else {
+      // Fallback for older browsers or non-HTTPS
+      fallbackCopyTextToClipboard(pixKey, copyBtn);
+    }
+  };
+
+  function fallbackCopyTextToClipboard(text, button) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopySuccess(button);
+    } catch (err) {
+      console.error('Erro ao copiar:', err);
+      if (button) {
+        button.textContent = 'Erro';
+        setTimeout(() => {
+          button.textContent = 'Copiar';
+        }, 2000);
+      }
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
+  function showCopySuccess(button) {
+    if (button) {
+      button.textContent = 'Copiado!';
+      button.classList.add('copied');
+      setTimeout(() => {
+        button.textContent = 'Copiar';
+        button.classList.remove('copied');
+      }, 2000);
+    }
+  }
+
+  // Initialize payment selection based on PHP selection
+  if (selectedMethodId && paymentMethods[selectedMethodId]) {
+    const method = paymentMethods[selectedMethodId];
+    selectedPaymentType = method.type;
+    selectedCardBrand = '';
+    
+    // Show PIX instructions if PIX is selected - don't call selectPaymentType to avoid removing active class
+    if (method.type === 'pix') {
+      updatePaymentData();
+      showPaymentInstructions(method);
+    } else {
+      updatePaymentData();
+    }
+  } else {
+    // No method available, start with clean state
+    selectedPaymentType = '';
+    selectedMethodId = 0;
+    selectedCardBrand = '';
+    updatePaymentData();
+  }
 
   const formatBRL = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 
@@ -404,48 +1011,14 @@ foreach ($zonesByCity as $cityId => $zoneList) {
     updateSummary(fee, !!opt && zoneSelect.value !== '');
   }
 
-    if (paymentButtons.length > 0) {
-    paymentButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = parseInt(btn.dataset.id || '0', 10) || 0;
-        if (!id) return;
-        paymentButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if (paymentInput) paymentInput.value = id;
-        const instructions = btn.dataset.instructions || '';
-        const type = (btn.dataset.type || '').toLowerCase();
-        const pxKey = btn.dataset.pxKey || '';
-        if (paymentBox) {
-          if (type === 'pix' && pxKey) {
-            // show pix key prominently and then any instructions
-            paymentBox.innerHTML = '<strong>Chave Pix: </strong>' + pxKey + (instructions ? '<div style="margin-top:8px">' + instructions.replace(/\n/g, '<br>') + '</div>' : '');
-            paymentBox.classList.remove('hidden');
-          } else if (instructions) {
-            paymentBox.innerHTML = instructions.replace(/\n/g, '<br>');
-            paymentBox.classList.remove('hidden');
-          } else {
-            paymentBox.innerHTML = '';
-            paymentBox.classList.add('hidden');
-          }
-        }
-      });
-    });
-
-    if (paymentInput && paymentInput.value) {
-      const active = Array.from(paymentButtons).find(btn => parseInt(btn.dataset.id || '0', 10) === parseInt(paymentInput.value, 10));
-      if (active) {
-        active.classList.add('active');
-        const instructions = active.dataset.instructions || '';
-        if (paymentBox) {
-          if (instructions) {
-            paymentBox.innerHTML = instructions.replace(/\n/g, '<br>');
-            paymentBox.classList.remove('hidden');
-          } else {
-            paymentBox.innerHTML = '';
-            paymentBox.classList.add('hidden');
-          }
-        }
-      }
+  // Initialize payment selection
+  if (selectedMethodId && paymentMethods[selectedMethodId]) {
+    const method = paymentMethods[selectedMethodId];
+    selectedPaymentType = method.type;
+    
+    // Show PIX instructions if needed without triggering selectPaymentType
+    if (method.type === 'pix') {
+      showPaymentInstructions(method);
     }
   }
 })();
