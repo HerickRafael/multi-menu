@@ -360,7 +360,8 @@ foreach ($zonesByCity as $cityId => $zoneList) {
                 if (!empty($creditMethod['meta'])) {
                   $metaArr = is_string($creditMethod['meta']) ? json_decode($creditMethod['meta'], true) : (is_array($creditMethod['meta']) ? $creditMethod['meta'] : []);
                 }
-                $iconUrl = $metaArr['icon'] ?? '';
+                // prefer server-provided absolute URL when disponível
+                $iconUrl = $creditMethod['icon_url'] ?? ($metaArr['icon'] ?? '');
                 
                 // Se não tiver ícone personalizado, tentar mapear baseado no nome
                 if (empty($iconUrl)) {
@@ -388,10 +389,12 @@ foreach ($zonesByCity as $cityId => $zoneList) {
                 }
                 
                 // Converter path relativo para URL completa se necessário
-                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
-                } elseif (str_starts_with($iconUrl, '/assets/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                if ($iconUrl && !preg_match('/^https?:\/\//i', $iconUrl)) {
+                  if (str_starts_with($iconUrl, '/')) {
+                    $iconUrl = (function_exists('base_url') ? rtrim(base_url(), '/') . $iconUrl : $iconUrl);
+                  } else {
+                    $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . ltrim($iconUrl, '/'));
+                  }
                 }
                 ?>
                 <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('credit', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
@@ -432,7 +435,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
                 if (!empty($debitMethod['meta'])) {
                   $metaArr = is_string($debitMethod['meta']) ? json_decode($debitMethod['meta'], true) : (is_array($debitMethod['meta']) ? $debitMethod['meta'] : []);
                 }
-                $iconUrl = $metaArr['icon'] ?? '';
+                $iconUrl = $debitMethod['icon_url'] ?? ($metaArr['icon'] ?? '');
                 
                 // Se não tiver ícone personalizado, tentar mapear baseado no nome
                 if (empty($iconUrl)) {
@@ -457,11 +460,12 @@ foreach ($zonesByCity as $cityId => $zoneList) {
                   $iconUrl = 'assets/card-brands/' . $detectedBrand;
                 }
                 
-                // Converter path relativo para URL completa se necessário
-                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
-                } elseif (str_starts_with($iconUrl, '/assets/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                if ($iconUrl && !preg_match('/^https?:\/\//i', $iconUrl)) {
+                  if (str_starts_with($iconUrl, '/')) {
+                    $iconUrl = (function_exists('base_url') ? rtrim(base_url(), '/') . $iconUrl : $iconUrl);
+                  } else {
+                    $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . ltrim($iconUrl, '/'));
+                  }
                 }
                 ?>
                 <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('debit', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
@@ -502,18 +506,18 @@ foreach ($zonesByCity as $cityId => $zoneList) {
                 if (!empty($voucherMethod['meta'])) {
                   $metaArr = is_string($voucherMethod['meta']) ? json_decode($voucherMethod['meta'], true) : (is_array($voucherMethod['meta']) ? $voucherMethod['meta'] : []);
                 }
-                $iconUrl = $metaArr['icon'] ?? '';
+                $iconUrl = $voucherMethod['icon_url'] ?? ($metaArr['icon'] ?? '');
                 
                 // Se não tiver ícone personalizado, usar ícone genérico
                 if (empty($iconUrl)) {
                   $iconUrl = 'assets/card-brands/voucher.svg';
                 }
-                
-                // Converter path relativo para URL completa se necessário
-                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
-                } elseif (str_starts_with($iconUrl, '/assets/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                if ($iconUrl && !preg_match('/^https?:\/\//i', $iconUrl)) {
+                  if (str_starts_with($iconUrl, '/')) {
+                    $iconUrl = (function_exists('base_url') ? rtrim(base_url(), '/') . $iconUrl : $iconUrl);
+                  } else {
+                    $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . ltrim($iconUrl, '/'));
+                  }
                 }
                 ?>
                 <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('voucher', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
@@ -554,18 +558,18 @@ foreach ($zonesByCity as $cityId => $zoneList) {
                 if (!empty($otherMethod['meta'])) {
                   $metaArr = is_string($otherMethod['meta']) ? json_decode($otherMethod['meta'], true) : (is_array($otherMethod['meta']) ? $otherMethod['meta'] : []);
                 }
-                $iconUrl = $metaArr['icon'] ?? '';
+                $iconUrl = $otherMethod['icon_url'] ?? ($metaArr['icon'] ?? '');
                 
                 // Se não tiver ícone personalizado, usar ícone genérico
                 if (empty($iconUrl)) {
                   $iconUrl = 'assets/card-brands/others.svg';
                 }
-                
-                // Converter path relativo para URL completa se necessário
-                if (!preg_match('/^https?:\/\//i', $iconUrl) && !str_starts_with($iconUrl, '/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . $iconUrl);
-                } elseif (str_starts_with($iconUrl, '/assets/')) {
-                  $iconUrl = (function_exists('base_url') ? base_url(ltrim($iconUrl, '/')) : $iconUrl);
+                if ($iconUrl && !preg_match('/^https?:\/\//i', $iconUrl)) {
+                  if (str_starts_with($iconUrl, '/')) {
+                    $iconUrl = (function_exists('base_url') ? rtrim(base_url(), '/') . $iconUrl : $iconUrl);
+                  } else {
+                    $iconUrl = (function_exists('base_url') ? base_url($iconUrl) : '/' . ltrim($iconUrl, '/'));
+                  }
                 }
                 ?>
                 <div class="brand-btn" data-brand="<?= e(strtolower(str_replace(' ', '', $methodName))) ?>" data-method-id="<?= $methodId ?>" onclick="selectCardBrand('others', '<?= e(strtolower(str_replace(' ', '', $methodName))) ?>', <?= $methodId ?>)">
@@ -602,6 +606,47 @@ foreach ($zonesByCity as $cityId => $zoneList) {
 
 <script>
 (() => {
+  // Toast helper para frontend público
+  try {
+    const publicToastContainer = document.createElement('div');
+    publicToastContainer.id = 'public-toasts';
+    publicToastContainer.style.position = 'fixed';
+    publicToastContainer.style.top = '16px';
+    publicToastContainer.style.right = '16px';
+    publicToastContainer.style.zIndex = '9999';
+    publicToastContainer.style.display = 'flex';
+    publicToastContainer.style.flexDirection = 'column';
+    publicToastContainer.style.gap = '8px';
+    document.body.appendChild(publicToastContainer);
+
+    window.showToast = function(message, type){
+      try {
+        const el = document.createElement('div');
+        el.textContent = message || '';
+        el.style.padding = '10px 14px';
+        el.style.borderRadius = '10px';
+        el.style.color = '#fff';
+        el.style.minWidth = '200px';
+        el.style.boxShadow = '0 8px 20px rgba(2,6,23,0.12)';
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .18s ease, transform .18s ease';
+        if (type === 'error') {
+          el.style.background = '#ef4444';
+        } else if (type === 'success') {
+          el.style.background = '#059669';
+        } else {
+          el.style.background = '#111827';
+        }
+        publicToastContainer.appendChild(el);
+        requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; });
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-6px)';
+          setTimeout(() => { try{ publicToastContainer.removeChild(el); } catch(_){} }, 160);
+        }, 3000);
+      } catch (e) { console.error(e); }
+    };
+  } catch (e) { console.error(e); }
   const data = {
     subtotal: parseFloat('<?= e(number_format($subtotal, 2, '.', '')) ?>') || 0,
     cities: <?= json_encode($citiesForJs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
@@ -876,6 +921,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
       showCopySuccess(button);
     } catch (err) {
       console.error('Erro ao copiar:', err);
+      showToast('Não foi possível copiar automaticamente. Use o toque longo e copiar.', 'error');
       if (button) {
         button.textContent = 'Erro';
         setTimeout(() => {
@@ -891,6 +937,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
     if (button) {
       button.textContent = 'Copiado!';
       button.classList.add('copied');
+      showToast('Chave Pix copiada para a área de transferência.', 'success');
       setTimeout(() => {
         button.textContent = 'Copiar';
         button.classList.remove('copied');

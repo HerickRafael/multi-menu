@@ -217,6 +217,37 @@ class AdminPaymentMethodController extends Controller
         return $meta;
     }
 
+    private function buildIconUrlFromMeta(array $meta = []): string
+    {
+        $icon = '';
+        if (!empty($meta['icon']) && is_string($meta['icon'])) {
+            $icon = trim($meta['icon']);
+        }
+        if ($icon === '') return '';
+
+        // URLs absolutas
+        if (preg_match('#^https?://#i', $icon)) {
+            return $icon;
+        }
+
+        // caminhos públicos conhecidos
+        if (str_starts_with($icon, '/')) {
+            // se houver base_url disponível, prefixa
+            if (function_exists('base_url')) {
+                $base = rtrim((string)base_url(), '/');
+                return $base . $icon;
+            }
+            return $icon;
+        }
+
+        // caminhos relativos
+        if (function_exists('base_url')) {
+            return base_url($icon);
+        }
+
+        return '/' . ltrim($icon, '/');
+    }
+
     private function guard(string $slug): array
     {
         Auth::start();
@@ -394,7 +425,57 @@ class AdminPaymentMethodController extends Controller
         // para tipo pix, salva nome canônico
         $saveName = $type === 'pix' ? 'Pix' : $name;
 
-        $newId = PaymentMethod::create([
+        // Verificar duplicatas por nome ou ícone (quando aplicável) — restrito pelo tipo
+        $iconCheck = isset($meta['icon']) ? trim((string)$meta['icon']) : '';
+        try {
+            if ($iconCheck !== '') {
+                // usa JSON_EXTRACT para comparar exatamente o campo icon dentro do JSON meta, limitada pelo tipo
+                $sql = 'SELECT id FROM payment_methods WHERE company_id = ? AND `type` = ? AND (name = ? OR JSON_UNQUOTE(JSON_EXTRACT(meta, "$.icon")) = ?) LIMIT 1';
+                $st = db()->prepare($sql);
+                $st->execute([$company['id'], $type, $saveName, $iconCheck]);
+            } else {
+                $sql = 'SELECT id FROM payment_methods WHERE company_id = ? AND `type` = ? AND name = ? LIMIT 1';
+                $st = db()->prepare($sql);
+                $st->execute([$company['id'], $type, $saveName]);
+            }
+            $exists = $st->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $exists = false;
+        }
+
+        if ($exists) {
+            // já existe método com mesmo nome/ícone
+            $message = 'Já existe um método com o mesmo nome ou bandeira neste tipo.';
+            if ($this->isAjaxRequest()) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $message]);
+                exit;
+            }
+            $this->errors([$message]);
+            $this->previous([
+                'name' => $name,
+                'instructions' => $instructions,
+                'sort_order' => $sortOrder,
+                'active' => $active,
+                'type' => $type,
+                'meta' => $meta,
+            ]);
+            $this->flash(['type' => 'error', 'message' => 'Não foi possível salvar: método duplicado.']);
+            $this->redirectToIndex($company['slug']);
+        }
+
+        // tenta reutilizar um ID vazio (casos onde registros foram apagados)
+        $reuseId = null;
+        try {
+            $missing = PaymentMethod::findMissingId();
+            if ($missing && $missing > 0) {
+                $reuseId = $missing;
+            }
+        } catch (Exception $e) {
+            $reuseId = null;
+        }
+
+        $payload = [
             'company_id' => (int)$company['id'],
             'name' => $saveName,
             'instructions' => $instructions !== '' ? $instructions : null,
@@ -402,8 +483,12 @@ class AdminPaymentMethodController extends Controller
             'active' => $active,
             'type' => $type,
             'meta' => $meta,
+            'icon' => isset($meta['icon']) ? $meta['icon'] : null,
             'pix_key' => $pixKey ?: null,
-        ]);
+        ];
+        if ($reuseId) $payload['id'] = $reuseId;
+
+        $newId = PaymentMethod::create($payload);
 
         // Carrega registro criado
         $created = PaymentMethod::findForCompany((int)$newId, (int)$company['id']);
@@ -413,8 +498,15 @@ class AdminPaymentMethodController extends Controller
         }
 
         if ($this->isAjaxRequest()) {
+            // garantir que o frontend tenha uma URL completa para o ícone
+            if (isset($created['meta']) && is_array($created['meta'])) {
+                $created['icon_url'] = $this->buildIconUrlFromMeta($created['meta']);
+            } else {
+                $created['icon_url'] = '';
+            }
+
             header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'method' => $created]);
+            echo json_encode(['success' => true, 'method' => $created, 'message' => 'Método adicionado com sucesso.']);
             exit;
         }
 
@@ -547,6 +639,34 @@ class AdminPaymentMethodController extends Controller
 
         $saveName = $type === 'pix' ? 'Pix' : $name;
 
+        // Verificar duplicatas ao atualizar (mesmo company + mesmo type), ignorando o próprio id
+        $iconCheck = isset($meta['icon']) ? trim((string)$meta['icon']) : '';
+        try {
+            if ($iconCheck !== '') {
+                $sql = 'SELECT id FROM payment_methods WHERE company_id = ? AND `type` = ? AND id <> ? AND (name = ? OR JSON_UNQUOTE(JSON_EXTRACT(meta, "$.icon")) = ?) LIMIT 1';
+                $st = db()->prepare($sql);
+                $st->execute([$company['id'], $type, $id, $saveName, $iconCheck]);
+            } else {
+                $sql = 'SELECT id FROM payment_methods WHERE company_id = ? AND `type` = ? AND id <> ? AND name = ? LIMIT 1';
+                $st = db()->prepare($sql);
+                $st->execute([$company['id'], $type, $id, $saveName]);
+            }
+            $conflict = $st->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $conflict = false;
+        }
+
+        if ($conflict) {
+            $message = 'Já existe um método com o mesmo nome ou bandeira neste tipo.';
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $message]);
+                exit;
+            }
+            $this->flash(['type' => 'error', 'message' => $message]);
+            $this->redirectToIndex($company['slug']);
+        }
+
         PaymentMethod::update($id, (int)$company['id'], [
             'name' => $saveName,
             'instructions' => $instructions !== '' ? $instructions : null,
@@ -554,6 +674,7 @@ class AdminPaymentMethodController extends Controller
             'active' => $active,
             'type' => $type,
             'meta' => $meta,
+            'icon' => isset($meta['icon']) ? $meta['icon'] : null,
             'pix_key' => $pixKey ?: null,
         ]);
 
@@ -564,8 +685,15 @@ class AdminPaymentMethodController extends Controller
         }
 
         if ($isAjax) {
+            // anexar icon_url para facilitar renderização no frontend
+            if (isset($updated['meta']) && is_array($updated['meta'])) {
+                $updated['icon_url'] = $this->buildIconUrlFromMeta($updated['meta']);
+            } else {
+                $updated['icon_url'] = '';
+            }
+
             header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'method' => $updated]);
+            echo json_encode(['success' => true, 'method' => $updated, 'message' => 'Método atualizado.']);
             exit;
         }
 
@@ -596,7 +724,7 @@ class AdminPaymentMethodController extends Controller
 
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json');
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true, 'message' => 'Métodos atualizados.']);
             exit;
         }
 
@@ -614,7 +742,7 @@ class AdminPaymentMethodController extends Controller
 
         if ($this->isAjaxRequest()) {
             header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'id' => $id]);
+            echo json_encode(['success' => true, 'id' => $id, 'message' => 'Método removido.']);
             exit;
         }
 

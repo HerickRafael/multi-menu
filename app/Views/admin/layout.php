@@ -220,6 +220,18 @@ if ($bellConfig !== '') {
       line-height: 1.35;
       color: #475569;
     }
+      .admin-order-toast.row {
+        display:flex;align-items:center;gap:0.75rem;
+      }
+      .admin-order-toast .toast-icon{
+        width:36px;height:36px;flex-shrink:0;border-radius:.6rem;display:grid;place-items:center;color:#fff;font-weight:700;
+      }
+      .admin-order-toast.success { background: linear-gradient(90deg,#059669,#10b981); color:#fff; border: none; }
+      .admin-order-toast.success .toast-icon{ background: rgba(255,255,255,0.12); }
+      .admin-order-toast.error { background: linear-gradient(90deg,#ef4444,#f97316); color:#fff; border: none; }
+      .admin-order-toast.error .toast-icon{ background: rgba(255,255,255,0.12); }
+      .admin-order-toast.info { background: #0f172a; color:#fff; border: none; }
+      .admin-order-toast .toast-close { position: absolute; right: 0.6rem; top: 0.6rem; background:transparent;border:none;color:inherit;font-size:14px;cursor:pointer; }
     .admin-order-toast-footer {
       display: flex;
       justify-content: flex-end;
@@ -273,6 +285,45 @@ if ($bellConfig !== '') {
   <div class="admin-order-toasts" id="admin-order-toasts" aria-live="polite"></div>
 
   <script>
+  // Função global de toast para todo o admin (implementação rica com ícone/fechar/timeout)
+  (function(){
+    const toastContainer = document.getElementById('admin-order-toasts');
+    window.showToast = function(titleOrMessage, type){
+      try {
+        if (!toastContainer) return;
+        const el = document.createElement('div');
+        el.className = 'admin-order-toast ' + (type || 'info');
+        el.style.position = 'relative';
+        const icon = document.createElement('div');
+        icon.className = 'toast-icon';
+        icon.textContent = (type === 'success') ? '✓' : (type === 'error' ? '⚠' : 'i');
+        const h = document.createElement('h3');
+        const p = document.createElement('p');
+        if (typeof titleOrMessage === 'string') {
+          h.textContent = (type === 'error') ? 'Erro' : ((type === 'success') ? 'Sucesso' : 'Aviso');
+          p.textContent = titleOrMessage;
+        } else if (titleOrMessage && titleOrMessage.title) {
+          h.textContent = String(titleOrMessage.title || '');
+          p.textContent = String(titleOrMessage.message || '');
+        } else {
+          h.textContent = '';
+          p.textContent = '';
+        }
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'toast-close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', () => { el.classList.remove('show'); setTimeout(()=>{ try{ toastContainer.removeChild(el); }catch{} }, 180); });
+        el.appendChild(icon);
+        el.appendChild(h);
+        el.appendChild(p);
+        el.appendChild(closeBtn);
+        toastContainer.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('show'));
+        setTimeout(() => { el.classList.remove('show'); try{ toastContainer.removeChild(el); } catch(_){} }, 4200);
+      } catch (e) { console.error(e); }
+    };
+
+  })();
   (function(){
     const dataUrl = document.body.dataset.kdsUrl;
     const orderUrlBase = document.body.dataset.orderUrl || '';

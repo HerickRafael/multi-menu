@@ -200,10 +200,9 @@ ob_start();
 
 <header class="mb-6 flex items-center gap-3">
   <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-credit-card" viewBox="0 0 16 16">
-      <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1zm13 3H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
-      <path d="M3 10a1 1 0 0 1 1-1h1.5a.5.5 0 0 1 0 1H4a.5.5 0 0 0 0 1h1.5a.5.5 0 0 1 0 1H4a1 1 0 0 1-1-1z"/>
-    </svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="" height="20" fill="currentColor" class="bi bi-credit-card-2-back-fill" viewBox="0 0 16 16">
+  <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5H0zm11.5 1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zM0 11v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1z"/>
+</svg>
   </span>
   <div>
     <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">Métodos de pagamento</h1>
@@ -211,8 +210,9 @@ ob_start();
   </div>
   <div class="ml-auto flex items-center gap-2">
     <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-layout-text-window" viewBox="0 0 16 16">
-        <path d="M1 2a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v11.5a1.5 1.5 0 0 1-1.5 1.5H2A2 2 0 0 1 0 13V2Zm14 1H1v10c0 .552.448 1 1 1h10.5a.5.5 0 0 0 .5-.5z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-gear" viewBox="0 0 16 16">
+        <path d="M7.293 1.5a1 1 0 0 1 1.414 0L11 3.793V2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v3.293l2.354 2.353a.5.5 0 0 1-.708.708L8.207 2.207l-5 5V13.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 2 13.5V8.207l-.646.647a.5.5 0 1 1-.708-.708z"></path>
+        <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0 .382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"></path>
       </svg>
       Dashboard
     </a>
@@ -647,8 +647,14 @@ ob_start();
         function resolveIconUrl(url) {
           url = (url || '').trim();
           if (!url) return '';
-          if (/^https?:\/\//i.test(url) || url.startsWith('/')) return url;
-          return siteBase + '/' + url.replace(/^\//, '');
+          // URLs absolutas (http(s)) retornam como estão
+          if (/^https?:\/\//i.test(url)) return url;
+          // caminhos começando com '/' devem respeitar o base da aplicação
+          if (url.startsWith('/')) {
+            return siteBase ? (siteBase + url) : url;
+          }
+          // caminhos relativos: prefixa com siteBase se disponível, senão torna absoluto a partir da raiz
+          return siteBase ? (siteBase + '/' + url.replace(/^\//, '')) : '/' + url.replace(/^\//, '');
         }
 
         try { window.pmResolveIconUrl = resolveIconUrl; } catch(_) {}
@@ -970,7 +976,15 @@ ob_start();
           const brandFile = document.getElementById('pm-brand-icon');
           const rawIcon = meta && meta.icon ? meta.icon : '';
           const normalisedIcon = normalizeIcon(rawIcon);
-          const previewUrl = normalisedIcon ? resolveIconUrl(normalisedIcon) : (rawIcon ? resolveIconUrl(rawIcon) : '');
+          // Prioriza a URL completa enviada pelo servidor (method.icon_url), quando disponível
+          let previewUrl = '';
+          if (typeof method.icon_url === 'string' && method.icon_url.trim() !== '') {
+            previewUrl = method.icon_url;
+          } else if (normalisedIcon) {
+            previewUrl = resolveIconUrl(normalisedIcon);
+          } else if (rawIcon) {
+            previewUrl = resolveIconUrl(rawIcon);
+          }
           if (brandInput) brandInput.value = normalisedIcon;
           if (brandPrev) {
             if (previewUrl) {
@@ -1107,11 +1121,14 @@ ob_start();
             } else if (row) {
               applyToggleStateToRow(row, on);
             }
+            if (json.message) {
+              showToast(json.message, 'success');
+            }
             if (cb) cb(true);
             return true;
           } catch (err) {
             console.error(err);
-            alert('Erro ao atualizar o método. Atualize a página e tente novamente.');
+            showToast('Erro ao atualizar o método. Atualize a página e tente novamente.', 'error');
             if (cb) cb(false);
             return false;
           } finally {
@@ -1142,10 +1159,11 @@ ob_start();
             }
             updateEmptyStates();
             refreshToggleAllState();
+            if (json.message) showToast(json.message, 'success');
             return true;
           } catch (err) {
             console.error(err);
-            alert('Erro ao apagar o método. Atualize a página e tente novamente.');
+            showToast('Erro ao apagar o método. Atualize a página e tente novamente.', 'error');
             return false;
           }
         }
@@ -1174,9 +1192,10 @@ ob_start();
               document.querySelectorAll('.pm-row').forEach(function(row){
                 applyToggleStateToRow(row, on);
               });
+              if (json.message) showToast(json.message, 'success');
             } catch (err) {
               console.error(err);
-              alert('Erro ao atualizar todos os métodos. Atualize a página e tente novamente.');
+              showToast('Erro ao atualizar todos os métodos. Atualize a página e tente novamente.', 'error');
               this.checked = !on;
               setToggleAllVisual(this.checked);
             }
@@ -1226,8 +1245,33 @@ ob_start();
               const ct = res.headers.get('content-type') || '';
               if (ct.includes('application/json')) {
                 const json = await res.json().catch(() => null);
-                if (!json || !json.success || !json.method) throw new Error('Invalid response');
+                if (!json) throw new Error('Invalid response');
+                if (!json.success) {
+                  // mostra mensagem amigável quando backend reporta erro (ex.: duplicata)
+                  if (json.message) {
+                    showToast(json.message, 'error');
+                    return;
+                  }
+                  throw new Error('Invalid response');
+                }
+                if (!json.method) throw new Error('Invalid response');
                 const inserted = replaceMethodRow(json.method);
+                // atualizar preview do formulário para refletir o ícone retornado pelo servidor
+                try {
+                  const brandPrev = document.getElementById('pm-brand-preview');
+                  if (brandPrev) {
+                    if (typeof json.method.icon_url === 'string' && json.method.icon_url.trim() !== '') {
+                      brandPrev.src = json.method.icon_url;
+                      brandPrev.classList.remove('hidden');
+                    } else if (json.method.meta && json.method.meta.icon) {
+                      brandPrev.src = resolveIconUrl(normalizeIcon(json.method.meta.icon));
+                      brandPrev.classList.remove('hidden');
+                    } else {
+                      brandPrev.src = '';
+                      brandPrev.classList.add('hidden');
+                    }
+                  }
+                } catch(_) {}
                 // foca na aba do tipo salvo e destaca o item
                 try {
                   currentType = json.method.type || currentType;
@@ -1235,10 +1279,11 @@ ob_start();
                   applyTypeFilter();
                   if (inserted && inserted.scrollIntoView) inserted.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   if (inserted) {
-                    inserted.classList.add('ring-2','ring-emerald-300');
-                    setTimeout(() => inserted.classList.remove('ring-2','ring-emerald-300'), 1500);
+                    inserted.classList.add('ring-2','ring-indigo-300');
+                    setTimeout(() => inserted.classList.remove('ring-2','ring-indigo-300'), 1500);
                   }
                 } catch(_) {}
+                if (json.message) showToast(json.message, 'success');
                 if (!editing && json.method && json.method.sort_order !== undefined) {
                   const nextSort = (parseInt(json.method.sort_order, 10) || 0) + 1;
                   defaultSortOrder = String(nextSort);
@@ -1251,7 +1296,7 @@ ob_start();
                 window.location.reload();
                 return;
               }
-            } catch (err) {
+                } catch (err) {
               console.error(err);
               // fallback não-AJAX
               form.submit();
@@ -1537,7 +1582,8 @@ ob_start();
               }
               if (!json || !json.success || !json.method) throw new Error('Invalid response payload');
               replaceMethodRow(json.method);
-              close();
+                if (json.message) showToast(json.message, 'success');
+                close();
             } else {
               // Conteúdo não-JSON (possível redirect/HTML), mas HTTP 200: trata como sucesso e recarrega
               close();
@@ -1546,7 +1592,7 @@ ob_start();
             }
           } catch (err) {
             console.error(err);
-            alert('Erro ao salvar. Tente novamente.');
+            showToast('Erro ao salvar. Tente novamente.', 'error');
           }
         });
       }

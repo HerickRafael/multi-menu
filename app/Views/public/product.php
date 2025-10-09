@@ -182,9 +182,12 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   .hero-product{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:100%;height:auto;display:block;z-index:1;filter:drop-shadow(0 18px 34px rgba(0,0,0,.25));pointer-events:none;user-select:none}
 
   /* ===== CARD ===== */
-  .card{position:relative;z-index:4;background:var(--card);border-radius:26px 26px 0 0;margin-top:-18px;padding:16px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:16px}
-  .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:13px}
-  h1{margin:2px 0 0;font-size:20px;line-height:1.25;font-weight:700}
+  .card{position:relative;z-index:1;background:var(--card);border-radius:26px 26px 0 0;margin-top:-18px;padding:26px 16px 8px;box-shadow:0 -1px 0 var(--border);display:flex;flex-direction:column;gap:10px}
+  .brand{display:flex;align-items:center;gap:8px;color:#374151;font-size:20px}
+  /* match product name to the visible 'Personalizar' label (size, weight, color) */
+  h1{margin:2px 0 0;font-size:18px;line-height:1.25;font-weight:700;color:#111;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;letter-spacing:normal}
+  /* ensure brand container doesn't force a smaller font on the h1 */
+  .brand h1{font-size:20px;font-weight:700;color:#111;margin:2px 0 0}
   .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
   .price{display:flex;flex-direction:column;gap:4px}
   .price-single{font-size:22px;font-weight:800}
@@ -201,7 +204,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
 
   /* ===== PERSONALIZAR ===== */
   .customize-wrap{background:var(--card)}
-  .customize{padding:24px 16px}
+  .customize{padding:25px 0 0 0}
   .btn-outline{width:100%;background:#fff;color:#111;border:1px solid #d8d8d8;border-radius:12px;padding:18px;font-size:18px;font-weight:500;display:flex;align-items:center;justify-content:space-between;text-decoration:none}
   .btn-outline:active{background:#f9f9f9}
   .btn-outline .chev{display:grid;place-items:center}
@@ -209,7 +212,7 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
 
   /* ===== COMBO ===== */
   .combo{background:var(--card);padding:8px 0 8px}
-  .combo .group{padding:10px 16px 0}
+  .combo .group{padding:25px 0 0 0}
   .combo h2{font-size:32px;line-height:1.1;margin:12px 0 8px;font-weight:800;letter-spacing:-0.5px}
   .choice-row{display:flex;gap:18px;overflow-x:auto;padding:12px 12px 18px;scroll-snap-type:x mandatory}
   .choice-row::-webkit-scrollbar{height:0}
@@ -229,13 +232,41 @@ $isCombo = (isset($product['type']) && $product['type'] === 'combo' && !empty($c
   .ring:focus{outline:none}
   .ring:focus-visible{outline:none;box-shadow:none}
 
+  /* remove blue focus/border rings from combo choices (browser default) */
+  button.ring, .choice .ring {
+    border-color: var(--border) !important;
+    box-shadow: none !important;
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button.ring:focus, button.ring:focus-visible, .choice .ring:focus, .choice .ring:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* keep orange selection border when a choice is selected */
+  .choice.sel .ring, .choice.sel button.ring {
+    border-color: var(--ring) !important;
+    box-shadow: 0 0 0 8px rgba(251,191,36,0.08) !important;
+  }
+
   /* ===== FOOTER/CTA ===== */
-  .footer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06);width:100%;max-width:100%}
+  .footer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--card);padding:12px 16px 18px;border-top:1px solid var(--border);box-shadow:0 -10px 40px rgba(0,0,0,.06);width:100%;max-width:100%;z-index:60}
   @media (min-width:768px){ .footer{max-width:420px} }
   .card{padding-bottom:82px}
   .cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:none;border-radius:18px;padding:0 24px;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:16px;text-decoration:none;cursor:pointer;text-align:center}
   .cta:active{background:var(--accent-active)}
   .cta[disabled]{opacity:.6;cursor:not-allowed}
+
+  /* Login modal layout: center and add side padding on small screens
+     Use :not(.hidden) so Tailwind's .hidden (display:none) still works */
+  .modal-top{z-index:200}
+  .modal-top:not(.hidden){display:grid;place-items:center;padding:20px}
+  .modal-top > div{width:100%;max-width:420px;margin:0}
+  @media(min-width:768px){
+    .modal-top:not(.hidden){padding:0}
+    .modal-top > div{margin-top:3rem}
+  }
 </style>
 </head>
 <body>
@@ -326,103 +357,103 @@ if ($hasPromo):
     </section>
     <?php endif; ?>
 
-  </main>
-
-  <!-- Botão PERSONALIZAR -->
-  <?php if ($hasCustomization): ?>
-  <div class="customize-wrap">
-    <div class="customize">
-      <?php $customizeUrl = $customizeBase; ?>
-      <a class="btn-outline" id="btn-customize" href="<?= e($customizeUrl) ?>" data-requires-login="<?= $requireLogin ? '1' : '0' ?>">
-        <span>
-          <strong>Personalizar</strong>
-          <small style="display:block;color:#6b7280;font-size:12px;margin-top:6px">Escolha adicionais ou ajuste seu pedido.</small>
-        </span>
-        <span class="chev" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-      </a>
-    </div>
-  </div>
-  <?php endif; ?>
-
-  <!-- ===== BLOCO DE COMBO ===== -->
-  <?php if ($isCombo): ?>
-  <section class="combo" aria-label="Montar combo">
-    <?php foreach ($comboGroups as $gi => $group): ?>
-      <?php
-    $gname = (string)($group['name'] ?? ('Etapa '.($gi + 1)));
-        $items = $group['items'] ?? [];
-        $gType = $group['type'] ?? 'single';
-        $gMin  = isset($group['min']) ? (int)$group['min'] : 0;
-        $gMax  = isset($group['max']) ? (int)$group['max'] : 1;
-        ?>
-      <div class="group">
-        <h2><?= e($gname) ?></h2>
-        <div class="choice-row"
-             data-group-index="<?= (int)$gi ?>"
-             data-group-type="<?= e($gType) ?>"
-             data-min="<?= $gMin ?>"
-             data-max="<?= $gMax ?>">
-          <?php foreach ($items as $ii => $opt): ?>
-            <?php
-                $isDefault = !empty($opt['default']);
-              $optDelta  = isset($opt['delta']) ? (float)$opt['delta'] : 0.0;
-              $basePrice = isset($opt['base_price']) && $opt['base_price'] !== null ? (float)$opt['base_price'] : null;
-
-              if ($isDefault) {
-                  $priceLabel = 'Incluído';
-              } else {
-                  if ($basePrice !== null) {
-                      $priceLabel = price_br($basePrice);
-                  } elseif ($priceMode === 'sum') {
-                      $priceLabel = price_br($optDelta);
-                  } else {
-                      if ($optDelta > 0) {
-                          $priceLabel = '+ ' . price_br($optDelta);
-                      } elseif ($optDelta < 0) {
-                          $priceLabel = '− ' . price_br(abs($optDelta));
-                      } else {
-                          $priceLabel = price_br(0);
-                      }
-                  }
-              }
-
-              $comboImg = local_upload_src($opt['image'] ?? null);
-              $simpleId = (int)($opt['simple_id'] ?? 0);
-              $canCustomizeChoice = !empty($opt['customizable']) && $simpleId > 0;
-              $parentQuery = http_build_query(['parent_id' => $pId]);
-              $choiceCustomUrl = $canCustomizeChoice
-                ? base_url($slug . '/produto/' . $simpleId . '/customizar?' . $parentQuery)
-                : null;
-              ?>
-            <div class="choice <?= $isDefault ? 'sel' : '' ?>"
-                 data-group="<?= (int)$gi ?>"
-                 data-id="<?= (int)($opt['id'] ?? 0) ?>"
-                 data-simple="<?= $simpleId ?>"
-                 data-delta="<?= e(number_format($optDelta, 2, '.', '')) ?>"
-                 data-default="<?= $isDefault ? '1' : '0' ?>"
-                 <?php if ($basePrice !== null): ?>data-base-price="<?= e(number_format($basePrice, 2, '.', '')) ?>"<?php endif; ?>
-                 data-customizable="<?= $canCustomizeChoice ? '1' : '0' ?>"
-                 <?php if ($choiceCustomUrl): ?>data-custom-url="<?= e($choiceCustomUrl) ?>"<?php endif; ?>>
-              <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true' : 'false' ?>">
-                <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
-                <span class="mark" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </span>
-              </button>
-              <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
-              <div class="choice-price"><?= e($priceLabel) ?></div>
-              <?php if ($canCustomizeChoice): ?>
-                <a class="choice-customize <?= $isDefault ? '' : 'hidden' ?>" data-base-url="<?= e($choiceCustomUrl) ?>" href="<?= e($choiceCustomUrl) ?>">Personalizar</a>
-              <?php endif; ?>
-            </div>
-          <?php endforeach; ?>
-        </div>
+    <!-- Botão PERSONALIZAR (movido para dentro do .card) -->
+    <?php if ($hasCustomization): ?>
+    <div class="customize-wrap">
+      <div class="customize">
+        <?php $customizeUrl = $customizeBase; ?>
+        <a class="btn-outline" id="btn-customize" href="<?= e($customizeUrl) ?>" data-requires-login="<?= $requireLogin ? '1' : '0' ?>">
+          <span>
+            <strong>Personalizar</strong>
+            <small style="display:block;color:#6b7280;font-size:12px;margin-top:6px">Escolha adicionais ou ajuste seu pedido.</small>
+          </span>
+          <span class="chev" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </a>
       </div>
-    <?php endforeach; ?>
-  </section>
-  <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- ===== BLOCO DE COMBO ===== -->
+    <?php if ($isCombo): ?>
+    <section class="combo" aria-label="Montar combo">
+      <?php foreach ($comboGroups as $gi => $group): ?>
+        <?php
+      $gname = (string)($group['name'] ?? ('Etapa '.($gi + 1)));
+          $items = $group['items'] ?? [];
+          $gType = $group['type'] ?? 'single';
+          $gMin  = isset($group['min']) ? (int)$group['min'] : 0;
+          $gMax  = isset($group['max']) ? (int)$group['max'] : 1;
+          ?>
+        <div class="group">
+          <h2><?= e($gname) ?></h2>
+          <div class="choice-row"
+               data-group-index="<?= (int)$gi ?>"
+               data-group-type="<?= e($gType) ?>"
+               data-min="<?= $gMin ?>"
+               data-max="<?= $gMax ?>">
+            <?php foreach ($items as $ii => $opt): ?>
+              <?php
+                  $isDefault = !empty($opt['default']);
+                $optDelta  = isset($opt['delta']) ? (float)$opt['delta'] : 0.0;
+                $basePrice = isset($opt['base_price']) && $opt['base_price'] !== null ? (float)$opt['base_price'] : null;
+
+                if ($isDefault) {
+                    $priceLabel = 'Incluído';
+                } else {
+                    if ($basePrice !== null) {
+                        $priceLabel = price_br($basePrice);
+                    } elseif ($priceMode === 'sum') {
+                        $priceLabel = price_br($optDelta);
+                    } else {
+                        if ($optDelta > 0) {
+                            $priceLabel = '+ ' . price_br($optDelta);
+                        } elseif ($optDelta < 0) {
+                            $priceLabel = '− ' . price_br(abs($optDelta));
+                        } else {
+                            $priceLabel = price_br(0);
+                        }
+                    }
+                }
+
+                $comboImg = local_upload_src($opt['image'] ?? null);
+                $simpleId = (int)($opt['simple_id'] ?? 0);
+                $canCustomizeChoice = !empty($opt['customizable']) && $simpleId > 0;
+                $parentQuery = http_build_query(['parent_id' => $pId]);
+                $choiceCustomUrl = $canCustomizeChoice
+                  ? base_url($slug . '/produto/' . $simpleId . '/customizar?' . $parentQuery)
+                  : null;
+                ?>
+              <div class="choice <?= $isDefault ? 'sel' : '' ?>"
+                   data-group="<?= (int)$gi ?>"
+                   data-id="<?= (int)($opt['id'] ?? 0) ?>"
+                   data-simple="<?= $simpleId ?>"
+                   data-delta="<?= e(number_format($optDelta, 2, '.', '')) ?>"
+                   data-default="<?= $isDefault ? '1' : '0' ?>"
+                   <?php if ($basePrice !== null): ?>data-base-price="<?= e(number_format($basePrice, 2, '.', '')) ?>"<?php endif; ?>
+                   data-customizable="<?= $canCustomizeChoice ? '1' : '0' ?>"
+                   <?php if ($choiceCustomUrl): ?>data-custom-url="<?= e($choiceCustomUrl) ?>"<?php endif; ?>>
+                <button type="button" class="ring" aria-pressed="<?= $isDefault ? 'true' : 'false' ?>">
+                  <img src="<?= e($comboImg) ?>" alt="<?= e($opt['name'] ?? '') ?>">
+                  <span class="mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </button>
+                <div class="choice-name"><?= e($opt['name'] ?? '') ?></div>
+                <div class="choice-price"><?= e($priceLabel) ?></div>
+                <?php if ($canCustomizeChoice): ?>
+                  <a class="choice-customize <?= $isDefault ? '' : 'hidden' ?>" data-base-url="<?= e($choiceCustomUrl) ?>" href="<?= e($choiceCustomUrl) ?>">Personalizar</a>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </section>
+    <?php endif; ?>
+
+  </main>
 
   <form class="footer" method="post" action="<?= e($addToCartUrl) ?>" onsubmit="return attach(event)" data-requires-login="<?= $requireLogin ? '1' : '0' ?>">
     <input type="hidden" name="product_id" value="<?= $pId ?>">
@@ -449,7 +480,7 @@ if ($hasPromo):
 </div>
 
 <?php if ($requireLogin && !$isLogged): ?>
-<div id="login-modal" class="fixed inset-0 bg-black/50 hidden z-50">
+<div id="login-modal" class="fixed inset-0 bg-black/50 hidden modal-top">
   <div class="bg-white max-w-sm mx-auto mt-24 rounded-2xl overflow-hidden shadow-xl">
     <div class="p-4 border-b flex items-center">
       <h3 class="font-semibold text-lg">Login do Cliente</h3>

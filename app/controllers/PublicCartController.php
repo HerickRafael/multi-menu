@@ -856,6 +856,46 @@ class PublicCartController extends Controller
         $total = $subtotal + $deliveryFee;
 
         $paymentMethods = PaymentMethod::activeByCompany($companyId);
+        // construir icon_url absoluto para cada método, para evitar problemas com caminhos relativos
+        $baseUrlFull = function_exists('base_url') ? rtrim((string)base_url(), '/') : '';
+        foreach ($paymentMethods as &$pm) {
+            $pm = is_array($pm) ? $pm : [];
+            $metaRaw = $pm['meta'] ?? null;
+            if (is_string($metaRaw)) {
+                $decoded = json_decode($metaRaw, true);
+                $meta = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($metaRaw)) {
+                $meta = $metaRaw;
+            } else {
+                $meta = [];
+            }
+            $pm['meta'] = $meta;
+            $icon = '';
+            // Preferir coluna `icon` quando disponível (migração incremental)
+            if (!empty($pm['icon']) && is_string($pm['icon'])) {
+                $icon = trim((string)$pm['icon']);
+            } elseif (!empty($meta['icon']) && is_string($meta['icon'])) {
+                $icon = trim((string)$meta['icon']);
+            }
+            $iconUrl = '';
+            if ($icon !== '') {
+                if (preg_match('#^https?://#i', $icon)) {
+                    $iconUrl = $icon;
+                } else {
+                    if (str_starts_with($icon, '/')) {
+                        $iconUrl = $baseUrlFull !== '' ? ($baseUrlFull . $icon) : $icon;
+                    } else {
+                        $iconUrl = $baseUrlFull !== '' ? base_url($icon) : ('/' . ltrim($icon, '/'));
+                    }
+                }
+            } elseif (($pm['type'] ?? '') === 'pix') {
+                // ícone padrão do pix quando não definido
+                $pixPath = '/assets/card-brands/pix.svg';
+                $iconUrl = $baseUrlFull !== '' ? ($baseUrlFull . $pixPath) : $pixPath;
+            }
+            $pm['icon_url'] = $iconUrl;
+        }
+        unset($pm);
         $selectedPaymentId = (int)($deliveryAddress['payment_method_id'] ?? 0);
 
         if (!$selectedPaymentId && $paymentMethods) {

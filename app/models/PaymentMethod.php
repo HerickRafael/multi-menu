@@ -55,11 +55,35 @@ class PaymentMethod
     public static function create(array $data): int
     {
         $sortOrder = isset($data['sort_order']) ? (int)$data['sort_order'] : self::nextSortOrder((int)$data['company_id']);
-        $st = db()->prepare(
-            'INSERT INTO payment_methods (company_id, name, instructions, sort_order, active, `type`, `meta`, pix_key)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        );
         $meta = !empty($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
+        $icon = isset($data['icon']) && $data['icon'] !== '' ? $data['icon'] : null;
+
+        // permitir inserir com ID explícito (reutilizar lacunas de ids deletados)
+        if (isset($data['id']) && $data['id']) {
+            $st = db()->prepare(
+                'INSERT INTO payment_methods (id, company_id, name, instructions, sort_order, active, `type`, `meta`, icon, pix_key)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+            $st->execute([
+                (int)$data['id'],
+                (int)$data['company_id'],
+                $data['name'],
+                $data['instructions'] ?? null,
+                $sortOrder,
+                !empty($data['active']) ? 1 : 0,
+                $data['type'] ?? 'others',
+                $meta,
+                $icon,
+                $data['pix_key'] ?? null,
+            ]);
+
+            return (int)$data['id'];
+        }
+
+        $st = db()->prepare(
+            'INSERT INTO payment_methods (company_id, name, instructions, sort_order, active, `type`, `meta`, icon, pix_key)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
         $st->execute([
             (int)$data['company_id'],
             $data['name'],
@@ -68,20 +92,42 @@ class PaymentMethod
             !empty($data['active']) ? 1 : 0,
             $data['type'] ?? 'others',
             $meta,
+            $icon,
             $data['pix_key'] ?? null,
         ]);
 
         return (int)db()->lastInsertId();
     }
 
+    public static function findMissingId(): int
+    {
+        // retorna o menor inteiro >=1 que não existe na tabela
+        $st = db()->prepare('SELECT id FROM payment_methods ORDER BY id ASC');
+        $st->execute();
+        $used = $st->fetchAll(PDO::FETCH_COLUMN, 0) ?: [];
+        $next = 1;
+        foreach ($used as $id) {
+            $idInt = (int)$id;
+            if ($idInt === $next) {
+                $next++;
+                continue;
+            }
+            if ($idInt > $next) {
+                break;
+            }
+        }
+        return $next;
+    }
+
     public static function update(int $id, int $companyId, array $data): void
     {
         $st = db()->prepare(
             'UPDATE payment_methods
-                SET name = ?, instructions = ?, sort_order = ?, active = ?, `type` = ?, `meta` = ?, pix_key = ?
+                SET name = ?, instructions = ?, sort_order = ?, active = ?, `type` = ?, `meta` = ?, icon = ?, pix_key = ?
               WHERE id = ? AND company_id = ?'
         );
         $meta = !empty($data['meta']) ? json_encode($data['meta'], JSON_UNESCAPED_UNICODE) : null;
+        $icon = isset($data['icon']) && $data['icon'] !== '' ? $data['icon'] : null;
         $st->execute([
             $data['name'],
             $data['instructions'] ?? null,
@@ -89,6 +135,7 @@ class PaymentMethod
             !empty($data['active']) ? 1 : 0,
             $data['type'] ?? 'others',
             $meta,
+            $icon,
             $data['pix_key'] ?? null,
             $id,
             $companyId,
