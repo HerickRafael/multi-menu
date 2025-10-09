@@ -875,6 +875,7 @@ ob_start();
           } else if (!iconUrl && iconValueRaw) {
             iconUrl = resolveIconUrl(iconValueRaw);
           }
+
           if (iconUrl) {
             const sep = iconUrl.includes('?') ? '&' : '?';
             iconUrl = iconUrl + sep + 'v=' + Date.now();
