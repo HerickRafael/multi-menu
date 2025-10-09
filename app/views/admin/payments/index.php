@@ -818,20 +818,37 @@ ob_start();
           }
         }
 
+        function ensureMethodMeta(method) {
+          if (!method) return {};
+          let meta = method.meta;
+          if (typeof meta === 'string') {
+            try {
+              meta = JSON.parse(meta) || {};
+            } catch (_) {
+              meta = {};
+            }
+          } else if (!meta || typeof meta !== 'object') {
+            meta = {};
+          }
+          method.meta = meta;
+          return meta;
+        }
+
         function createPixInfo(method) {
-          if (method.type !== 'pix' || !method.meta) return '';
+          if (method.type !== 'pix') return '';
+          const meta = ensureMethodMeta(method);
           let html = '';
-          if (method.meta.px_key) {
+          if (meta.px_key) {
             html += `
-                <div class="text-xs text-slate-500">Chave Pix: ${escapeHtml(method.meta.px_key)}</div>`;
+                <div class="text-xs text-slate-500">Chave Pix: ${escapeHtml(meta.px_key)}</div>`;
           }
-          if (method.meta.px_key_type) {
+          if (meta.px_key_type) {
             html += `
-                <div class="text-xs text-slate-500">Tipo da chave: ${escapeHtml(formatPixKeyType(method.meta.px_key_type))}</div>`;
+                <div class="text-xs text-slate-500">Tipo da chave: ${escapeHtml(formatPixKeyType(meta.px_key_type))}</div>`;
           }
-          if (method.meta.px_holder_name) {
+          if (meta.px_holder_name) {
             html += `
-                <div class="text-xs text-slate-500">Titular: ${escapeHtml(method.meta.px_holder_name)}</div>`;
+                <div class="text-xs text-slate-500">Titular: ${escapeHtml(meta.px_holder_name)}</div>`;
           }
           return html;
         }
@@ -840,18 +857,25 @@ ob_start();
           const id = parseInt(method.id, 10);
           const type = method.type || 'others';
           const isActive = parseInt(method.active, 10) === 1;
+          const meta = ensureMethodMeta(method);
           const div = document.createElement('div');
           div.className = 'pm-row flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3';
           div.dataset.id = String(id);
           div.dataset.type = type;
           div.dataset.method = JSON.stringify(method);
           const typeBadge = 'admin-primary-soft-badge';
-          const iconValueRaw = method.meta && method.meta.icon ? method.meta.icon : '';
-          const iconValue = normalizeIcon(iconValueRaw);
-          if (method.meta) {
-            method.meta.icon = iconValue;
+          const iconValueRaw = meta && meta.icon ? meta.icon : '';
+          const iconValue = normalizeIcon(iconValueRaw || (typeof method.icon === 'string' ? method.icon : ''));
+          if (meta) {
+            meta.icon = iconValue;
           }
-          let iconUrl = iconValue ? resolveIconUrl(iconValue) : '';
+          let iconUrl = (typeof method.icon_url === 'string' && method.icon_url.trim() !== '') ? method.icon_url : '';
+          if (!iconUrl && iconValue) {
+            iconUrl = resolveIconUrl(iconValue);
+          } else if (!iconUrl && iconValueRaw) {
+            iconUrl = resolveIconUrl(iconValueRaw);
+          }
+
           if (iconUrl) {
             const sep = iconUrl.includes('?') ? '&' : '?';
             iconUrl = iconUrl + sep + 'v=' + Date.now();
@@ -917,6 +941,7 @@ ob_start();
           if (methodIdInput) {
             methodIdInput.value = editingId ? editingId : '';
           }
+          const meta = ensureMethodMeta(method);
           if (nameInput) {
             nameInput.value = method.type === 'pix' ? 'Pix' : (method.name || '');
           }
@@ -931,19 +956,19 @@ ob_start();
             typeSelect.value = method.type || 'others';
           }
           if (pixKeyInput) {
-            pixKeyInput.value = method.meta && method.meta.px_key ? method.meta.px_key : '';
+            pixKeyInput.value = meta && meta.px_key ? meta.px_key : '';
           }
           if (pixProviderInput) {
-            pixProviderInput.value = method.meta && method.meta.px_provider ? method.meta.px_provider : '';
+            pixProviderInput.value = meta && meta.px_provider ? meta.px_provider : '';
           }
           if (pixHolderInput) {
-            pixHolderInput.value = method.meta && method.meta.px_holder_name ? method.meta.px_holder_name : '';
+            pixHolderInput.value = meta && meta.px_holder_name ? meta.px_holder_name : '';
           }
           // sincroniza biblioteca de ícones
           const brandInput = document.getElementById('pm-brand-lib-input');
           const brandPrev = document.getElementById('pm-brand-preview');
           const brandFile = document.getElementById('pm-brand-icon');
-          const rawIcon = method.meta && method.meta.icon ? method.meta.icon : '';
+          const rawIcon = meta && meta.icon ? meta.icon : '';
           const normalisedIcon = normalizeIcon(rawIcon);
           const previewUrl = normalisedIcon ? resolveIconUrl(normalisedIcon) : (rawIcon ? resolveIconUrl(rawIcon) : '');
           if (brandInput) brandInput.value = normalisedIcon;
