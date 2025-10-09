@@ -144,6 +144,55 @@ $slug = rawurlencode((string)($company['slug'] ?? ''));
 $title = $title ?? ('Métodos de pagamento - ' . ($company['name'] ?? ''));
 $base  = base_url('admin/' . $slug . '/payment-methods');
 
+$baseUrlFull = function_exists('base_url') ? (string)base_url() : '';
+$baseUrlTrimmed = $baseUrlFull !== '' ? rtrim($baseUrlFull, '/') : '';
+$basePath = $baseUrlFull !== '' ? rtrim((string)(parse_url($baseUrlFull, PHP_URL_PATH) ?? ''), '/') : '';
+
+$normaliseIconPath = static function ($icon) use ($basePath) {
+    if (!is_string($icon)) {
+        return '';
+    }
+    $icon = trim($icon);
+    if ($icon === '') {
+        return '';
+    }
+    if (str_starts_with($icon, '/assets/card-brands/')) {
+        return $icon;
+    }
+    if (str_starts_with($icon, 'assets/card-brands/')) {
+        return '/' . ltrim($icon, '/');
+    }
+    if (preg_match('#^https?://#i', $icon)) {
+        $path = parse_url($icon, PHP_URL_PATH) ?: '';
+        if ($path !== '') {
+            $basePathLocal = $basePath !== '' ? $basePath : '';
+            if ($basePathLocal !== '' && str_starts_with($path, $basePathLocal)) {
+                $path = substr($path, strlen($basePathLocal));
+                if ($path === '' || $path[0] !== '/') {
+                    $path = '/' . ltrim($path, '/');
+                }
+            }
+            if (str_starts_with($path, '/assets/card-brands/')) {
+                return $path;
+            }
+        }
+    }
+    return $icon;
+};
+
+$oldIconRaw = is_string($old['meta']['icon'] ?? null) ? trim((string)$old['meta']['icon']) : '';
+$oldIconValue = $normaliseIconPath($oldIconRaw);
+$oldIconPreview = '';
+if ($oldIconValue !== '') {
+    if ($oldIconRaw !== '' && preg_match('#^https?://#i', $oldIconRaw)) {
+        $oldIconPreview = $oldIconRaw;
+    } elseif ($baseUrlTrimmed !== '' && $oldIconValue[0] === '/') {
+        $oldIconPreview = $baseUrlTrimmed . $oldIconValue;
+    } else {
+        $oldIconPreview = $oldIconValue;
+    }
+}
+
 ob_start();
 ?>
 
@@ -270,23 +319,27 @@ ob_start();
       <?php if (!empty($brandLibrary)): ?>
       <div id="pm-library-field" class="grid gap-2 text-sm">
         <span class="font-semibold text-slate-700">Escolher da biblioteca</span>
-        <input type="hidden" name="meta[icon]" id="pm-brand-lib-input" value="<?= e($old['meta']['icon'] ?? '') ?>">
+        <input type="hidden" name="meta[icon]" id="pm-brand-lib-input" value="<?= e($oldIconValue) ?>">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="pm-brand-grid">
-          <?php foreach ($brandLibrary as $lib): $isSel = !empty($old['meta']['icon']) && $old['meta']['icon'] === $lib['url']; ?>
+          <?php foreach ($brandLibrary as $lib):
+              $libValue = $normaliseIconPath($lib['value'] ?? ($lib['url'] ?? ''));
+              $isSel = $libValue !== '' && $libValue === $oldIconValue;
+          ?>
             <button type="button"
                     class="pm-brand-item group rounded-xl border <?= $isSel ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-slate-200' ?> bg-white p-2 hover:border-indigo-400 hover:ring-1 hover:ring-indigo-200 flex items-center gap-2"
                     data-url="<?= e($lib['url']) ?>"
+                    data-value="<?= e($libValue) ?>"
                     data-label="<?= e($lib['label']) ?>">
               <span class="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded bg-white">
                 <img src="<?= e($lib['url']) ?>" alt="<?= e($lib['label']) ?>" class="max-w-full max-h-full object-contain" />
               </span>
               <span class="text-xs text-slate-700 truncate" title="<?= e($lib['label']) ?>"><?= e($lib['label']) ?></span>
-            </button>
+          </button>
           <?php endforeach; ?>
         </div>
         <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
           <span>Pré-visualização:</span>
-          <img id="pm-brand-preview" src="<?= !empty($old['meta']['icon']) ? e($old['meta']['icon']) : '' ?>" alt="preview" class="h-6 w-auto object-contain" />
+          <img id="pm-brand-preview" src="<?= e($oldIconPreview) ?>" alt="preview" class="h-6 w-auto object-contain <?= $oldIconPreview === '' ? 'hidden' : '' ?>" />
         </div>
       </div>
       <script>
@@ -300,25 +353,88 @@ ob_start();
           const libraryField = document.getElementById('pm-library-field');
           const nameInput = document.getElementById('pm-name');
           const typeSelect = document.getElementById('pm-type');
-          function selectBrand(url, label){
-            if (!grid || !input) return;
-            input.value = url || '';
-            if (prev) prev.src = url || '';
-            grid.querySelectorAll('.pm-brand-item').forEach(btn => {
-              const on = btn.dataset.url === url && !!url;
-              btn.classList.toggle('border-indigo-500', on);
-              btn.classList.toggle('ring-2', on);
-              btn.classList.toggle('ring-indigo-300', on);
-              btn.classList.toggle('border-slate-200', !on);
-              btn.classList.toggle('ring-0', !on);
-            });
-            // Oculta Nome e Upload quando uma bandeira da biblioteca for selecionada
-            const libSelected = !!url;
+          const siteBase = '<?= e($baseUrlTrimmed) ?>';
+          const basePath = '<?= e($basePath) ?>';
+
+          function normaliseIcon(value) {
+            value = (value || '').trim();
+            if (!value) return '';
+            if (value.startsWith('/assets/card-brands/')) return value;
+            if (value.startsWith('assets/card-brands/')) return '/' + value.replace(/^\/+/,'');
+            if (/^https?:\/\//i.test(value)) {
+              try {
+                const url = new URL(value, window.location.origin);
+                let path = url.pathname || '';
+                if (basePath && path.startsWith(basePath)) {
+                  path = path.slice(basePath.length);
+                  if (!path.startsWith('/')) {
+                    path = '/' + path;
+                  }
+                }
+                if (path.startsWith('/assets/card-brands/')) {
+                  return path;
+                }
+              } catch (_) {}
+            }
+            return value;
+          }
+
+          function buildPreviewUrl(value) {
+            if (!value) return '';
+            if (/^https?:\/\//i.test(value)) return value;
+            if (value.startsWith('/')) {
+              return siteBase ? (siteBase + value) : value;
+            }
+            return value;
+          }
+
+          function selectBrand(value, label){
+            if (!input) return;
+            const normalised = normaliseIcon(value);
+            input.value = normalised;
+            let previewUrl = '';
+            if (grid) {
+              grid.querySelectorAll('.pm-brand-item').forEach(btn => {
+                const btnValue = normaliseIcon(btn.dataset.value || btn.dataset.url || '');
+                const on = !!normalised && btnValue === normalised;
+                btn.classList.toggle('border-indigo-500', on);
+                btn.classList.toggle('ring-2', on);
+                btn.classList.toggle('ring-indigo-300', on);
+                btn.classList.toggle('border-slate-200', !on);
+                btn.classList.toggle('ring-0', !on);
+                if (on && !previewUrl) {
+                  previewUrl = btn.dataset.url || '';
+                  if (!label) {
+                    label = btn.getAttribute('data-label') || '';
+                  }
+                }
+              });
+            }
+            if (!previewUrl) {
+              previewUrl = buildPreviewUrl(normalised);
+            }
+            if (prev) {
+              if (previewUrl) {
+                prev.src = previewUrl;
+                prev.classList.remove('hidden');
+              } else {
+                prev.src = '';
+                prev.classList.add('hidden');
+              }
+            }
+            const libSelected = !!normalised;
             if (nameField) {
               const isPix = typeSelect && typeSelect.value === 'pix';
               nameField.classList.toggle('hidden', libSelected || isPix);
             }
-            // controla required do campo nome em função da seleção da biblioteca
+            if (uploadField) {
+              const isPix = typeSelect && typeSelect.value === 'pix';
+              uploadField.classList.toggle('hidden', libSelected || isPix);
+            }
+            if (libraryField) {
+              const isPixNow = typeSelect && typeSelect.value === 'pix';
+              libraryField.classList.toggle('hidden', !!isPixNow);
+            }
             if (nameInput) {
               if (!nameInput.dataset.originalRequired) {
                 nameInput.dataset.originalRequired = nameInput.hasAttribute('required') ? '1' : '0';
@@ -328,41 +444,34 @@ ob_start();
               } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && typeSelect.value === 'pix')) {
                 nameInput.setAttribute('required', 'required');
               }
-            }
-            if (uploadField) uploadField.classList.toggle('hidden', libSelected);
-            const isPixNow = typeSelect && typeSelect.value === 'pix';
-            if (libraryField && isPixNow) libraryField.classList.add('hidden');
-            // Preenche o nome automaticamente com o label da biblioteca, se fornecido
-            if (libSelected && label && nameInput) {
-              nameInput.value = label;
+              if (libSelected && label) {
+                nameInput.value = label;
+              }
             }
           }
-          try { window.pmSelectBrand = selectBrand; } catch(_) {}
+
+          try { window.pmSelectBrand = selectBrand; window.pmNormalizeBrandIcon = normaliseIcon; } catch(_) {}
+
           if (grid) {
             grid.querySelectorAll('.pm-brand-item').forEach(btn => {
               btn.addEventListener('click', function(){
-                const url = this.dataset.url || '';
+                const value = this.dataset.value || this.dataset.url || '';
                 const label = this.dataset.label || '';
-                // Apenas selecionar e ocultar campos; criação ocorrerá ao clicar em Salvar
-                selectBrand(url, label);
-                // ao escolher da biblioteca, limpamos arquivo selecionado (upload tem prioridade)
+                selectBrand(value, label);
                 if (file) file.value = '';
               });
             });
           }
           if (file) {
             file.addEventListener('change', function(){
-              // se o usuário escolher um arquivo, limpamos a seleção da biblioteca
               if (this.files && this.files.length > 0) {
                 selectBrand('');
               }
             });
           }
-          // aplica seleção inicial
           if (input && input.value) {
             selectBrand(input.value);
           }
-          // aplica ocultação quando Pix estiver selecionado
           if (libraryField && typeSelect && typeSelect.value === 'pix') {
             libraryField.classList.add('hidden');
             if (uploadField) uploadField.classList.add('hidden');
@@ -498,6 +607,18 @@ ob_start();
 
         const pixTypeLabels = <?= json_encode($pixTypeLabels, JSON_UNESCAPED_UNICODE) ?>;
 
+        function normalizeIcon(value) {
+          if (typeof window.pmNormalizeBrandIcon === 'function') {
+            return window.pmNormalizeBrandIcon(value);
+          }
+          value = (value || '').trim();
+          if (!value) return '';
+          if (value.startsWith('assets/card-brands/')) {
+            return '/' + value.replace(/^\/+/,'');
+          }
+          return value.startsWith('/assets/card-brands/') ? value : value;
+        }
+
         function detectPixKeyType(key) {
           key = (key || '').trim();
           if (!key) return '';
@@ -529,6 +650,8 @@ ob_start();
           if (/^https?:\/\//i.test(url) || url.startsWith('/')) return url;
           return siteBase + '/' + url.replace(/^\//, '');
         }
+
+        try { window.pmResolveIconUrl = resolveIconUrl; } catch(_) {}
 
         function updatePixKeyFeedback() {
           if (!pixKeyFeedback) return;
@@ -695,20 +818,37 @@ ob_start();
           }
         }
 
+        function ensureMethodMeta(method) {
+          if (!method) return {};
+          let meta = method.meta;
+          if (typeof meta === 'string') {
+            try {
+              meta = JSON.parse(meta) || {};
+            } catch (_) {
+              meta = {};
+            }
+          } else if (!meta || typeof meta !== 'object') {
+            meta = {};
+          }
+          method.meta = meta;
+          return meta;
+        }
+
         function createPixInfo(method) {
-          if (method.type !== 'pix' || !method.meta) return '';
+          if (method.type !== 'pix') return '';
+          const meta = ensureMethodMeta(method);
           let html = '';
-          if (method.meta.px_key) {
+          if (meta.px_key) {
             html += `
-                <div class="text-xs text-slate-500">Chave Pix: ${escapeHtml(method.meta.px_key)}</div>`;
+                <div class="text-xs text-slate-500">Chave Pix: ${escapeHtml(meta.px_key)}</div>`;
           }
-          if (method.meta.px_key_type) {
+          if (meta.px_key_type) {
             html += `
-                <div class="text-xs text-slate-500">Tipo da chave: ${escapeHtml(formatPixKeyType(method.meta.px_key_type))}</div>`;
+                <div class="text-xs text-slate-500">Tipo da chave: ${escapeHtml(formatPixKeyType(meta.px_key_type))}</div>`;
           }
-          if (method.meta.px_holder_name) {
+          if (meta.px_holder_name) {
             html += `
-                <div class="text-xs text-slate-500">Titular: ${escapeHtml(method.meta.px_holder_name)}</div>`;
+                <div class="text-xs text-slate-500">Titular: ${escapeHtml(meta.px_holder_name)}</div>`;
           }
           return html;
         }
@@ -717,13 +857,24 @@ ob_start();
           const id = parseInt(method.id, 10);
           const type = method.type || 'others';
           const isActive = parseInt(method.active, 10) === 1;
+          const meta = ensureMethodMeta(method);
           const div = document.createElement('div');
           div.className = 'pm-row flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3';
           div.dataset.id = String(id);
           div.dataset.type = type;
           div.dataset.method = JSON.stringify(method);
           const typeBadge = 'admin-primary-soft-badge';
-          let iconUrl = method.meta && method.meta.icon ? resolveIconUrl(method.meta.icon) : '';
+          const iconValueRaw = meta && meta.icon ? meta.icon : '';
+          const iconValue = normalizeIcon(iconValueRaw || (typeof method.icon === 'string' ? method.icon : ''));
+          if (meta) {
+            meta.icon = iconValue;
+          }
+          let iconUrl = (typeof method.icon_url === 'string' && method.icon_url.trim() !== '') ? method.icon_url : '';
+          if (!iconUrl && iconValue) {
+            iconUrl = resolveIconUrl(iconValue);
+          } else if (!iconUrl && iconValueRaw) {
+            iconUrl = resolveIconUrl(iconValueRaw);
+          }
           if (iconUrl) {
             const sep = iconUrl.includes('?') ? '&' : '?';
             iconUrl = iconUrl + sep + 'v=' + Date.now();
@@ -789,6 +940,7 @@ ob_start();
           if (methodIdInput) {
             methodIdInput.value = editingId ? editingId : '';
           }
+          const meta = ensureMethodMeta(method);
           if (nameInput) {
             nameInput.value = method.type === 'pix' ? 'Pix' : (method.name || '');
           }
@@ -803,31 +955,49 @@ ob_start();
             typeSelect.value = method.type || 'others';
           }
           if (pixKeyInput) {
-            pixKeyInput.value = method.meta && method.meta.px_key ? method.meta.px_key : '';
+            pixKeyInput.value = meta && meta.px_key ? meta.px_key : '';
           }
           if (pixProviderInput) {
-            pixProviderInput.value = method.meta && method.meta.px_provider ? method.meta.px_provider : '';
+            pixProviderInput.value = meta && meta.px_provider ? meta.px_provider : '';
           }
           if (pixHolderInput) {
-            pixHolderInput.value = method.meta && method.meta.px_holder_name ? method.meta.px_holder_name : '';
+            pixHolderInput.value = meta && meta.px_holder_name ? meta.px_holder_name : '';
           }
           // sincroniza biblioteca de ícones
           const brandInput = document.getElementById('pm-brand-lib-input');
           const brandPrev = document.getElementById('pm-brand-preview');
           const brandFile = document.getElementById('pm-brand-icon');
-          const rawIcon = method.meta && method.meta.icon ? method.meta.icon : '';
-          const url = rawIcon ? resolveIconUrl(rawIcon) : '';
-          if (brandInput) brandInput.value = rawIcon;
-          if (brandPrev) brandPrev.src = url || '';
+          const rawIcon = meta && meta.icon ? meta.icon : '';
+          const normalisedIcon = normalizeIcon(rawIcon);
+          const previewUrl = normalisedIcon ? resolveIconUrl(normalisedIcon) : (rawIcon ? resolveIconUrl(rawIcon) : '');
+          if (brandInput) brandInput.value = normalisedIcon;
+          if (brandPrev) {
+            if (previewUrl) {
+              brandPrev.src = previewUrl;
+              brandPrev.classList.remove('hidden');
+            } else {
+              brandPrev.src = '';
+              brandPrev.classList.add('hidden');
+            }
+          }
           if (brandFile) brandFile.value = '';
           // Encontra o label correto a partir do grid da biblioteca (para garantir alinhamento ícone/label)
           let labelForIcon = '';
           try {
-            const btn = document.querySelector(`#pm-brand-grid .pm-brand-item[data-url="${CSS.escape(rawIcon)}"]`);
-            labelForIcon = btn ? (btn.getAttribute('data-label') || '').trim() : '';
+            const grid = document.getElementById('pm-brand-grid');
+            const targetValue = normalizeIcon(normalisedIcon);
+            if (grid && targetValue) {
+              grid.querySelectorAll('.pm-brand-item').forEach(btn => {
+                if (labelForIcon) return;
+                const btnValue = normalizeIcon(btn.dataset.value || btn.dataset.url || '');
+                if (btnValue && btnValue === targetValue) {
+                  labelForIcon = (btn.getAttribute('data-label') || '').trim();
+                }
+              });
+            }
           } catch(_) {}
           // Usa a mesma função de seleção usada no clique da biblioteca para garantir o mesmo destaque/ocultação
-          try { if (typeof window.pmSelectBrand === 'function') window.pmSelectBrand(rawIcon || '', labelForIcon); } catch(_) {}
+          try { if (typeof window.pmSelectBrand === 'function') window.pmSelectBrand(normalisedIcon || '', labelForIcon); } catch(_) {}
           if (submitLabel) {
             submitLabel.textContent = 'Atualizar método';
           }
@@ -878,15 +1048,22 @@ ob_start();
           const brandInput = document.getElementById('pm-brand-lib-input');
           const brandPrev = document.getElementById('pm-brand-preview');
           const brandFile = document.getElementById('pm-brand-icon');
-          const grid = document.getElementById('pm-brand-grid');
-          if (brandInput) brandInput.value = '';
-          if (brandPrev) brandPrev.src = '';
           if (brandFile) brandFile.value = '';
-          if (grid) {
-            grid.querySelectorAll('.pm-brand-item').forEach(btn => {
-              btn.classList.remove('border-indigo-500','ring-2','ring-indigo-300');
-              btn.classList.add('border-slate-200');
-            });
+          if (typeof window.pmSelectBrand === 'function') {
+            window.pmSelectBrand('');
+          } else {
+            if (brandInput) brandInput.value = '';
+            if (brandPrev) {
+              brandPrev.src = '';
+              brandPrev.classList.add('hidden');
+            }
+            const grid = document.getElementById('pm-brand-grid');
+            if (grid) {
+              grid.querySelectorAll('.pm-brand-item').forEach(btn => {
+                btn.classList.remove('border-indigo-500','ring-2','ring-indigo-300');
+                btn.classList.add('border-slate-200');
+              });
+            }
           }
           if (typeof window.pmTogglePixFields === 'function') {
             window.pmTogglePixFields();
@@ -1012,12 +1189,24 @@ ob_start();
             // garante que a seleção da biblioteca siga no payload
             try {
               const lib = document.getElementById('pm-brand-lib-input');
-              if (lib && lib.value) data.set('meta[icon]', lib.value);
+              const normalizedIcon = lib ? normalizeIcon(lib.value || '') : '';
+              if (normalizedIcon) {
+                data.set('meta[icon]', normalizedIcon);
+              }
               // se nome vazio e biblioteca selecionada, tentar preencher o nome com o label da opção
               const nameEl = document.getElementById('pm-name');
-              if (nameEl && (!nameEl.value || nameEl.value.trim()==='') && lib && lib.value) {
-                const btn = document.querySelector(`#pm-brand-grid .pm-brand-item[data-url="${CSS.escape(lib.value)}"]`);
-                const label = btn ? (btn.getAttribute('data-label') || '').trim() : '';
+              if (nameEl && (!nameEl.value || nameEl.value.trim()==='') && normalizedIcon) {
+                let label = '';
+                const grid = document.getElementById('pm-brand-grid');
+                if (grid) {
+                  grid.querySelectorAll('.pm-brand-item').forEach(btn => {
+                    if (label) return;
+                    const btnValue = normalizeIcon(btn.dataset.value || btn.dataset.url || '');
+                    if (btnValue && btnValue === normalizedIcon) {
+                      label = (btn.getAttribute('data-label') || '').trim();
+                    }
+                  });
+                }
                 if (label) data.set('name', label);
               }
             } catch(_) {}
@@ -1127,10 +1316,13 @@ ob_start();
           <span class="font-semibold text-slate-700">Escolher da biblioteca</span>
           <input type="hidden" name="meta[icon]" id="pm-edit-brand-lib-input" value="">
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="pm-edit-brand-grid">
-            <?php foreach ($brandLibrary as $lib): ?>
+            <?php foreach ($brandLibrary as $lib):
+                $libValue = $normaliseIconPath($lib['value'] ?? ($lib['url'] ?? ''));
+            ?>
               <button type="button"
                       class="pm-edit-brand-item group rounded-xl border border-slate-200 bg-white p-2 hover:border-indigo-400 hover:ring-1 hover:ring-indigo-200 flex items-center gap-2"
                       data-url="<?= e($lib['url']) ?>"
+                      data-value="<?= e($libValue) ?>"
                       data-label="<?= e($lib['label']) ?>">
                 <span class="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded bg-white">
                   <img src="<?= e($lib['url']) ?>" alt="<?= e($lib['label']) ?>" class="max-w-full max-h-full object-contain" />
@@ -1141,7 +1333,7 @@ ob_start();
           </div>
           <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
             <span>Pré-visualização:</span>
-            <img id="pm-edit-brand-preview" src="" alt="preview" class="h-6 w-auto object-contain" />
+            <img id="pm-edit-brand-preview" src="" alt="preview" class="h-6 w-auto object-contain hidden" />
           </div>
         </div>
         <?php endif; ?>
@@ -1163,7 +1355,10 @@ ob_start();
       function open(){ modal.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
       function close(){ modal.classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
 
-      function selectBrand(url, label){
+      const normalizeIconModal = (typeof window.pmNormalizeBrandIcon === 'function') ? window.pmNormalizeBrandIcon : function(value){ return (value || '').trim(); };
+      const resolveIconModal = (typeof window.pmResolveIconUrl === 'function') ? window.pmResolveIconUrl : function(value){ return value || ''; };
+
+      function selectBrand(value, label){
         const input = document.getElementById('pm-edit-brand-lib-input');
         const prev = document.getElementById('pm-edit-brand-preview');
         const grid = document.getElementById('pm-edit-brand-grid');
@@ -1172,21 +1367,44 @@ ob_start();
         const nameInput = document.getElementById('pm-edit-name');
         const nameWrapper = document.getElementById('pm-edit-name-field');
         const typeSelect = document.getElementById('pm-edit-type');
-        if (input) input.value = url || '';
-        if (prev) prev.src = url || '';
+        const normalised = normalizeIconModal(value);
+        if (input) input.value = normalised;
+        let previewUrl = '';
         if (grid) {
           grid.querySelectorAll('.pm-edit-brand-item').forEach(btn => {
-            const on = btn.dataset.url === url && !!url;
+            const btnValue = normalizeIconModal(btn.dataset.value || btn.dataset.url || '');
+            const on = !!normalised && btnValue === normalised;
             btn.classList.toggle('border-indigo-500', on);
             btn.classList.toggle('ring-2', on);
             btn.classList.toggle('ring-indigo-300', on);
             btn.classList.toggle('border-slate-200', !on);
             btn.classList.toggle('ring-0', !on);
+            if (on && !previewUrl) {
+              previewUrl = btn.dataset.url || '';
+              if (!label) {
+                label = btn.getAttribute('data-label') || '';
+              }
+            }
           });
         }
-        if (file && url) file.value = '';
-        const libSelected = !!url;
-        if (uploadField) uploadField.classList.toggle('hidden', libSelected);
+        if (!previewUrl) {
+          previewUrl = normalised ? resolveIconModal(normalised) : '';
+        }
+        if (prev) {
+          if (previewUrl) {
+            prev.src = previewUrl;
+            prev.classList.remove('hidden');
+          } else {
+            prev.src = '';
+            prev.classList.add('hidden');
+          }
+        }
+        if (file && normalised) file.value = '';
+        const libSelected = !!normalised;
+        if (uploadField) {
+          const isPix = typeSelect && typeSelect.value === 'pix';
+          uploadField.classList.toggle('hidden', libSelected || isPix);
+        }
         if (nameWrapper) {
           const isPix = typeSelect && typeSelect.value === 'pix';
           nameWrapper.classList.toggle('hidden', libSelected || isPix);
@@ -1200,9 +1418,9 @@ ob_start();
           } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && typeSelect.value === 'pix')) {
             nameInput.setAttribute('required', 'required');
           }
-        }
-        if (libSelected && label && nameInput) {
-          nameInput.value = label;
+          if (libSelected && label) {
+            nameInput.value = label;
+          }
         }
       }
 
@@ -1218,7 +1436,7 @@ ob_start();
   const typeSelect = document.getElementById('pm-edit-type');
       if (grid) {
         grid.querySelectorAll('.pm-edit-brand-item').forEach(btn => {
-      btn.addEventListener('click', function(){ selectBrand(this.dataset.url || '', this.dataset.label || ''); });
+          btn.addEventListener('click', function(){ selectBrand(this.dataset.value || this.dataset.url || '', this.dataset.label || ''); });
         });
       }
       if (file) {
@@ -1263,15 +1481,30 @@ ob_start();
           try {
             const nameEl = document.getElementById('pm-edit-name');
             const lib = document.getElementById('pm-edit-brand-lib-input');
-            if (nameEl && (!nameEl.value || nameEl.value.trim() === '') && lib && lib.value) {
-              const btn = document.querySelector(`#pm-edit-brand-grid .pm-edit-brand-item[data-url="${CSS.escape(lib.value)}"]`);
-              const label = btn ? (btn.getAttribute('data-label') || '').trim() : '';
+            const normalizedIcon = lib ? normalizeIconModal(lib.value || '') : '';
+            if (nameEl && (!nameEl.value || nameEl.value.trim() === '') && normalizedIcon) {
+              let label = '';
+              const grid = document.getElementById('pm-edit-brand-grid');
+              if (grid) {
+                grid.querySelectorAll('.pm-edit-brand-item').forEach(btn => {
+                  if (label) return;
+                  const btnValue = normalizeIconModal(btn.dataset.value || btn.dataset.url || '');
+                  if (btnValue && btnValue === normalizedIcon) {
+                    label = (btn.getAttribute('data-label') || '').trim();
+                  }
+                });
+              }
               if (label) data.set('name', label);
             }
           } catch(_) {}
           // garante envio do meta[icon] selecionado
           const libInput = document.getElementById('pm-edit-brand-lib-input');
-          if (libInput && libInput.value) data.set('meta[icon]', libInput.value);
+          if (libInput) {
+            const normalizedIcon = normalizeIconModal(libInput.value || '');
+            if (normalizedIcon) {
+              data.set('meta[icon]', normalizedIcon);
+            }
+          }
           // tenta obter CSRF de várias fontes
           let csrf = (typeof window.PM_CSRF !== 'undefined' && window.PM_CSRF) ? window.PM_CSRF : '';
           if (!csrf) {
