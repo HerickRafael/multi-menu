@@ -26,3 +26,21 @@
 
 /* Footer spacing helper for pages with fixed footer */
 .pb-footer-space{padding-bottom:7rem;}
+
+/* Toggle visual usado em vários forms: produto ativo */
+.product-active-checkbox{position:absolute!important;opacity:0!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important}
+.product-toggle{display:inline-block;width:34px;height:20px;border-radius:999px;background:#eef2f6;border:1px solid #e6e9ee;position:relative;flex:0 0 auto}
+.product-toggle .toggle-knob{position:absolute;top:50%;left:3px;width:14px;height:14px;border-radius:999px;background:#fff;transform:translateY(-50%);transition:transform .16s cubic-bezier(.2,.9,.2,1),background .12s ease}
+.product-active-checkbox:checked + .product-toggle{background:#5B21B6;border-color:#5B21B6}
+.product-active-checkbox:checked + .product-toggle .toggle-knob{transform:translateY(-50%) translateX(14px)}
+.product-toggle:focus{outline:2px solid rgba(91,33,182,.12);outline-offset:3px}
+.product-toggle-wrapper{display:inline-flex;align-items:center;gap:.6rem}
+
+/* Toggle genérico reutilizável */
+.ui-toggle-checkbox{position:absolute!important;opacity:0!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important}
+.ui-toggle{display:inline-block;width:34px;height:20px;border-radius:999px;background:#eef2f6;border:1px solid #e6e9ee;position:relative;flex:0 0 auto}
+.ui-toggle .toggle-knob{position:absolute;top:50%;left:3px;width:14px;height:14px;border-radius:999px;background:#fff;transform:translateY(-50%);transition:transform .16s cubic-bezier(.2,.9,.2,1),background .12s ease}
+.ui-toggle-checkbox:checked + .ui-toggle{background:#5B21B6;border-color:#5B21B6}
+.ui-toggle-checkbox:checked + .ui-toggle .toggle-knob{transform:translateY(-50%) translateX(14px)}
+.ui-toggle:focus{outline:2px solid rgba(91,33,182,.12);outline-offset:3px}
+.ui-toggle-wrapper{display:inline-flex;align-items:center;gap:.6rem}

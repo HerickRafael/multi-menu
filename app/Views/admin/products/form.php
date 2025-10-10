@@ -215,56 +215,20 @@ if (!function_exists('e')) {
     </legend>
 
     <div class="grid items-start gap-3 md:grid-cols-[1fr_auto]">
-      <?php $prodImagePreview = !empty($p['image']) ? e(base_url($p['image'])) : ''; ?>
-      <label class="grid gap-1">
+      <label for="image" class="grid gap-1">
         <span class="text-sm text-slate-700">Upload (jpg/png/webp)</span>
-        <div id="product-image-dropzone" class="rounded-xl border-2 border-dashed bg-white p-4 relative admin-primary-border" style="min-height:96px;">
-          <input id="product-image-input" type="file" name="image" accept=".jpg,.jpeg,.png,.webp" class="sr-only">
-
-          <div id="product-image-drop-hint" class="flex flex-col items-center justify-center text-center py-6">
-            <div class="text-slate-600 mb-2">Arraste arquivos para cá ou se preferir</div>
-            <button type="button" id="product-image-choose" class="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm admin-primary-text admin-primary-border">anexar arquivos</button>
-            <div class="text-xs text-slate-400 mt-2">Recomendado: 1000×750px ou maior (4:3). Máx. 5 MB.</div>
-          </div>
-
-          <img id="product-image-preview" <?= $prodImagePreview ? 'src="'.e($prodImagePreview).'"' : '' ?> alt="preview" class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-xl <?= $prodImagePreview === '' ? 'hidden' : '' ?>" style="max-width:calc(100% - 12px); max-height:calc(100% - 12px); width:auto; height:auto;" />
-
-          <button type="button" id="product-image-clear" class="absolute top-3 right-3 <?= $prodImagePreview === '' ? 'hidden' : '' ?> rounded-full bg-white text-slate-700 shadow-sm px-2 py-0.5 border admin-primary-border">✕</button>
-        </div>
+        <input type="file" name="image" id="image" accept=".jpg,.jpeg,.png,.webp"
+               class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-400">
+        <small class="text-xs text-slate-500">Recomendado: 1000×750px ou maior (4:3). Máx. 5 MB.</small>
       </label>
+      <div class="flex flex-col items-center gap-2">
+        <span class="text-xs text-slate-500">Pré-visualização</span>
+        <img id="image-preview"
+             src="<?= !empty($p['image']) ? e(base_url($p['image'])) : e(base_url('assets/logo-placeholder.png')) ?>"
+             alt="Pré-visualização"
+             class="h-32 w-32 rounded-xl border border-slate-200 object-cover shadow-sm">
+      </div>
     </div>
-    <script>
-      (function(){
-        function wireDropzoneLocal(opts){
-          const dz = document.getElementById(opts.dropzone);
-          const input = document.getElementById(opts.input);
-          const preview = document.getElementById(opts.preview);
-          const thumb = document.getElementById(opts.thumb);
-          const choose = document.getElementById(opts.choose);
-          const clearBtn = document.getElementById(opts.clear);
-          const hint = dz ? dz.querySelector('[id$="-drop-hint"]') : null;
-          if (!dz || !input) return;
-            function showPreviewFile(file){
-              try{
-                const url = URL.createObjectURL(file);
-                if (preview) { preview.setAttribute('src', url); preview.classList.remove('hidden'); }
-                if (thumb) { thumb.src = url; }
-                if (hint) hint.classList.add('hidden');
-                if (clearBtn) clearBtn.classList.remove('hidden');
-                if (preview) preview.onload = ()=>{ try{ URL.revokeObjectURL(url);}catch(_){} };
-              }catch(_){}
-            }
-          function clearSelection(){ try{ input.value = ''; }catch(_){} if (preview){ preview.removeAttribute('src'); preview.classList.add('hidden'); } if (thumb){ thumb.src='<?= e(base_url('assets/logo-placeholder.png')) ?>'; } if (hint) hint.classList.remove('hidden'); if (clearBtn) clearBtn.classList.add('hidden'); }
-          if (choose) choose.addEventListener('click', e=>{ e.preventDefault(); input.click(); });
-          if (clearBtn) clearBtn.addEventListener('click', e=>{ e.preventDefault(); clearSelection(); });
-          input.addEventListener('change', function(){ if (this.files && this.files.length>0) { showPreviewFile(this.files[0]); } else { clearSelection(); } });
-          dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('opacity-80'); });
-          dz.addEventListener('dragleave', function(e){ dz.classList.remove('opacity-80'); });
-          dz.addEventListener('drop', function(e){ e.preventDefault(); dz.classList.remove('opacity-80'); const dt = e.dataTransfer; if (dt && dt.files && dt.files.length>0) { input.files = dt.files; input.dispatchEvent(new Event('change',{bubbles:true})); } });
-        }
-        wireDropzoneLocal({ dropzone:'product-image-dropzone', input:'product-image-input', preview:'product-image-preview', choose:'product-image-choose', clear:'product-image-clear' });
-      })();
-    </script>
   </fieldset>
 
   <!-- ===== DRAG ESTILOS ===== -->
