@@ -455,10 +455,17 @@ ob_start();
           if (grid) {
             grid.querySelectorAll('.pm-brand-item').forEach(btn => {
               btn.addEventListener('click', function(){
-                const value = this.dataset.value || this.dataset.url || '';
+                const btnVal = normaliseIcon(this.dataset.value || this.dataset.url || '');
+                const current = (input && input.value) ? input.value.trim() : '';
                 const label = this.dataset.label || '';
-                selectBrand(value, label);
-                if (file) file.value = '';
+                if (btnVal && current && btnVal === current) {
+                  // já selecionado: desmarcar e restaurar campos
+                  selectBrand('');
+                  if (file) file.value = '';
+                } else {
+                  selectBrand(this.dataset.value || this.dataset.url || '', label);
+                  if (file) file.value = '';
+                }
               });
             });
           }

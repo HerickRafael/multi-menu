@@ -252,13 +252,7 @@ ob_start(); ?>
           <?php endif; ?>
           <div class="min-w-0 flex-1">
             <div class="truncate font-medium text-slate-800"><?= e($ing['name'] ?? '') ?></div>
-            <?php if (!empty($pn)): ?>
-              <div class="mt-1 flex flex-wrap gap-1.5">
-                <?php foreach ($pn as $one): ?>
-                  <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 ring-1 ring-amber-100"><?= e($one) ?></span>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
+            <!-- product names removed from quick dashboard view -->
           </div>
         </a>
       </li>
