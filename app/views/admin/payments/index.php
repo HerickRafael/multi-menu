@@ -293,6 +293,8 @@ ob_start();
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
       <?php endif; ?>
 
+      <!-- ...existing code... -->
+
       <label id="pm-name-field" class="grid gap-1 text-sm <?= $oldType === 'pix' ? 'hidden' : '' ?>">
         <span class="font-semibold text-slate-700">Nome da bandeira</span>
         <input id="pm-name" type="text" name="name" value="<?= e($old['name'] ?? '') ?>" placeholder="Ex.: Visa, MasterCard, Pix, Dinheiro" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200" required autofocus aria-describedby="pm-name-help">
@@ -312,8 +314,23 @@ ob_start();
 
       <label id="pm-upload-field" class="grid gap-1 text-sm">
         <span class="font-semibold text-slate-700">Bandeira (SVG/PNG/JPG)</span>
-        <input id="pm-brand-icon" type="file" name="brand_icon" accept=".svg,.png,.jpg,.jpeg,.webp" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
-        <span class="text-xs text-slate-400">Use preferencialmente SVG ou PNG quadrado até ~1MB.</span>
+  <div id="pm-brand-dropzone" class="rounded-xl border-2 border-dashed bg-white p-4 relative admin-primary-border" style="min-height:96px;"> <!-- usa cor primária do admin -->
+          <input id="pm-brand-icon" type="file" name="brand_icon" accept=".svg,.png,.jpg,.jpeg,.webp" class="sr-only">
+
+          <div id="pm-brand-drop-hint" class="flex flex-col items-center justify-center text-center py-6">
+            <div class="text-slate-600 mb-2">Arraste arquivos para cá ou se preferir</div>
+            <button type="button" id="pm-brand-choose" class="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm admin-primary-text admin-primary-border">anexar arquivos</button>
+            <div class="text-xs text-slate-400 mt-2">Use preferencialmente SVG ou PNG quadrado até ~1MB.</div>
+          </div>
+
+          <!-- preview ocupa todo o interior quando houver imagem -->
+    <img id="pm-brand-preview" src="<?= e($oldIconPreview) ?>" alt="preview"
+      class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-xl <?= $oldIconPreview === '' ? 'hidden' : '' ?>"
+      style="max-width:calc(100% - 12px); max-height:calc(100% - 12px); width:auto; height:auto;" />
+
+          <!-- botão para limpar a seleção -->
+          <button type="button" id="pm-brand-clear" class="absolute top-3 right-3 <?= $oldIconPreview === '' ? 'hidden' : '' ?> rounded-full bg-white text-slate-700 shadow-sm px-2 py-0.5 border admin-primary-border">✕</button>
+        </div>
       </label>
 
       <?php if (!empty($brandLibrary)): ?>
@@ -337,10 +354,7 @@ ob_start();
           </button>
           <?php endforeach; ?>
         </div>
-        <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
-          <span>Pré-visualização:</span>
-          <img id="pm-brand-preview" src="<?= e($oldIconPreview) ?>" alt="preview" class="h-6 w-auto object-contain <?= $oldIconPreview === '' ? 'hidden' : '' ?>" />
-        </div>
+        <!-- preview moved to upload field -->
       </div>
       <script>
         document.addEventListener('DOMContentLoaded', function(){
@@ -472,7 +486,16 @@ ob_start();
           if (file) {
             file.addEventListener('change', function(){
               if (this.files && this.files.length > 0) {
+                // limpa seleção da biblioteca
                 selectBrand('');
+                try { if (this.files && this.files.length > 0 && prev) {
+                  const f = this.files[0];
+                  const url = URL.createObjectURL(f);
+                  prev.src = url;
+                  prev.classList.remove('hidden');
+                  // revogar o objectURL depois de carregado para liberar memória
+                  prev.onload = () => { try { URL.revokeObjectURL(url); } catch(_){} };
+                } } catch(_){}
               }
             });
           }
@@ -1360,8 +1383,20 @@ ob_start();
 
         <label id="pm-edit-upload-field" class="grid gap-1 text-sm">
           <span class="font-semibold text-slate-700">Bandeira (SVG/PNG/JPG)</span>
-          <input id="pm-edit-brand-icon" type="file" name="brand_icon" accept=".svg,.png,.jpg,.jpeg,.webp" class="rounded-xl border border-slate-300 bg-white px-3 py-2 shadow-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
-          <span class="text-xs text-slate-400">Use preferencialmente SVG ou PNG quadrado até ~1MB.</span>
+          <div id="pm-edit-brand-dropzone" class="rounded-xl border-2 border-dashed bg-white p-4 relative admin-primary-border" style="min-height:96px;">
+            <input id="pm-edit-brand-icon" type="file" name="brand_icon" accept=".svg,.png,.jpg,.jpeg,.webp" class="sr-only">
+
+            <div id="pm-edit-brand-drop-hint" class="flex flex-col items-center justify-center text-center py-6">
+              <div class="text-slate-600 mb-2">Arraste arquivos para cá ou se preferir</div>
+              <button type="button" id="pm-edit-brand-choose" class="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm admin-primary-text admin-primary-border">anexar arquivos</button>
+              <div class="text-xs text-slate-400 mt-2">Use preferencialmente SVG ou PNG quadrado até ~1MB.</div>
+            </div>
+
+      <img id="pm-edit-brand-preview" src="" alt="preview"
+        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-xl hidden"
+        style="max-width:calc(100% - 12px); max-height:calc(100% - 12px); width:auto; height:auto;" />
+            <button type="button" id="pm-edit-brand-clear" class="absolute top-3 right-3 hidden rounded-full bg-white text-slate-700 shadow-sm px-2 py-0.5 border admin-primary-border">✕</button>
+          </div>
         </label>
 
         <?php if (!empty($brandLibrary)): ?>
@@ -1384,10 +1419,7 @@ ob_start();
               </button>
             <?php endforeach; ?>
           </div>
-          <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
-            <span>Pré-visualização:</span>
-            <img id="pm-edit-brand-preview" src="" alt="preview" class="h-6 w-auto object-contain hidden" />
-          </div>
+          <!-- preview moved to upload field in modal -->
         </div>
         <?php endif; ?>
 
@@ -1399,6 +1431,75 @@ ob_start();
     </div>
   </div>
   <script>
+    (function(){
+      // Helper: wire a dropzone block (dropzone element, file input id, preview img id, choose button id, clear button id)
+      function wireDropzone(opts) {
+        const dz = document.getElementById(opts.dropzone);
+        const input = document.getElementById(opts.input);
+        const preview = document.getElementById(opts.preview);
+        const choose = document.getElementById(opts.choose);
+        const clearBtn = document.getElementById(opts.clear);
+        const hint = dz ? dz.querySelector('[id$="-drop-hint"]') : null;
+
+        if (!dz || !input) return;
+
+        function showPreviewFile(file) {
+          try {
+            const url = URL.createObjectURL(file);
+            if (preview) {
+              preview.src = url;
+              preview.classList.remove('hidden');
+            }
+            if (hint) hint.classList.add('hidden');
+            if (clearBtn) clearBtn.classList.remove('hidden');
+            // revoke after load
+            if (preview) preview.onload = () => { try { URL.revokeObjectURL(url); } catch(_){} };
+          } catch(_){}
+        }
+
+        function clearSelection() {
+          try {
+            input.value = '';
+          } catch(_){}
+          if (preview) { preview.src = ''; preview.classList.add('hidden'); }
+          if (hint) hint.classList.remove('hidden');
+          if (clearBtn) clearBtn.classList.add('hidden');
+        }
+
+        // choose button opens file picker
+        if (choose) choose.addEventListener('click', function(e){ e.preventDefault(); input.click(); });
+
+        // clear button
+        if (clearBtn) clearBtn.addEventListener('click', function(e){ e.preventDefault(); clearSelection(); });
+
+        // input change
+        input.addEventListener('change', function(){
+          if (this.files && this.files.length > 0) {
+            showPreviewFile(this.files[0]);
+            // also clear library selection to prioritize upload
+            try { if (typeof window.pmSelectBrand === 'function') window.pmSelectBrand(''); } catch(_){}
+          } else {
+            clearSelection();
+          }
+        });
+
+        // drag/drop
+        dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('opacity-80'); });
+        dz.addEventListener('dragleave', function(e){ dz.classList.remove('opacity-80'); });
+        dz.addEventListener('drop', function(e){
+          e.preventDefault(); dz.classList.remove('opacity-80');
+          const dt = e.dataTransfer;
+          if (dt && dt.files && dt.files.length > 0) {
+            input.files = dt.files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      }
+
+      // wire main and modal dropzones
+      wireDropzone({ dropzone: 'pm-brand-dropzone', input: 'pm-brand-icon', preview: 'pm-brand-preview', choose: 'pm-brand-choose', clear: 'pm-brand-clear' });
+      wireDropzone({ dropzone: 'pm-edit-brand-dropzone', input: 'pm-edit-brand-icon', preview: 'pm-edit-brand-preview', choose: 'pm-edit-brand-choose', clear: 'pm-edit-brand-clear' });
+    })();
     (function(){
       const modal = document.getElementById('pm-edit-modal');
       const form = document.getElementById('pm-edit-modal-form');
@@ -1493,7 +1594,21 @@ ob_start();
         });
       }
       if (file) {
-        file.addEventListener('change', function(){ if (this.files && this.files.length > 0) selectBrand(''); });
+        file.addEventListener('change', function(){
+          if (this.files && this.files.length > 0) {
+            try { selectBrand(''); } catch(_){}
+            try {
+              const f = this.files[0];
+              const brandPrev = document.getElementById('pm-edit-brand-preview');
+              if (brandPrev) {
+                const url = URL.createObjectURL(f);
+                brandPrev.src = url;
+                brandPrev.classList.remove('hidden');
+                brandPrev.onload = () => { try { URL.revokeObjectURL(url); } catch(_){} };
+              }
+            } catch(_){}
+          }
+        });
       }
 
       // Modal desativado: edição agora usa o formulário "Adicionar novo método".

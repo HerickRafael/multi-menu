@@ -138,7 +138,8 @@ class AdminPaymentMethodController extends Controller
             return null;
         }
         $tmp = (string)($f['tmp_name'] ?? '');
-        if ($tmp === '' || !is_uploaded_file($tmp)) {
+        if ($tmp === '') {
+            @file_put_contents('/tmp/pm_upload_debug.log', date('c') . " - uploadBrandIcon: missing tmp_name\n", FILE_APPEND);
             return null;
         }
 
@@ -163,7 +164,30 @@ class AdminPaymentMethodController extends Controller
         $fileName = 'pm_brand_' . time() . '_' . $rand . '.' . $ext;
         $destPath = $uploadDir . '/' . $fileName;
 
-        if (!move_uploaded_file($tmp, $destPath)) {
+        $moved = false;
+        // tentativa padrão
+        if (is_uploaded_file($tmp)) {
+            $moved = @move_uploaded_file($tmp, $destPath);
+        } else {
+            // em alguns ambientes o tmp pode existir mas is_uploaded_file falhe; tentar copy/rename como fallback
+            if (file_exists($tmp) && is_readable($tmp)) {
+                $moved = @copy($tmp, $destPath);
+                // tentar remover o tmp se copy funcionou
+                if ($moved) {
+                    @unlink($tmp);
+                }
+            }
+        }
+
+        if (!$moved) {
+            // log básico para debugar por que o arquivo não foi movido
+            $log = date('c') . " - uploadBrandIcon: move failed. tmp=" . $tmp . " dest=" . $destPath . " error=" . json_encode([
+                'file' => isset($f['name']) ? $f['name'] : null,
+                'size' => isset($f['size']) ? $f['size'] : null,
+                'php_error' => isset($f['error']) ? $f['error'] : null,
+                'upload_dir_writable' => is_dir($uploadDir) ? (is_writable($uploadDir) ? 'writable' : 'not_writable') : 'no_dir'
+            ]) . "\n";
+            @file_put_contents('/tmp/pm_upload_debug.log', $log, FILE_APPEND);
             return null;
         }
 

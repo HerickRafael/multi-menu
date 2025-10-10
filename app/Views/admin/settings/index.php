@@ -201,31 +201,74 @@ foreach ($labels as $key => $lab): ?>
 
     <div class="grid gap-4 md:grid-cols-2">
       <div>
+        <?php $logoPreview = !empty($company['logo']) ? e(base_url($company['logo'])) : ''; ?>
         <span class="mb-1 block text-sm text-slate-700">Logo (quadrado) – jpg/png/webp</span>
-        <div class="mb-2 flex items-center gap-3">
-          <img id="logo-preview"
-               src="<?= !empty($company['logo']) ? e(base_url($company['logo'])) : e(base_url('assets/logo-placeholder.png')) ?>"
-               class="h-20 w-20 rounded-xl border border-slate-200 object-cover ring-1 ring-slate-200"
-               alt="Pré-visualização da logo">
-          <input type="file" name="logo" id="logo-input" accept=".jpg,.jpeg,.png,.webp"
-                 class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900">
+        <div class="mb-2">
+          <div id="site-logo-dropzone" class="inline-block rounded-xl border-2 border-dashed bg-white p-3 relative admin-primary-border" style="min-height:84px; display:flex; align-items:center; justify-content:center;">
+            <input id="site-logo-input" type="file" name="logo" accept=".svg,.png,.jpg,.jpeg,.webp" class="sr-only">
+            <div id="site-logo-drop-hint" class="flex flex-col items-center justify-center text-center py-3">
+              <div class="text-slate-600 mb-2">Arraste o logo ou</div>
+              <button type="button" id="site-logo-choose" class="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm admin-primary-text admin-primary-border">anexar arquivo</button>
+            </div>
+            <div class="dz-preview-frame" style="aspect-ratio:1/1; width:100%; max-width:180px;">
+              <img id="site-logo-preview" src="<?= $logoPreview ?>" alt="preview" class="rounded-md <?= $logoPreview === '' ? 'hidden' : '' ?>" style="width:100%; height:100%; object-fit:contain; display:block;" />
+            </div>
+            <button type="button" id="site-logo-clear" class="absolute top-2 right-2 <?= $logoPreview === '' ? 'hidden' : '' ?> rounded-full bg-white text-slate-700 shadow-sm px-2 py-0.5 border admin-primary-border">✕</button>
+          </div>
         </div>
         <small class="text-xs text-slate-500">Recomendado: 512×512px. Máx. 5 MB.</small>
       </div>
 
       <div>
+        <?php $bannerPreview = !empty($company['banner']) ? e(base_url($company['banner'])) : ''; ?>
         <span class="mb-1 block text-sm text-slate-700">Banner (largura) – jpg/png/webp</span>
         <div class="mb-2">
-          <img id="banner-preview"
-               src="<?= !empty($company['banner']) ? e(base_url($company['banner'])) : e(base_url('assets/banner-placeholder.png')) ?>"
-               class="h-24 w-full max-w-md rounded-xl border border-slate-200 object-cover ring-1 ring-slate-200"
-               alt="Pré-visualização do banner">
+          <div id="site-banner-dropzone" class="rounded-xl border-2 border-dashed bg-white p-3 relative admin-primary-border" style="min-height:96px; display:flex; align-items:center; justify-content:center;">
+            <input id="site-banner-input" type="file" name="banner" accept=".jpg,.jpeg,.png,.webp" class="sr-only">
+            <div id="site-banner-drop-hint" class="flex flex-col items-center justify-center text-center py-4">
+              <div class="text-slate-600 mb-2">Arraste o banner ou</div>
+              <button type="button" id="site-banner-choose" class="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm admin-primary-text admin-primary-border">anexar arquivo</button>
+            </div>
+            <div class="dz-preview-frame" style="aspect-ratio:4/1; width:100%;">
+              <img id="site-banner-preview" src="<?= $bannerPreview ?>" alt="preview" class="rounded-md <?= $bannerPreview === '' ? 'hidden' : '' ?>" style="width:100%; height:100%; object-fit:cover; display:block;" />
+            </div>
+            <button type="button" id="site-banner-clear" class="absolute top-2 right-2 <?= $bannerPreview === '' ? 'hidden' : '' ?> rounded-full bg-white text-slate-700 shadow-sm px-2 py-0.5 border admin-primary-border">✕</button>
+          </div>
         </div>
-        <input type="file" name="banner" id="banner-input" accept=".jpg,.jpeg,.png,.webp"
-               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900">
         <small class="text-xs text-slate-500">Recomendado: 1600×400px. Máx. 5 MB.</small>
       </div>
     </div>
+    <script>
+      (function(){
+        function wireDropzoneLocal(opts){
+          const dz = document.getElementById(opts.dropzone);
+          const input = document.getElementById(opts.input);
+          const preview = document.getElementById(opts.preview);
+          const choose = document.getElementById(opts.choose);
+          const clearBtn = document.getElementById(opts.clear);
+          const hint = dz ? dz.querySelector('[id$="-drop-hint"]') : null;
+          if (!dz || !input) return;
+          function showPreviewFile(file){
+            try{
+              const url = URL.createObjectURL(file);
+              if (preview) { preview.src = url; preview.classList.remove('hidden'); }
+              if (hint) hint.classList.add('hidden');
+              if (clearBtn) clearBtn.classList.remove('hidden');
+              if (preview) preview.onload = ()=>{ try{ URL.revokeObjectURL(url);}catch(_){} };
+            }catch(_){}
+          }
+          function clearSelection(){ try{ input.value = ''; }catch(_){} if (preview){ preview.removeAttribute('src'); preview.classList.add('hidden'); } if (hint) hint.classList.remove('hidden'); if (clearBtn) clearBtn.classList.add('hidden'); }
+          if (choose) choose.addEventListener('click', e=>{ e.preventDefault(); input.click(); });
+          if (clearBtn) clearBtn.addEventListener('click', e=>{ e.preventDefault(); clearSelection(); });
+          input.addEventListener('change', function(){ if (this.files && this.files.length>0) { showPreviewFile(this.files[0]); } else { clearSelection(); } });
+          dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('opacity-80'); });
+          dz.addEventListener('dragleave', function(e){ dz.classList.remove('opacity-80'); });
+          dz.addEventListener('drop', function(e){ e.preventDefault(); dz.classList.remove('opacity-80'); const dt = e.dataTransfer; if (dt && dt.files && dt.files.length>0) { input.files = dt.files; input.dispatchEvent(new Event('change',{bubbles:true})); } });
+        }
+        wireDropzoneLocal({ dropzone:'site-logo-dropzone', input:'site-logo-input', preview:'site-logo-preview', choose:'site-logo-choose', clear:'site-logo-clear' });
+        wireDropzoneLocal({ dropzone:'site-banner-dropzone', input:'site-banner-input', preview:'site-banner-preview', choose:'site-banner-choose', clear:'site-banner-clear' });
+      })();
+    </script>
   </fieldset>
 
   <!-- CARD: Horários -->
