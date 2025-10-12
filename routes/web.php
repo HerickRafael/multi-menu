@@ -50,6 +50,16 @@ $router->get('/admin/{slug}/kds',                'AdminKdsController@index');
 $router->get('/admin/{slug}/kds/data',           'AdminKdsController@data');
 $router->post('/admin/{slug}/kds/status',        'AdminKdsController@status');
 
+// Evolution integration
+$router->get('/admin/{slug}/evolution',          'AdminEvolutionController@index');
+$router->get('/admin/{slug}/evolution/instances','AdminEvolutionController@instances');
+$router->post('/admin/{slug}/evolution/create',  'AdminEvolutionController@create');
+$router->post('/admin/{slug}/evolution/refresh', 'AdminEvolutionController@refresh_qr');
+$router->post('/admin/{slug}/evolution/delete',  'AdminEvolutionController@delete');
+$router->post('/admin/{slug}/evolution/import',  'AdminEvolutionController@import_remote');
+$router->post('/admin/{slug}/evolution/fetch',   'AdminEvolutionController@fetch_and_import');
+$router->post('/admin/{slug}/evolution/sync',    'AdminEvolutionController@sync');
+
 // Categorias (CRUD)
 $router->get('/admin/{slug}/categories',             'AdminCategoryController@index');
 $router->get('/admin/{slug}/categories/create',      'AdminCategoryController@create');

@@ -256,6 +256,14 @@ class AdminSettingsController extends Controller
             $vals[] = $newBannerPath;
         }
 
+        // Evolution fields
+        $evoServer = trim($_POST['evolution_server_url'] ?? '');
+        $evoKey    = trim($_POST['evolution_api_key'] ?? '');
+
+        $set .= ', evolution_server_url=?, evolution_api_key=?';
+        $vals[] = $evoServer;
+        $vals[] = $evoKey;
+
         $set .= ' WHERE id=?';
         $vals[] = $company['id'];
 

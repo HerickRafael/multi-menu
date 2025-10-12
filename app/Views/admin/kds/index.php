@@ -20,86 +20,665 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
 ?>
 
 <style>
-  .kds-columns { display: grid; gap: 1.25rem; }
-  @media (min-width: 768px) { .kds-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (min-width: 1024px) { .kds-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  .kds-column { display:flex; flex-direction:column; gap:1rem; border-radius:1.5rem; padding:1.25rem; border-width:1px; border-style:solid; background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,250,252,0.9)); box-shadow:0 10px 25px -20px rgba(15,23,42,0.5); min-height:320px; }
-  .kds-column-header { display:flex; justify-content:space-between; align-items:center; gap:0.75rem; }
-  .kds-column-header h2 { font-size:0.95rem; margin:0; font-weight:600; color:#0f172a; text-transform:uppercase; letter-spacing:.08em; }
-  .kds-column-count { display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.65rem; border-radius:999px; font-size:0.7rem; font-weight:600; background:#0f172a; color:#fff; }
-  .kds-list { display:flex; flex-direction:column; gap:0.75rem; overflow-y:auto; padding-right:0.4rem; max-height:70vh; }
-  .kds-card { border-radius:1.25rem; border:1px solid rgba(226,232,240,0.8); background:rgba(255,255,255,0.96); padding:1rem; box-shadow:0 12px 30px -24px rgba(15,23,42,0.65); display:grid; gap:0.75rem; position:relative; }
-  .kds-card.kds-alert-warning { border-color:#f97316; box-shadow:0 0 0 2px rgba(249,115,22,0.15); }
-  .kds-card.kds-alert-danger { border-color:#ef4444; box-shadow:0 0 0 2px rgba(239,68,68,0.15); animation: pulse-danger 1.2s ease-in-out infinite; }
-  @keyframes pulse-danger { 0% { box-shadow:0 0 0 2px rgba(239,68,68,0.15);} 50% { box-shadow:0 0 0 6px rgba(239,68,68,0.05);} 100% { box-shadow:0 0 0 2px rgba(239,68,68,0.15);} }
-  .kds-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; }
-  .kds-card-header h3 { margin:0; font-size:1rem; font-weight:700; color:#0f172a; }
-  .kds-badge { border-radius:999px; background:#0f172a; color:#fff; font-size:0.65rem; padding:0.15rem 0.55rem; text-transform:uppercase; letter-spacing:.08em; }
-  .kds-meta { font-size:0.75rem; color:#64748b; display:flex; flex-direction:column; gap:0.25rem; }
-  .kds-meta strong { color:#0f172a; }
-  .kds-items { border-radius:0.9rem; background:#f8fafc; border:1px solid rgba(226,232,240,0.7); padding:0.75rem; font-size:0.8rem; color:#334155; display:flex; flex-direction:column; gap:0.4rem; }
-  .kds-items li { display:flex; justify-content:space-between; gap:0.75rem; }
-  .kds-actions { display:flex; flex-wrap:wrap; gap:0.5rem; }
-  .kds-btn { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; border-radius:0.85rem; font-size:0.75rem; font-weight:600; padding:0.45rem 0.9rem; border:1px solid transparent; cursor:pointer; transition:all 0.15s ease; text-decoration:none; }
-  .kds-btn-primary { background:#2563eb; color:#fff; border-color:#2563eb; }
-  .kds-btn-primary:hover { background:#1d4ed8; }
-  .kds-btn-success { background:#059669; color:#fff; border-color:#059669; }
-  .kds-btn-success:hover { background:#047857; }
-  .kds-btn-ghost { border-color:#e2e8f0; background:#fff; color:#1f2937; }
-  .kds-btn-ghost:hover { background:#f8fafc; }
-  .kds-btn-danger { border-color:#fda4af; background:#fff1f2; color:#b91c1c; }
-  .kds-btn-danger:hover { background:#fee2e2; }
-  .kds-tag { font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:0.65rem; display:inline-flex; align-items:center; gap:0.3rem; }
-  .kds-tag.sla-now { background:#fee2e2; color:#b91c1c; }
-  .kds-tag.sla-warning { background:#fef3c7; color:#92400e; }
-  .kds-tag.sla-safe { background:#dcfce7; color:#166534; }
-  #kds-canceled { margin-top:1.5rem; }
-  .kds-empty { border:1px dashed rgba(148,163,184,0.6); border-radius:1rem; padding:1.25rem; text-align:center; font-size:0.85rem; color:#64748b; }
+  /* Global KDS Styles - Consistent with Admin UI */
+  * { box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #f8fafc;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  .kds-main-container {
+    background: #f8fafc;
+    min-height: 100vh;
+    padding: 1rem;
+    max-width: 1536px;
+    margin: 0 auto;
+  }
+
+  /* Header Styles - Following Admin Pattern */
+  .kds-header {
+    background: #ffffff;
+    border-radius: 1.5rem;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .kds-header-icon {
+    display: inline-flex;
+    height: 2.5rem;
+    width: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1.5rem;
+    background-image: var(--admin-primary-gradient);
+    background-color: var(--admin-primary-color);
+    color: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .kds-header h1 {
+    background-image: var(--admin-primary-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .kds-header p {
+    color: #64748b;
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+  }
+
+  .kds-header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Controls Section - Admin Style */
+  .kds-controls {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.5rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  .kds-range-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .kds-range-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  .kds-range-btn.kds-btn-primary {
+    background-image: var(--admin-primary-gradient);
+    background-color: var(--admin-primary-color);
+    color: #ffffff;
+    border-color: var(--admin-primary-color);
+  }
+
+  .kds-range-btn.kds-btn-primary:hover {
+    opacity: 0.95;
+  }
+
+  .kds-search {
+    margin-left: auto;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 0.5rem 0.75rem;
+    color: #1f2937;
+    font-weight: 500;
+    min-width: 200px;
+    transition: all 0.15s ease;
+  }
+
+  .kds-search::placeholder {
+    color: #9ca3af;
+  }
+
+  .kds-search:focus {
+    outline: none;
+    border-color: var(--admin-primary-color);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  }
+
+  /* Columns Grid */
+  .kds-columns { 
+    display: grid; 
+    gap: 1.5rem; 
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  }
+
+  @media (min-width: 768px) { 
+    .kds-columns { grid-template-columns: repeat(2, 1fr); } 
+  }
+  
+  @media (min-width: 1200px) { 
+    .kds-columns { grid-template-columns: repeat(3, 1fr); } 
+  }
+
+  @media (min-width: 1600px) { 
+    .kds-columns { grid-template-columns: repeat(3, 1fr); } 
+  }
+
+  /* Column Styles - Admin Card Style */
+  .kds-column {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  .kds-column[data-status="pending"] {
+    border-left: 4px solid #f59e0b;
+  }
+
+  .kds-column[data-status="paid"] {
+    border-left: 4px solid #3b82f6;
+  }
+
+  .kds-column[data-status="completed"] {
+    border-left: 4px solid #10b981;
+  }
+
+  .kds-column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .kds-column-header h2 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .kds-column-count {
+    background-color: var(--admin-primary-soft);
+    color: var(--admin-primary-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  /* Order List */
+  .kds-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 300px);
+    padding-right: 0.5rem;
+  }
+
+  .kds-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .kds-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  .kds-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  .kds-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Order Cards - Admin Style */
+  .kds-card {
+    background: #ffffff;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+
+
+  .kds-card[data-status="paid"]::before {
+    background: #3b82f6;
+  }
+
+  .kds-card[data-status="completed"]::before {
+    background: #10b981;
+  }
+
+  .kds-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .kds-card.kds-alert-warning {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 1px #f59e0b20;
+  }
+
+  .kds-card.kds-alert-danger {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 1px #ef444420;
+    animation: pulse-danger 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-danger {
+    0%, 100% { 
+      box-shadow: 0 0 0 1px #ef444420, 0 1px 3px 0 rgba(0, 0, 0, 0.1); 
+    }
+    50% { 
+      box-shadow: 0 0 0 4px #ef444420, 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+    }
+  }
+
+  /* Card Header */
+  .kds-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .kds-card-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .kds-meta {
+    font-size: 0.875rem;
+    color: #64748b;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .kds-meta strong {
+    color: #0f172a;
+    font-weight: 600;
+  }
+
+  /* Status Badge - Admin Style */
+  .kds-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.5rem;
+  }
+
+  .kds-badge[data-status="pending"] {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .kds-badge[data-status="paid"] {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .kds-badge[data-status="completed"] {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+
+  /* SLA Tags */
+  .kds-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .kds-tag.sla-safe {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  .kds-tag.sla-warning {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .kds-tag.sla-now {
+    background: #fee2e2;
+    color: #dc2626;
+    animation: pulse-sla 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse-sla {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  /* Items List */
+  .kds-items {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+
+</style>
+<!-- Inline quick-hide for admin toasts: ensures toasts are hidden immediately on parse -->
+<style id="__kds_hide_admin_toasts_inline">#admin-order-toasts{display:none !important;}</style>
+<style>
+    padding: 1rem;
+    margin: 1rem 0;
+    list-style: none;
+  }
+
+  .kds-items li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+    color: #374151;
+  }
+
+  .kds-items li:last-child {
+    border-bottom: none;
+  }
+
+  .kds-items li strong {
+    color: var(--admin-primary-color);
+    font-weight: 700;
+  }
+
+  /* Action Buttons - Admin Style */
+  .kds-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .kds-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+
+  .kds-btn-primary {
+    background-image: var(--admin-primary-gradient);
+    background-color: var(--admin-primary-color);
+    color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .kds-btn-primary:hover {
+    opacity: 0.95;
+  }
+
+  .kds-btn-success {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .kds-btn-success:hover {
+    background: #059669;
+  }
+
+  .kds-btn-ghost {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #374151;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .kds-btn-ghost:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  .kds-btn-danger {
+    background: #ffffff;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .kds-btn-danger:hover {
+    background: #fef2f2;
+    border-color: #f87171;
+  }
+
+  /* Total Price */
+  .kds-total {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-align: right;
+    margin-top: 0.25rem;
+  }
+
+  /* Empty State */
+  .kds-empty {
+    background: #ffffff;
+    border: 2px dashed #e2e8f0;
+    border-radius: 1rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  /* Canceled Section */
+  #kds-canceled {
+    margin-top: 2rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .kds-main-container {
+      padding: 1rem;
+    }
+
+    .kds-header {
+      padding: 1rem 1.5rem;
+    }
+
+    .kds-header h1 {
+      font-size: 1.25rem;
+    }
+
+    .kds-controls {
+      padding: 1rem;
+    }
+
+    .kds-columns {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .kds-column {
+      min-height: 400px;
+    }
+
+    .kds-card {
+      padding: 1rem;
+    }
+
+    .kds-search {
+      min-width: 150px;
+      margin-left: 0;
+      margin-top: 0.5rem;
+      width: 100%;
+    }
+
+    .kds-actions {
+      gap: 0.25rem;
+    }
+
+    .kds-btn {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  /* Notification Styles */
+  .kds-notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: #ffffff;
+    color: #0f172a;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    min-width: 260px;
+    max-width: 320px;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Focus and accessibility improvements */
+  .kds-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  }
+
+  .kds-btn:active {
+    transform: translateY(1px);
+  }
+
+  /* Print Styles */
+  @media print {
+    .kds-main-container {
+      background: white !important;
+    }
+    
+    .kds-card {
+      background: white !important;
+      border: 1px solid #000 !important;
+      break-inside: avoid;
+    }
+    
+    .kds-btn {
+      display: none !important;
+    }
+  }
 </style>
 
 <?php ob_start(); ?>
-<div class="mx-auto max-w-7xl p-4" id="kds-app" data-slug="<?= e($slug) ?>">
-  <header class="mb-6 flex flex-wrap items-center gap-3">
+<div class="kds-main-container" id="kds-app" data-slug="<?= e($slug) ?>">
+  <header class="kds-header">
     <div class="flex items-center gap-3">
-      <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl admin-gradient-bg text-white shadow">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-display" viewBox="0 0 16 16">
+      <span class="kds-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
           <path d="M0 1a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1z"/>
           <path d="M2 13.5a.5.5 0 0 1 .5-.5H6v-1H3.5a.5.5 0 0 1 0-1h9a.5.5 0 0 1 0 1H10v1h3.5a.5.5 0 0 1 0 1H2.5a.5.5 0 0 1-.5-.5"/>
-        </svg>      </span>
+        </svg>
+      </span>
       <div>
-        <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">KDS · <?= e($company['name'] ?? '') ?></h1>
-        <p class="text-sm text-slate-500">Pedidos em tempo real. Mantenha esta aba aberta na cozinha.</p>
+        <h1>KDS · <?= e($company['name'] ?? '') ?></h1>
+        <p>Sistema de exibição da cozinha em tempo real</p>
       </div>
     </div>
-    <div class="ml-auto flex flex-wrap gap-2">
-      <button id="kds-refresh" class="kds-btn kds-btn-ghost">Recarregar</button>
-    <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>"
-       class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-gear" viewBox="0 0 16 16">
-  <path d="M7.293 1.5a1 1 0 0 1 1.414 0L11 3.793V2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v3.293l2.354 2.353a.5.5 0 0 1-.708.708L8 2.207l-5 5V13.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 2 13.5V8.207l-.646.647a.5.5 0 1 1-.708-.708z"/>
-  <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"/>
-</svg>     Dashboard
-    </a>    </div>
+    <div class="kds-header-actions">
+      <button id="kds-refresh" class="kds-btn kds-btn-ghost">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+          <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+        </svg>
+        Atualizar
+      </button>
+      <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>" class="kds-btn kds-btn-ghost">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M7.293 1.5a1 1 0 0 1 1.414 0L11 3.793V2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v3.293l2.354 2.353a.5.5 0 0 1-.708.708L8 2.207l-5 5V13.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 2 13.5V8.207l-.646.647a.5.5 0 1 1-.708-.708z"/>
+          <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"/>
+        </svg>
+        Dashboard
+      </a>
+    </div>
   </header>
 
-  <section class="mb-5 flex flex-wrap items-center gap-3" id="kds-range-buttons">
-    <button type="button" class="kds-btn kds-btn-ghost" data-range="today">Hoje</button>
-    <button type="button" class="kds-btn kds-btn-ghost" data-range="yesterday">Ontem</button>
-    <button type="button" class="kds-btn kds-btn-ghost" data-range="all">Todos</button>
-    <div class="relative ml-auto">
-      <input type="search" id="kds-search" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="Buscar por cliente, telefone ou #">
+  <section class="kds-controls" id="kds-range-buttons">
+    <button type="button" class="kds-range-btn" data-range="today">Hoje</button>
+    <button type="button" class="kds-range-btn" data-range="yesterday">Ontem</button>
+    <button type="button" class="kds-range-btn" data-range="all">Todos</button>
+    <div class="relative">
+      <input type="search" id="kds-search" class="kds-search" placeholder="Buscar por cliente, telefone ou #">
     </div>
   </section>
 
   <section class="kds-columns" id="kds-columns"></section>
 
   <section id="kds-canceled" class="<?= $hasCanceled ? '' : 'hidden' ?>">
-    <div class="flex items-center justify-between">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Cancelados</h2>
-      <button id="toggle-canceled" data-visible="0" class="kds-btn kds-btn-ghost <?= $hasCanceled ? '' : 'cursor-not-allowed text-slate-400' ?>" <?= $hasCanceled ? '' : 'disabled' ?>><?= $hasCanceled ? 'Mostrar cancelados' : 'Sem cancelados' ?></button>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Pedidos Cancelados</h2>
+      <button id="toggle-canceled" data-visible="0" class="kds-btn kds-btn-danger <?= $hasCanceled ? '' : 'cursor-not-allowed opacity-50' ?>" <?= $hasCanceled ? '' : 'disabled' ?>>
+        <?= $hasCanceled ? 'Mostrar cancelados' : 'Sem cancelados' ?>
+      </button>
     </div>
-    <div id="kds-canceled-count" class="mt-2 text-xs text-slate-400"></div>
-    <div id="kds-canceled-list" class="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3"></div>
+    <div id="kds-canceled-count" class="text-sm text-slate-400 mb-3"></div>
+    <div id="kds-canceled-list" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
   </section>
 </div>
 
@@ -726,14 +1305,38 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       this.knownPending = nextSet;
       if (!nextSet || nextSet.size === 0) return;
       let hasNew = false;
+      let newCount = 0;
       nextSet.forEach(id => {
         if (!previousSet || !previousSet.has(id)) {
           hasNew = true;
+          newCount++;
         }
       });
       if (hasNew && this.chime) {
         this.chime.ring();
+        this.showNotification(`${newCount} novo${newCount === 1 ? '' : 's'} pedido${newCount === 1 ? '' : 's'} recebido${newCount === 1 ? '' : 's'}!`);
       }
+    }
+
+    showNotification(message) {
+      // Remove notificação anterior se existir
+      const existingNotification = document.querySelector('.kds-notification');
+      if (existingNotification) {
+        existingNotification.remove();
+      }
+
+      // Criar nova notificação
+      const notification = document.createElement('div');
+      notification.className = 'kds-notification';
+      notification.textContent = message;
+      document.body.appendChild(notification);
+
+      // Remover após 5 segundos
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.remove();
+        }
+      }, 5000);
     }
 
     renderColumnsSkeleton(){
@@ -753,7 +1356,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         section.innerHTML = `
           <div class="kds-column-header">
             <h2>${col.label}</h2>
-            <span class="kds-column-count" data-count="0"></span>
+            <span class="kds-column-count" data-count="0">0 pedidos</span>
           </div>
           <div class="kds-list" id="kds-list-${col.id}"></div>
         `;
@@ -896,7 +1499,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         const filtered = orders.filter(applyFilters);
         header.textContent = `${filtered.length} pedido${filtered.length === 1 ? '' : 's'}`;
         if (!filtered.length) {
-          container.innerHTML = '<div class="kds-empty">Nenhum pedido por aqui.</div>';
+          container.innerHTML = '<div class="kds-empty">Nenhum pedido encontrado.</div>';
           return;
         }
         container.innerHTML = filtered.map(order => this.renderCard(order, now, warningThreshold)).join('');
@@ -948,21 +1551,25 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       }
       const transition = STATUS_FLOW[order.status];
       const advanceBtn = (transition && transition.next)
-        ? `<button class="kds-btn kds-btn-primary" data-action="advance" data-id="${order.id}" data-status="${transition.next}">${this.escape(transition.label)}</button>`
+        ? `<button class="kds-btn kds-btn-primary" data-action="advance" data-id="${order.id}" data-status="${transition.next}">
+             ${this.escape(transition.label)}
+           </button>`
         : '';
       const cancelBtn = order.status !== 'canceled' && order.status !== 'completed'
-        ? `<button class="kds-btn kds-btn-danger" data-action="cancel" data-id="${order.id}">Cancelar</button>`
+        ? `<button class="kds-btn kds-btn-danger" data-action="cancel" data-id="${order.id}">
+             Cancelar
+           </button>`
         : '';
       const address = order.customer_address || order.address || '';
       const addressHtml = address ? `<span>Entrega: ${this.escape(address).replace(/\n/g, '<br>')}</span>` : '';
       const items = (order.items || []).map(item => `
         <li>
           <span><strong>${item.qty || item.quantity || 0}x</strong> ${this.escape(item.name ?? '')}</span>
-          <span>${this.formatCurrency(item.line_total || item.total || 0)}</span>
+          <span class="font-medium">${this.formatCurrency(item.line_total || item.total || 0)}</span>
         </li>`).join('');
 
       return `
-        <article class="kds-card ${slaClass === 'sla-now' ? 'kds-alert-danger' : (slaClass === 'sla-warning' ? 'kds-alert-warning' : '')}" data-order="${order.id}">
+        <article class="kds-card ${slaClass === 'sla-now' ? 'kds-alert-danger' : (slaClass === 'sla-warning' ? 'kds-alert-warning' : '')}" data-order="${order.id}" data-status="${order.status}">
           <div class="kds-card-header">
             <div>
               <h3>Pedido #${order.id}</h3>
@@ -974,9 +1581,11 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
               </div>
             </div>
             <div class="text-right">
-              <div class="kds-badge">${STATUS_LABELS[order.status] || order.status}</div>
+              <div class="kds-badge" data-status="${order.status}">
+                ${STATUS_LABELS[order.status] || order.status}
+              </div>
               <div class="kds-tag ${slaClass}">${slaLabel}</div>
-              <div class="mt-1 font-semibold text-slate-900">${this.formatCurrency(order.total)}</div>
+              <div class="kds-total">${this.formatCurrency(order.total)}</div>
             </div>
           </div>
           <ul class="kds-items">${items || '<li>Nenhum item registrado.</li>'}</ul>
@@ -984,7 +1593,9 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
           <div class="kds-actions">
             ${advanceBtn}
             ${cancelBtn}
-            <a class="kds-btn kds-btn-ghost" href="${this.orderDetailUrl(order.id)}" target="_blank">Detalhes</a>
+            <a class="kds-btn kds-btn-ghost" href="${this.orderDetailUrl(order.id)}" target="_blank">
+              Detalhes
+            </a>
           </div>
         </article>`;
     }
@@ -993,7 +1604,7 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
       const address = order.customer_address || order.address || '';
       const addressHtml = address ? `<span>Entrega: ${this.escape(address).replace(/\n/g,'<br>')}</span>` : '';
       return `
-        <article class="kds-card" data-order="${order.id}">
+        <article class="kds-card" data-order="${order.id}" style="opacity: 0.7;">
           <div class="kds-card-header">
             <div>
               <h3>Pedido #${order.id}</h3>
@@ -1004,11 +1615,17 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
               </div>
             </div>
             <div class="text-right">
-              <div class="kds-badge" style="background:#dc2626">Cancelado</div>
-              <div class="mt-1 font-semibold text-rose-600">${this.formatCurrency(order.total)}</div>
+              <div class="kds-badge" style="background: #fee2e2; color: #dc2626;">
+                Cancelado
+              </div>
+              <div class="kds-total" style="color: #dc2626;">${this.formatCurrency(order.total)}</div>
             </div>
           </div>
-          <a class="kds-btn kds-btn-ghost" href="${this.orderDetailUrl(order.id)}" target="_blank">Ver detalhes</a>
+          <div class="kds-actions">
+            <a class="kds-btn kds-btn-ghost" href="${this.orderDetailUrl(order.id)}" target="_blank">
+              Ver detalhes
+            </a>
+          </div>
         </article>`;
     }
 
@@ -1091,6 +1708,21 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
         this.chime.dispose();
       }
       this.chime = null;
+      // Restore global admin toasts if they were suppressed on the KDS page
+      try {
+        if (window.__kds_toast_disabled && window.__original_showToast_for_kds) {
+          try { window.showToast = window.__original_showToast_for_kds; } catch(e) { window.showToast = window.__original_showToast_for_kds; }
+        }
+      } catch (e) {}
+      // Remove visual hide style if injected
+      try {
+        const s = document.getElementById('__kds_hide_admin_toasts');
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+      } catch (e) {}
+      try {
+        const si = document.getElementById('__kds_hide_admin_toasts_inline');
+        if (si && si.parentNode) si.parentNode.removeChild(si);
+      } catch (e) {}
     }
   }
 
@@ -1105,6 +1737,15 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
   window.addEventListener('DOMContentLoaded', () => {
     window.__kdsInstance = new KdsRealtime(CONFIG || {}, INITIAL_ORDERS || []);
     window.__kdsInstance.init();
+    // Hide global admin toasts visually while KDS is active
+    try {
+      if (!document.getElementById('__kds_hide_admin_toasts')) {
+        const s = document.createElement('style');
+        s.id = '__kds_hide_admin_toasts';
+        s.textContent = '#admin-order-toasts { display: none !important; }';
+        document.head.appendChild(s);
+      }
+    } catch (e) {}
     document.querySelectorAll('[data-kds-nav]').forEach(link => {
       if (link.dataset.cleanupBound) return;
       link.dataset.cleanupBound = '1';
@@ -1130,6 +1771,38 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     window.__kdsInstance?.cleanup();
   });
 })();
+</script>
+<script>
+  // Disable the global admin popup toasts on the KDS page only.
+  // We replace window.showToast with a noop as soon as it becomes available.
+  (function disableAdminToastsOnKds(){
+    if (window.__kds_disable_admin_toasts_done) return;
+    window.__kds_disable_admin_toasts_done = false;
+
+    const replaceOnce = () => {
+      try {
+        if (window.showToast && !window.__kds_toast_disabled) {
+          window.__kds_toast_disabled = true;
+          // Keep a reference to original in case debugging is needed
+          try { window.__original_showToast_for_kds = window.showToast; } catch(e){}
+          window.showToast = function(){ /* suppressed on KDS */ };
+          window.__kds_disable_admin_toasts_done = true;
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    };
+
+    if (!replaceOnce()) {
+      const interval = setInterval(() => {
+        if (replaceOnce()) {
+          clearInterval(interval);
+        }
+      }, 120);
+      // stop trying after a short timeout
+      setTimeout(() => clearInterval(interval), 3000);
+    }
+  })();
 </script>
 <?php
 $content = ob_get_clean();

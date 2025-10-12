@@ -11,5 +11,9 @@
     }
   },
   "minimum-stability": "stable",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "require": {
+    "innovation-studios/evolution-api-plugin": "^1.0",
+    "setasign/fpdf": "^1.8"
+  }
 }

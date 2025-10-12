@@ -158,6 +158,27 @@ ob_start(); ?>
     </label>
   </fieldset>
 
+  <!-- CARD: Evolution API -->
+  <fieldset class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+    <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M3 12h18M12 3v18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Evolution API
+    </legend>
+
+    <p class="mb-3 text-sm text-slate-600">Configurações para conectar com a Evolution API (veja a documentação para SERVER_URL e API KEY).</p>
+
+    <label class="grid gap-1">
+      <span class="text-sm text-slate-700">SERVER_URL</span>
+      <input name="evolution_server_url" value="<?= e($company['evolution_server_url'] ?? '') ?>" class="rounded-xl border border-slate-300 bg-white px-3 py-2">
+    </label>
+
+    <label class="mt-3 grid gap-1">
+      <span class="text-sm text-slate-700">AUTHENTICATION_API_KEY</span>
+      <input name="evolution_api_key" value="<?= e($company['evolution_api_key'] ?? '') ?>" class="rounded-xl border border-slate-300 bg-white px-3 py-2">
+      <small class="text-xs text-slate-500">Chave usada no header 'Authentication-Api-Key'.</small>
+    </label>
+  </fieldset>
+
   <!-- CARD: Aparência do cardápio -->
   <fieldset class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
     <legend class="mb-3 inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">

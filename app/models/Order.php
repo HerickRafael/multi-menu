@@ -132,7 +132,18 @@ class Order
         $items = self::itemsForOrders($db, [$orderId]);
         $order['items'] = $items[$orderId] ?? [];
 
-        return self::serializeForKds($order, true);
+        // fetch company-specific SLA "avg_delivery_min_to"
+        $companyAvgTo = 0;
+        try {
+            $stc = $db->prepare('SELECT avg_delivery_min_to FROM companies WHERE id = ?');
+            $stc->execute([$companyId]);
+            $crow = $stc->fetch(PDO::FETCH_ASSOC);
+            $companyAvgTo = isset($crow['avg_delivery_min_to']) ? (int)$crow['avg_delivery_min_to'] : 0;
+        } catch (PDOException $e) {
+            $companyAvgTo = 0;
+        }
+
+        return self::serializeForKds($order, true, $companyAvgTo);
     }
 
     public static function updateStatus(PDO $db, int $orderId, int $companyId, string $status): bool
@@ -223,11 +234,22 @@ class Order
         }
         $orderIds = array_map(static fn ($row) => (int)$row['id'], $rows);
         $itemsMap = self::itemsForOrders($db, $orderIds);
+        // fetch company-specific SLA "avg_delivery_min_to" once to avoid repeated queries
+        $companyAvgTo = 0;
+        try {
+            $stc = $db->prepare('SELECT avg_delivery_min_to FROM companies WHERE id = ?');
+            $stc->execute([$companyId]);
+            $crow = $stc->fetch(PDO::FETCH_ASSOC);
+            $companyAvgTo = isset($crow['avg_delivery_min_to']) ? (int)$crow['avg_delivery_min_to'] : 0;
+        } catch (PDOException $e) {
+            $companyAvgTo = 0;
+        }
+
         $result = [];
 
         foreach ($rows as $row) {
             $row['items'] = $itemsMap[$row['id']] ?? [];
-            $result[] = self::serializeForKds($row, true);
+            $result[] = self::serializeForKds($row, true, $companyAvgTo);
         }
 
         return $result;
@@ -308,6 +330,16 @@ class Order
         }
 
         $orders = [];
+        // fetch company-specific SLA "avg_delivery_min_to"
+        $companyAvgTo = 0;
+        try {
+            $stc = $db->prepare('SELECT avg_delivery_min_to FROM companies WHERE id = ?');
+            $stc->execute([$companyId]);
+            $crow = $stc->fetch(PDO::FETCH_ASSOC);
+            $companyAvgTo = isset($crow['avg_delivery_min_to']) ? (int)$crow['avg_delivery_min_to'] : 0;
+        } catch (PDOException $e) {
+            $companyAvgTo = 0;
+        }
 
         if ($activeRows) {
             $orderIds = array_map(static fn ($row) => (int)$row['id'], $activeRows);
@@ -315,7 +347,7 @@ class Order
 
             foreach ($activeRows as $row) {
                 $row['items'] = $itemsMap[$row['id']] ?? [];
-                $orders[] = self::serializeForKds($row, true);
+                $orders[] = self::serializeForKds($row, true, $companyAvgTo);
             }
         }
 
@@ -384,7 +416,7 @@ class Order
         return $map;
     }
 
-    public static function serializeForKds(array $order, bool $withItems = true): array
+    public static function serializeForKds(array $order, bool $withItems = true, int $companyAvgTo = 0): array
     {
         $formatIso = function ($value) {
             if (!$value) {
@@ -415,7 +447,8 @@ class Order
         if (!empty($order['sla_deadline'])) {
             $result['sla_deadline'] = $formatIso($order['sla_deadline']);
         } else {
-            $slaMinutes = (int)(function_exists('config') ? (config('kds_sla_minutes') ?? 20) : 20);
+            // prefer company-specific average "to" when provided, else fall back to config
+            $slaMinutes = $companyAvgTo > 0 ? $companyAvgTo : (int)(function_exists('config') ? (config('kds_sla_minutes') ?? 20) : 20);
             $createdAt = $order['created_at'] ?? null;
 
             if ($slaMinutes > 0 && $createdAt) {
@@ -466,11 +499,40 @@ class Order
         }
         $items = self::itemsForOrders($db, [$orderId]);
         $order['items'] = $items[$orderId] ?? [];
+        // fetch company-specific SLA "avg_delivery_min_to"
+        $companyAvgTo = 0;
+        try {
+            $stc = $db->prepare('SELECT avg_delivery_min_to FROM companies WHERE id = ?');
+            $stc->execute([$companyId]);
+            $crow = $stc->fetch(PDO::FETCH_ASSOC);
+            $companyAvgTo = isset($crow['avg_delivery_min_to']) ? (int)$crow['avg_delivery_min_to'] : 0;
+        } catch (PDOException $e) {
+            $companyAvgTo = 0;
+        }
+
         $payload = [
-            'order' => self::serializeForKds($order, true),
+            'order' => self::serializeForKds($order, true, $companyAvgTo),
             'created_at' => gmdate('c'),
         ];
         self::logEvent($db, $orderId, $companyId, $eventType, $order['status'] ?? null, $payload);
+
+        // if order.created, trigger notifier (best-effort)
+        if ($eventType === 'order.created') {
+            try {
+                require_once __DIR__ . '/../services/EvolutionNotifier.php';
+                $companyRow = null;
+                try {
+                    $stc = $db->prepare('SELECT * FROM companies WHERE id = ?');
+                    $stc->execute([$companyId]);
+                    $companyRow = $stc->fetch(PDO::FETCH_ASSOC) ?: null;
+                } catch (Throwable $e) {
+                    $companyRow = null;
+                }
+                EvolutionNotifier::notifyOrderCreated($companyRow ?: ['id' => $companyId], self::serializeForKds($order, true, $companyAvgTo), $order['items']);
+            } catch (Throwable $e) {
+                error_log('Order emit notifier error: ' . $e->getMessage());
+            }
+        }
     }
 
     private static function logEvent(PDO $db, int $orderId, int $companyId, string $eventType, ?string $status, array $payload = []): void
