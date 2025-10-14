@@ -42,6 +42,8 @@ ob_start(); ?>
 }
 </style>
 
+<!-- Sistemas centralizados carregados via layout principal -->
+
 <div class="mx-auto max-w-6xl p-4">
 
   <!-- HEADER -->
@@ -625,125 +627,29 @@ ob_start(); ?>
       }
     };
     
-    // CSS avançado para UX profissional (adicionar ao head)
-    if (!document.querySelector('#professional-ux-css')) {
-      const style = document.createElement('style');
-      style.id = 'professional-ux-css';
-      style.textContent = `
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-          20%, 40%, 60%, 80% { transform: translateX(2px); }
-        }
-        
-        @keyframes slideInFromTop {
-          from { transform: translateY(-10px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes slideInFromBottom {
-          from { transform: translateY(10px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        
-        @keyframes fadeInScale {
-          from { transform: scale(0.95); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        
-        /* Smooth transitions para todos os elementos interativos */
-        button, .toggle-switch, .status-pill {
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Efeitos hover melhorados */
-        button:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Loading states melhorados */
-        .loading-shimmer {
-          background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-        }
-        
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        
-        /* Skeleton loading melhorado com shimmer realista */
-        .skeleton-enhanced {
-          position: relative;
-          overflow: hidden;
-          background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-          background-size: 200% 100%;
-          animation: shimmer 2s infinite, breathe 3s ease-in-out infinite alternate;
-        }
-        
-        .skeleton-enhanced::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-          animation: loading-wave 2s infinite;
-        }
-        
-        @keyframes loading-wave {
-          0% { left: -100%; }
-          100% { left: 100%; }
-        }
-        
-        @keyframes breathe {
-          0% { opacity: 0.6; }
-          100% { opacity: 0.8; }
-        }
-        
-        /* Skeleton cards com diferentes alturas para mais realismo */
-        .skeleton-enhanced:nth-child(odd) {
-          animation-delay: 0.1s;
-        }
-        
-        .skeleton-enhanced:nth-child(even) {
-          animation-delay: 0.3s;
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    // CSS já carregado via skeleton.css - não precisa adicionar inline
     
-    // Sistema de estados visuais profissional
-    const VisualStates = {
-      // Aplicar estado de loading com shimmer effect
+    // Sistema de estados visuais profissional (usando SkeletonSystem centralizado)
+    const VisualStates = window.SkeletonSystem ? window.SkeletonSystem.VisualStates : {
+      // Fallbacks básicos caso SkeletonSystem não esteja carregado
       applyLoadingState(element) {
         if (!element) return;
-        element.classList.add('loading-shimmer', 'skeleton-enhanced');
-        return () => {
-          element.classList.remove('loading-shimmer', 'skeleton-enhanced');
-        };
+        element.classList.add('skeleton-basic');
+        return () => element.classList.remove('skeleton-basic');
       },
       
-      // Smooth reveal com diferentes animações
       revealWithAnimation(element, animation = 'fadeInScale') {
         if (!element) return;
-        element.style.animation = `${animation} 0.4s cubic-bezier(0.16, 1, 0.3, 1)`;
-        element.addEventListener('animationend', () => {
-          element.style.animation = '';
-        }, { once: true });
+        element.classList.add('animate-' + animation.replace(/([A-Z])/g, '-$1').toLowerCase());
       },
       
-      // Aplicar micro-feedback a botões
       enhanceButtons() {
         document.querySelectorAll('button').forEach(button => {
           if (button.hasAttribute('data-enhanced')) return;
           button.setAttribute('data-enhanced', 'true');
           
           button.addEventListener('click', () => {
-            if (!button.disabled) {
+            if (!button.disabled && MicroInteractions) {
               MicroInteractions.bounce(button);
             }
           });
@@ -1367,9 +1273,14 @@ ob_start(); ?>
     // Auto refresh a cada 30 segundos (sem toast)
     setInterval(() => refreshStats(false), 30000);
     
-    // Sistema de skeleton loading profissional - reutilizando padrões do admin-common.js
-    const SkeletonLoader = {
-      // Elementos a serem controlados
+    // Sistema de skeleton loading usando SkeletonSystem centralizado
+    const SkeletonLoader = window.SkeletonSystem ? window.SkeletonSystem.createSkeletonLoader({
+      header: { skeleton: 'headerSkeleton', content: 'headerContent' },
+      stats: { skeleton: 'statsSkeleton', content: 'statsContent' },
+      info: { skeleton: 'infoSkeleton', content: 'infoContent' },
+      settings: { skeleton: 'settingsSkeletonLoader', content: 'settingsContent' }
+    }) : {
+      // Fallback básico caso SkeletonSystem não esteja carregado
       elements: {
         header: { skeleton: 'headerSkeleton', content: 'headerContent' },
         stats: { skeleton: 'statsSkeleton', content: 'statsContent' },
@@ -1377,19 +1288,12 @@ ob_start(); ?>
         settings: { skeleton: 'settingsSkeletonLoader', content: 'settingsContent' }
       },
       
-      // Mostrar skeleton loading (elementos já iniciam visíveis)
       show() {
-        // Os skeletons já estão visíveis por padrão
-        // Apenas garantir que o conteúdo real permaneça oculto
-        const headerContent = el(this.elements.header.content);
-        const statsContent = el(this.elements.stats.content);
-        const infoContent = el(this.elements.info.content);
-        const settingsContent = el(this.elements.settings.content);
-        
-        if (headerContent) headerContent.classList.add('hidden');
-        if (statsContent) statsContent.classList.add('hidden');
-        if (infoContent) infoContent.classList.add('hidden');
-        if (settingsContent) settingsContent.classList.add('hidden');
+        // Fallback: apenas esconder conteúdo real
+        Object.values(this.elements).forEach(({ content }) => {
+          const contentEl = el(content);
+          if (contentEl) contentEl.classList.add('hidden');
+        });
       },
       
       // Esconder skeleton com smooth reveal

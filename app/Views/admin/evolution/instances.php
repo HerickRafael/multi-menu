@@ -13,6 +13,9 @@ if (!function_exists('e')) {
 }
 
 ob_start(); ?>
+
+<!-- Sistemas centralizados carregados via layout principal -->
+
 <div class="mx-auto max-w-6xl p-4">
 
   <!-- HEADER -->
@@ -559,6 +562,13 @@ ob_start(); ?>
   let previousStatuses = new Map(); // Para rastrear mudanças de status
 
   function showSkeletonLoading() {
+    // Usar SkeletonSystem centralizado se disponível
+    if (window.SkeletonSystem) {
+      return window.SkeletonSystem.showSkeletonLoading({ 
+        main: { skeleton: 'skeletonCards', content: 'realCards' } 
+      });
+    }
+    // Fallback
     const skeletonCards = document.getElementById('skeletonCards');
     if (skeletonCards) {
       skeletonCards.style.display = 'contents';
@@ -566,6 +576,12 @@ ob_start(); ?>
   }
 
   function hideSkeletonLoading() {
+    // Usar SkeletonSystem centralizado se disponível
+    if (window.SkeletonSystem && window.skeletonLoaderInstance) {
+      window.SkeletonSystem.hideSkeletonLoading(window.skeletonLoaderInstance);
+      return;
+    }
+    // Fallback
     const skeletonCards = document.getElementById('skeletonCards');
     if (skeletonCards) {
       skeletonCards.style.display = 'none';
@@ -644,19 +660,15 @@ ob_start(); ?>
     previousStatuses = currentStatuses;
   }
 
-  // Reutilizar função toast do admin-common.js
+  // Usar ToastSystem centralizado
   function toast(msg, type = 'success') {
-    if (window.AdminCommon && window.AdminCommon.showToast) {
+    if (window.ToastSystem) {
+      return window.ToastSystem.toast(msg, type);
+    } else if (window.AdminCommon && window.AdminCommon.showToast) {
       window.AdminCommon.showToast(msg, type);
     } else {
-      // Fallback caso admin-common.js não esteja carregado
-      const box = document.getElementById('toast');
-      if (!box) return;
-      const bgColor = type === 'error' ? 'bg-red-600' : 'bg-slate-900';
-      box.innerHTML = `<div class="rounded-xl ${bgColor} px-4 py-2 text-sm text-white shadow-xl">${msg}</div>`;
-      box.classList.remove('opacity-0');
-      box.classList.add('opacity-100');
-      setTimeout(() => { box.classList.remove('opacity-0'); box.classList.add('opacity-0'); }, 3000);
+      // Fallback básico
+      console.log(`Toast: ${msg} (${type})`);
     }
   }
 

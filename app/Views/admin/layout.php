@@ -124,7 +124,13 @@ if (!function_exists('status_pill')) {
     <?= $content ?? '' ?>
   </div>
 
+  <!-- Sistemas centralizados -->
+  <link rel="stylesheet" href="<?= base_url('assets/css/ui.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/css/skeleton.css') ?>">
+  
   <!-- JavaScript comum do admin -->
+  <script src="<?= base_url('assets/js/toast-system.js') ?>"></script>
+  <script src="<?= base_url('assets/js/skeleton-system.js') ?>"></script> 
   <script src="<?= base_url('public/assets/js/admin-common.js') ?>"></script>
 
   <?php if (!isset($_SERVER['REQUEST_URI']) || !preg_match('/\/kds(\/|$)/', $_SERVER['REQUEST_URI'])): ?>

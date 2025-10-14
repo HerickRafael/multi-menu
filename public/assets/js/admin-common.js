@@ -1,10 +1,14 @@
 /**
  * Admin Common JavaScript Functions
  * Arquivo centralizado para reutilização de código JavaScript comum no admin
+ * 
+ * NOTA: Este arquivo foi refatorado para usar sistemas centralizados.
+ * Toast System: /assets/js/toast-system.js
+ * Skeleton System: /assets/js/skeleton-system.js
  */
 
 // =============================================================================
-// TOAST/NOTIFICATION SYSTEM
+// TOAST/NOTIFICATION SYSTEM (usando ToastSystem centralizado)
 // =============================================================================
 
 /**
@@ -14,41 +18,13 @@
  * @param {number} duration - Duração em ms (padrão: 5000)
  */
 function showToast(message, type = 'info', duration = 5000) {
-  // Criar container de toasts se não existir
-  let toastContainer = document.getElementById('toast-container');
-  if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'toast-container';
-    toastContainer.className = 'fixed top-4 right-4 z-50 space-y-2';
-    document.body.appendChild(toastContainer);
+  // Usar ToastSystem centralizado se disponível
+  if (window.ToastSystem) {
+    return window.ToastSystem.show(message, type === 'warn' ? 'warning' : type, { duration });
   }
-
-  const toast = document.createElement('div');
-  const baseClasses = 'pointer-events-auto px-4 py-3 rounded-xl text-sm shadow-lg border transform transition-all opacity-0 translate-x-4';
   
-  const typeClasses = {
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
-    success: 'bg-green-50 border-green-200 text-green-800',
-    warn: 'bg-amber-50 border-amber-200 text-amber-800',
-    error: 'bg-red-50 border-red-200 text-red-800'
-  };
-
-  toast.className = `${baseClasses} ${typeClasses[type] || typeClasses.info}`;
-  toast.textContent = message;
-  
-  toastContainer.appendChild(toast);
-  
-  // Animação de entrada
-  requestAnimationFrame(() => {
-    toast.classList.remove('opacity-0', 'translate-x-4');
-    toast.classList.add('opacity-100', 'translate-x-0');
-  });
-
-  // Remover após duração especificada
-  setTimeout(() => {
-    toast.classList.add('opacity-0', 'translate-x-4');
-    setTimeout(() => toast.remove(), 300);
-  }, duration);
+  // Fallback para compatibilidade (versão simplificada)
+  console.log(`Toast: ${message} (${type})`);
 }
 
 // =============================================================================
@@ -503,30 +479,29 @@ window.AdminCommon = {
   AutoRefresh,
   setupLiveSearch,
   
-  // Skeleton loading utilities
+  // Skeleton loading utilities (usando SkeletonSystem centralizado)
   showSkeletonElement: function(element) {
-    if (!element) return;
-    element.style.opacity = '0';
-    element.style.transform = 'translateY(10px)';
-    element.classList.add('animate-pulse', 'bg-slate-200');
+    if (window.SkeletonSystem) {
+      return window.SkeletonSystem.SkeletonUtils.showSkeletonElement(element);
+    }
+    // Fallback básico
+    if (element) element.classList.add('skeleton-basic');
   },
   
   hideSkeletonElement: function(element, delay = 0) {
-    if (!element) return;
-    setTimeout(() => {
-      element.classList.remove('animate-pulse', 'bg-slate-200');
-      element.style.transition = 'all 0.3s ease-in-out';
-      element.style.opacity = '1';
-      element.style.transform = 'translateY(0)';
-    }, delay);
+    if (window.SkeletonSystem) {
+      return window.SkeletonSystem.SkeletonUtils.hideSkeletonElement(element, delay);
+    }
+    // Fallback básico
+    if (element) element.classList.remove('skeleton-basic');
   },
   
   smoothReveal: function(elements, staggerDelay = 100) {
+    if (window.SkeletonSystem) {
+      return window.SkeletonSystem.SkeletonUtils.smoothReveal(elements, staggerDelay);
+    }
+    // Fallback básico
     if (!Array.isArray(elements)) elements = [elements];
-    elements.forEach((element, index) => {
-      if (element) {
-        this.hideSkeletonElement(element, index * staggerDelay);
-      }
-    });
+    elements.forEach(el => el && el.classList.remove('skeleton-basic'));
   }
 };
