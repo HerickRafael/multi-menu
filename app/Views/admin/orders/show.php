@@ -21,12 +21,6 @@ $statusLabels = [
   'canceled'  => 'Cancelado',
 ];
 $st = (string)($o['status'] ?? 'pending');
-$badgeClass = match($st) {
-    'paid'      => 'bg-blue-50  text-blue-700  ring-blue-200',
-    'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    'canceled'  => 'bg-rose-50 text-rose-700 ring-rose-200',
-    default     => 'bg-amber-50 text-amber-700 ring-amber-200',
-};
 
 // util: montar link do WhatsApp se houver telefone
 $wa = null;
@@ -142,18 +136,7 @@ $discountLabel  = $discountValue > 0
       <h1 class="admin-gradient-text bg-clip-text text-2xl font-semibold text-transparent">
         Pedido #<?= (int)($o['id'] ?? 0) ?>
       </h1>
-      <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 <?= $badgeClass ?>">
-        <?php if ($st === 'completed'): ?>
-          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-        <?php elseif ($st === 'paid'): ?>
-          <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
-        <?php elseif ($st === 'canceled'): ?>
-          <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-        <?php else: ?>
-          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-        <?php endif; ?>
-        <?= e($statusLabels[$st] ?? ucfirst($st)) ?>
-      </span>
+      <?= status_pill($st, $statusLabels[$st] ?? ucfirst($st)) ?>
     </div>
 
     <div class="ml-auto flex items-center gap-2">

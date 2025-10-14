@@ -196,7 +196,7 @@ class EvolutionNotifier
             return;
         }
 
-        $endpointCandidates = ['/instance/sendTextMessage', '/instance/sendMessage', '/message/send', '/instance/sendText', '/instance/send', '/message/sendText', '/api/message/sendText'];
+        $endpointCandidates = ['/message/sendText']; // API Evolution v2.3 endpoint oficial
 
         // try each endpoint x instanceName x numberCandidate
         foreach ($endpointCandidates as $path) {

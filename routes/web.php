@@ -50,15 +50,31 @@ $router->get('/admin/{slug}/kds',                'AdminKdsController@index');
 $router->get('/admin/{slug}/kds/data',           'AdminKdsController@data');
 $router->post('/admin/{slug}/kds/status',        'AdminKdsController@status');
 
-// Evolution integration
-$router->get('/admin/{slug}/evolution',          'AdminEvolutionController@index');
-$router->get('/admin/{slug}/evolution/instances','AdminEvolutionController@instances');
+// Evolution integration - main route now shows instances page
+$router->get('/admin/{slug}/evolution',          'AdminEvolutionController@instances');
+$router->get('/admin/{slug}/evolution/instances/data','AdminEvolutionController@instancesData');
 $router->post('/admin/{slug}/evolution/create',  'AdminEvolutionController@create');
 $router->post('/admin/{slug}/evolution/refresh', 'AdminEvolutionController@refresh_qr');
 $router->post('/admin/{slug}/evolution/delete',  'AdminEvolutionController@delete');
 $router->post('/admin/{slug}/evolution/import',  'AdminEvolutionController@import_remote');
 $router->post('/admin/{slug}/evolution/fetch',   'AdminEvolutionController@fetch_and_import');
 $router->post('/admin/{slug}/evolution/sync',    'AdminEvolutionController@sync');
+
+// Evolution Webhooks
+$router->post('/admin/{slug}/evolution/configure_webhook/{instanceName}', 'AdminEvolutionController@configure_webhook');
+$router->post('/admin/{slug}/evolution/remove_webhook/{instanceName}',    'AdminEvolutionController@remove_webhook');
+$router->get('/admin/{slug}/evolution/webhook_status/{instanceName}',     'AdminEvolutionController@webhook_status');
+
+// Evolution Instance Configuration
+$router->get('/admin/{slug}/evolution/instance/{instanceName}',           'AdminEvolutionInstanceController@config');
+$router->get('/admin/{slug}/evolution/instance/{instanceName}/connection_state', 'AdminEvolutionInstanceController@connection_state');
+$router->get('/admin/{slug}/evolution/instance/{instanceName}/connect',   'AdminEvolutionInstanceController@connect');
+$router->post('/admin/{slug}/evolution/instance/{instanceName}/restart',  'AdminEvolutionInstanceController@restart');
+$router->post('/admin/{slug}/evolution/instance/{instanceName}/disconnect', 'AdminEvolutionInstanceController@disconnect');
+$router->get('/admin/{slug}/evolution/instance/{instanceName}/qr_code',   'AdminEvolutionInstanceController@qr_code');
+$router->get('/admin/{slug}/evolution/instance/{instanceName}/stats',     'AdminEvolutionInstanceController@stats');
+$router->post('/admin/{slug}/evolution/instance/{instanceName}/settings', 'AdminEvolutionInstanceController@save_settings');
+$router->get('/admin/{slug}/evolution/instance/{instanceName}/settings',  'AdminEvolutionInstanceController@get_settings');
 
 // Categorias (CRUD)
 $router->get('/admin/{slug}/categories',             'AdminCategoryController@index');

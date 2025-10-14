@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste JavaScript Evolution API</title>
+</head>
+<body>
+    <h1>Teste Evolution API JavaScript</h1>
+    
+    <div>
+        <h2>Configurações Atuais:</h2>
+        <div id="settings"></div>
+    </div>
+    
+    <div>
+        <h2>Toggle rejectCall:</h2>
+        <button id="toggleRejectCall" onclick="toggleSetting('rejectCall')">Toggle rejectCall</button>
+        <span id="status"></span>
+    </div>
+
+    <script>
+        const evolutionApiUrl = 'https://evolutionvictor.mlojas.com';
+        const apiKey = '0cdfec38b34fdae0d7624e8e28debd9f';
+        const instanceName = 'teste';
+        
+        // Carregar configurações
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${evolutionApiUrl}/settings/find/${instanceName}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'apikey': apiKey
+                    }
+                });
+                
+                if (response.ok) {
+                    const settings = await response.json();
+                    document.getElementById('settings').innerHTML = 
+                        '<pre>' + JSON.stringify(settings, null, 2) + '</pre>';
+                    
+                    // Atualizar button baseado no estado atual
+                    const button = document.getElementById('toggleRejectCall');
+                    button.textContent = settings.rejectCall ? 'Desativar rejectCall' : 'Ativar rejectCall';
+                    button.style.backgroundColor = settings.rejectCall ? 'green' : 'gray';
+                } else {
+                    document.getElementById('settings').innerHTML = 'Erro: ' + response.status;
+                }
+            } catch (error) {
+                document.getElementById('settings').innerHTML = 'Erro: ' + error.message;
+            }
+        }
+        
+        // Toggle setting
+        async function toggleSetting(settingKey) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = 'Salvando...';
+            
+            try {
+                // 1. Buscar configurações atuais
+                const currentResponse = await fetch(`${evolutionApiUrl}/settings/find/${instanceName}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'apikey': apiKey
+                    }
+                });
+                
+                if (!currentResponse.ok) throw new Error('Erro ao buscar configurações');
+                
+                const currentSettings = await currentResponse.json();
+                
+                // 2. Alternar valor
+                const newValue = !currentSettings[settingKey];
+                
+                // 3. Preparar configurações completas
+                const finalSettings = {
+                    ...currentSettings,
+                    [settingKey]: newValue
+                };
+                
+                // 4. Salvar
+                const saveResponse = await fetch(`${evolutionApiUrl}/settings/set/${instanceName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': apiKey
+                    },
+                    body: JSON.stringify(finalSettings)
+                });
+                
+                if (saveResponse.ok) {
+                    statusEl.textContent = 'Salvo!';
+                    statusEl.style.color = 'green';
+                    setTimeout(() => loadSettings(), 500);
+                } else {
+                    statusEl.textContent = 'Erro ao salvar';
+                    statusEl.style.color = 'red';
+                }
+                
+            } catch (error) {
+                statusEl.textContent = 'Erro: ' + error.message;
+                statusEl.style.color = 'red';
+            }
+        }
+        
+        // Carregar configurações ao iniciar
+        loadSettings();
+    </script>
+</body>
+</html>

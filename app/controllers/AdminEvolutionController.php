@@ -195,20 +195,206 @@ class AdminEvolutionController extends Controller
     public function instances($params)
     {
         [$u,$company] = $this->guard($params['slug']);
-        $instances = EvolutionInstance::allForCompany((int)$company['id']);
-        // também expõe instâncias remotas para listagem (useful for AJAX)
-        $remote = [];
-    $res = $this->evolutionApiRequest($company, '/instance/fetchInstances', 'GET', null);
-        if (!isset($res['error']) && isset($res['data'])) {
-            $data = $res['data'];
-            if (isset($data['instances']) && is_array($data['instances'])) {
-                $remote = $data['instances'];
-            } elseif (is_array($data)) {
-                $remote = $data;
+        
+        // CARREGAR A VIEW DE INSTÂNCIAS - DADOS VÊM VIA AJAX DO instancesData()
+        // Não precisamos buscar dados aqui, a view usa JavaScript para carregar via AJAX
+        
+        return $this->view('admin/evolution/instances', compact('company'));
+    }
+    
+    /**
+     * Sincroniza uma nova instância com a API para obter o UUID correto
+     */
+    private function syncNewInstanceWithApi($company, $instanceName, &$instance_identifier)
+    {
+        try {
+            // Aguardar um pouco para a instância ser processada na API
+            sleep(2);
+            
+            // Buscar todas as instâncias da API
+            $res = $this->evolutionApiRequest($company, '/instance/fetchInstances', 'GET', null);
+            if (!isset($res['error']) && isset($res['data'])) {
+                $data = $res['data'];
+                $remote = [];
+                
+                if (isset($data['instances']) && is_array($data['instances'])) {
+                    $remote = $data['instances'];
+                } elseif (is_array($data)) {
+                    $remote = $data;
+                }
+                
+                // Procurar a instância pelo instanceName
+                foreach ($remote as $remoteInst) {
+                    $remoteName = $remoteInst['instanceName'] ?? $remoteInst['name'] ?? null;
+                    $remoteId = $remoteInst['id'] ?? $remoteInst['instance_identifier'] ?? null;
+                    
+                    if ($remoteName === $instanceName && $remoteId && $remoteId !== $instanceName) {
+                        // Encontrou! Atualizar com o UUID real
+                        $instance_identifier = $remoteId;
+                        error_log("Nova instância '$instanceName' sincronizada com UUID: $remoteId");
+                        break;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Erro ao sincronizar nova instância '$instanceName': " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Formata um número de telefone brasileiro de forma consistente
+     */
+    private function formatBrazilianPhone($rawNumber)
+    {
+        if (empty($rawNumber)) {
+            return '';
+        }
+        
+        // Remove caracteres não numéricos
+        $cleanNumber = preg_replace('/\D/', '', $rawNumber);
+        
+        // Se começa com 55 e tem pelo menos 13 dígitos (55 + DDD + 9 dígitos)
+        if (strlen($cleanNumber) >= 13 && substr($cleanNumber, 0, 2) === '55') {
+            $ddd = substr($cleanNumber, 2, 2);
+            $numero = substr($cleanNumber, 4);
+            
+            if (strlen($numero) === 9) {
+                // Celular com 9 dígitos: +55 (11) 9 1234-5678
+                return '+55 (' . $ddd . ') ' . substr($numero, 0, 1) . ' ' . substr($numero, 1, 4) . '-' . substr($numero, 5);
+            } elseif (strlen($numero) === 8) {
+                // Fixo com 8 dígitos: +55 (11) 1234-5678
+                return '+55 (' . $ddd . ') ' . substr($numero, 0, 4) . '-' . substr($numero, 4);
             }
         }
+        
+        // Se não conseguiu formatar, retorna o número limpo com + na frente
+        return '+' . $cleanNumber;
+    }
 
-        return $this->view('admin/evolution/instances', compact('company','instances','remote'));
+    /**
+     * Atualiza o instance_identifier de uma instância após criação
+     */
+    private function updateInstanceIdentifier($instanceId, $newIdentifier)
+    {
+        try {
+            $db = db();
+            $stmt = $db->prepare('UPDATE evolution_instances SET instance_identifier = ? WHERE id = ?');
+            $stmt->execute([$newIdentifier, $instanceId]);
+            error_log("Instance ID $instanceId atualizado para identifier: $newIdentifier");
+        } catch (Exception $e) {
+            error_log("Erro ao atualizar identifier da instância $instanceId: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Atualiza o número de telefone de uma instância no banco de dados
+     */
+    private function updateInstanceNumber($instanceId, $number)
+    {
+        try {
+            $db = db();
+            $stmt = $db->prepare('UPDATE evolution_instances SET number = ? WHERE id = ?');
+            $stmt->execute([$number, $instanceId]);
+        } catch (Exception $e) {
+            // Log do erro mas não interrompe o fluxo
+            error_log("Erro ao atualizar número da instância $instanceId: " . $e->getMessage());
+        }
+    }
+
+    public function instancesData($params)
+    {
+        [$u,$company] = $this->guard($params['slug']);
+        
+        // BUSCAR INSTÂNCIAS DIRETAMENTE DA API EVOLUTION - SEM BANCO LOCAL
+        $remoteInstances = [];
+        $res = $this->evolutionApiRequest($company, '/instance/fetchInstances', 'GET', null);
+        
+        if (isset($res['error'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => $res['error'], 'instances' => []]);
+            return;
+        }
+        
+        if (isset($res['data'])) {
+            $data = $res['data'];
+            if (isset($data['instances']) && is_array($data['instances'])) {
+                $remoteInstances = $data['instances'];
+            } elseif (is_array($data)) {
+                $remoteInstances = $data;
+            }
+        }
+        
+        // Processar instâncias remotas para o formato esperado pelo frontend
+        $processedInstances = array_map(function($remoteInst) {
+            // Nome da instancia - priorizar 'name' da API
+            $instanceName = $remoteInst['name'] ?? $remoteInst['instanceName'] ?? 'Instance';
+            
+            // Status da conexão
+            $connectionStatus = $remoteInst['connectionStatus'] ?? $remoteInst['status'] ?? 'disconnected';
+            
+            // Contadores de mensagens e chats
+            $chatCount = 0;
+            $messageCount = 0;
+            if (isset($remoteInst['_count'])) {
+                $chatCount = $remoteInst['_count']['Chat'] ?? 0;
+                $messageCount = $remoteInst['_count']['Message'] ?? 0;
+            }
+            
+            // Número do WhatsApp - tentar múltiplas fontes
+            $rawNumber = '';
+            if (isset($remoteInst['number']) && $remoteInst['number']) {
+                $rawNumber = $remoteInst['number'];
+            } elseif (isset($remoteInst['ownerJid']) && $remoteInst['ownerJid']) {
+                // Extrair número do ownerJid (formato: 555194035717@s.whatsapp.net)
+                if (preg_match('/^(\d+)@/', $remoteInst['ownerJid'], $matches)) {
+                    $rawNumber = $matches[1];
+                }
+            }
+            
+            $formattedPhone = $this->formatBrazilianPhone($rawNumber);
+            
+            // Nome do perfil
+            $profileName = $remoteInst['profileName'] ?? 'Contato WhatsApp';
+            
+            // Avatar baseado no nome do perfil
+            $letters = strtoupper(substr($profileName, 0, 2));
+            $colors = ['bg-amber-400', 'bg-sky-400', 'bg-emerald-400', 'bg-purple-400', 'bg-pink-400', 'bg-indigo-400'];
+            $color = $colors[abs(crc32($profileName . $rawNumber)) % count($colors)];
+            
+            // Determinar status processado
+            $status = 'disconnected';
+            $apiStatus = strtolower(trim($connectionStatus));
+            if (in_array($apiStatus, ['open', 'connected', 'ready', 'online'])) {
+                $status = 'connected';
+            } elseif (in_array($apiStatus, ['connecting', 'qr_code', 'qr', 'pairing', 'scan_qr'])) {
+                $status = 'pending';
+            } else {
+                $status = 'disconnected';
+            }
+            
+            // Determinar se deve mostrar o telefone
+            $showPhone = ($status === 'connected') && !empty($rawNumber);
+            
+            return [
+                'id' => $remoteInst['id'] ?? null, // UUID da API Evolution
+                'instanceName' => $instanceName, // Nome da instância para DELETE
+                'instance_name' => $instanceName,
+                'contact_name' => $profileName,
+                'phone' => $rawNumber,
+                'instance_phone' => $formattedPhone,
+                'show_phone' => $showPhone,
+                'handle' => $rawNumber ? '@' . $rawNumber : '',
+                'instance_identifier' => $remoteInst['id'] ?? null, // UUID único da API
+                'users' => (string)$chatCount,
+                'messages' => (string)$messageCount,
+                'status' => $status,
+                'avatar' => ['letters' => $letters, 'color' => $color],
+                'profile_pic_url' => $remoteInst['profilePicUrl'] ?? null
+            ];
+        }, $remoteInstances);
+        
+        header('Content-Type: application/json');
+        echo json_encode(['instances' => $processedInstances]);
     }
 
     public function import_remote($params)
@@ -328,72 +514,59 @@ class AdminEvolutionController extends Controller
 
     public function sync($params)
     {
-        [$u,$company] = $this->guard($params['slug']);
-
-        // candidate paths to list instances; prioritize v2-style endpoints
-        $candidates = [
-            '/instance/fetchInstances',
-            '/instance/getAll',
-            '/instances',
-            '/api/instances',
-            '/api/v2/instances',
-            '/instance/list',
-            '/v2/instances',
-        ];
-
-        $all = null;
-        foreach ($candidates as $p) {
-            $res = $this->evolutionApiRequest($company, $p, 'GET', null);
-            if (!isset($res['error']) && isset($res['data'])) {
-                $data = $res['data'];
-                // normalize: if response contains an object with key 'instances' or 'data'
-                if (isset($data['instances']) && is_array($data['instances'])) {
-                    $all = $data['instances'];
-                } elseif (isset($data['data']) && is_array($data['data'])) {
-                    $all = $data['data'];
-                } elseif (is_array($data)) {
-                    $all = $data;
-                }
-                if (is_array($all)) break;
+        $isAjax = $this->isAjax() || 
+                 (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
+                 (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+        
+        try {
+            [$u,$company] = $this->guard($params['slug']);
+        } catch (\Exception $e) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Acesso negado: ' . $e->getMessage()]);
+                return;
             }
+            throw $e;
         }
 
-        if (!is_array($all)) {
-            if ($this->isAjax()) { header('Content-Type: application/json'); echo json_encode(['error' => ($res['error'] ?? 'sem resposta')]); return; }
-            $_SESSION['flash_error'] = 'Não foi possível listar instâncias remotas: ' . ($res['error'] ?? 'sem resposta');
+        // COM ARQUITETURA API-FIRST, NÃO PRECISAMOS "SINCRONIZAR"
+        // Os dados sempre vêm diretamente da API remota
+        
+        // Vamos apenas verificar se conseguimos acessar a API
+        $res = $this->evolutionApiRequest($company, '/instance/fetchInstances', 'GET', null);
+        
+        if (isset($res['error'])) {
+            if ($isAjax) { 
+                header('Content-Type: application/json'); 
+                echo json_encode(['error' => 'Erro ao acessar API Evolution: ' . $res['error']]); 
+                return; 
+            }
+            $_SESSION['flash_error'] = 'Erro ao acessar API Evolution: ' . $res['error'];
             header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
-            exit;
+            return;
+        }
+        
+        $data = $res['data'] ?? [];
+        $instanceCount = 0;
+        
+        // Contar instâncias retornadas
+        if (isset($data['instances']) && is_array($data['instances'])) {
+            $instanceCount = count($data['instances']);
+        } elseif (is_array($data)) {
+            $instanceCount = count($data);
         }
 
-        $imported = 0;
-        $skipped = 0;
-        $existing = EvolutionInstance::allForCompany((int)$company['id']);
-        $existingIds = array_column($existing, 'instance_identifier');
-
-        foreach ($all as $item) {
-            // normalize item to associative array
-            if (!is_array($item)) continue;
-            $instance_identifier = $item['instance_identifier'] ?? ($item['id'] ?? ($item['instanceName'] ?? null));
-            if (!$instance_identifier) continue;
-            if (in_array($instance_identifier, $existingIds, true)) { $skipped++; continue; }
-
-            $number = $item['number'] ?? $item['phone'] ?? null;
-            $qr = $item['qr_code'] ?? $item['qr'] ?? null;
-            $label = $item['label'] ?? $item['name'] ?? $number;
-            $status = $item['status'] ?? $item['state'] ?? 'pending';
-
-            EvolutionInstance::create((int)$company['id'], [
-                'label' => $label,
-                'number' => $number,
-                'instance_identifier' => $instance_identifier,
-                'qr_code' => $qr,
-                'status' => $status,
-            ]);
-            $imported++;
+        if ($isAjax) { 
+            header('Content-Type: application/json'); 
+            echo json_encode([
+                'ok' => true, 
+                'message' => 'Conexão com API Evolution verificada',
+                'instance_count' => $instanceCount
+            ]); 
+            return; 
         }
 
-        $_SESSION['flash_success'] = "Sincronização concluída: importadas={$imported}, puladas={$skipped}";
-        if ($this->isAjax()) { header('Content-Type: application/json'); echo json_encode(['ok' => true, 'imported' => $imported, 'skipped' => $skipped]); return; }
+        $_SESSION['flash_success'] = "Conexão com API Evolution verificada. {$instanceCount} instâncias encontradas.";
         header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
     }
 
@@ -402,144 +575,421 @@ class AdminEvolutionController extends Controller
         [$u,$company] = $this->guard($params['slug']);
 
         $json = $this->getJsonBody();
-        $label = trim($json['label'] ?? $_POST['label'] ?? '');
-        $number = trim($json['number'] ?? $_POST['number'] ?? '');
+        $name = trim($json['name'] ?? $_POST['name'] ?? '');
 
-        if ($number === '') {
-            $_SESSION['flash_error'] = 'Informe o número/identificador da instância.';
+        if ($name === '') {
+            $errorMsg = 'Informe o nome da instância.';
+            if ($this->isAjax()) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => $errorMsg]);
+                return;
+            }
+            $_SESSION['flash_error'] = $errorMsg;
             header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
             exit;
         }
-        $instance_identifier = null;
-        $qr = null;
-        $status = 'pending';
 
+        // CRIAR DIRETAMENTE NA API EVOLUTION (sem salvar localmente)
+        $instanceName = $name;
+        
+        // Tentar via client oficial primeiro
         $client = $this->makeEvolutionClient($company);
         if ($client) {
             try {
-                // try creating instance using number as instanceName and api key as token
-                $resp = $client->createInstance($number, $company['evolution_api_key'] ?? '', true);
+                $resp = $client->createInstance($instanceName, $company['evolution_api_key'] ?? '', true);
                 if (is_array($resp)) {
                     $instance_identifier = $resp['instance_identifier'] ?? ($resp['id'] ?? $resp['instanceName'] ?? null);
                     $qr = $resp['qr_code'] ?? $resp['qr'] ?? null;
-                    $status = $resp['status'] ?? $resp['state'] ?? 'pending';
+                    $status = $resp['status'] ?? $resp['state'] ?? 'close';
                 }
             } catch (\Throwable $e) {
-                $_SESSION['flash_error'] = 'Erro API: ' . $e->getMessage();
+                $errorMsg = 'Erro API: ' . $e->getMessage();
+                if ($this->isAjax()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => $errorMsg]);
+                    return;
+                }
+                $_SESSION['flash_error'] = $errorMsg;
+                header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
+                exit;
             }
         } else {
-            // Postman/official endpoints use /instance/createInstance for v2
-            $res = $this->evolutionApiRequest($company, '/instance/createInstance', 'POST', ['instanceName' => $number, 'token' => ($company['evolution_api_key'] ?? '')]);
+            // API Evolution v2.3 endpoint correto para criar instância
+            $res = $this->evolutionApiRequest($company, '/instance/create', 'POST', [
+                'instanceName' => $instanceName,
+                'integration' => 'WHATSAPP-BAILEYS'  // Campo obrigatório!
+            ]);
 
             if (isset($res['error'])) {
-                $_SESSION['flash_error'] = 'Erro API: ' . $res['error'];
+                $errorMsg = 'Erro API: ' . $res['error'];
+                if ($this->isAjax()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => $errorMsg]);
+                    return;
+                }
+                $_SESSION['flash_error'] = $errorMsg;
             } else {
                 $data = $res['data'] ?? [];
-                $instance_identifier = $data['instance_identifier'] ?? ($data['id'] ?? null);
-                $qr = $data['qr_code'] ?? $data['qr'] ?? null;
-                $status = $data['status'] ?? 'pending';
+                $instance_identifier = $data['instance']['instanceName'] ?? $data['instanceName'] ?? $instanceName;
+                $qr = null; // QR será gerado em etapa separada
+                $status = $data['instance']['status'] ?? $data['status'] ?? 'close';
+                
+                // IMPORTANTE: Buscar o UUID real da instância na API
+                $this->syncNewInstanceWithApi($company, $instanceName, $instance_identifier);
             }
         }
 
-        EvolutionInstance::create((int)$company['id'], [
-            'label' => $label,
-            'number' => $number,
-            'instance_identifier' => $instance_identifier,
-            'qr_code' => $qr,
-            'status' => $status,
-        ]);
-
-        // If AJAX, return json with created instance (or error if any)
+        // NÃO SALVAR LOCALMENTE - Trabalhar apenas com API remota
+        
+        // Se chegou aqui, a instância foi criada com sucesso na API
         if ($this->isAjax()) {
-            $error = $_SESSION['flash_error'] ?? null;
-            if ($error) {
-                header('Content-Type: application/json');
-                echo json_encode(['error' => $error]);
-                return;
-            }
-
             header('Content-Type: application/json');
-            echo json_encode(['ok' => true, 'instance' => ['instance_identifier' => $instance_identifier, 'qr' => $qr, 'status' => $status, 'label' => $label, 'number' => $number]]);
+            echo json_encode([
+                'ok' => true, 
+                'message' => 'Instância criada com sucesso na API Evolution',
+                'instance' => [
+                    'name' => $instanceName,
+                    'instance_identifier' => $instance_identifier,
+                    'status' => $status
+                ]
+            ]);
             return;
         }
 
+        $_SESSION['flash_success'] = 'Instância criada com sucesso na API Evolution';
         header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
     }
 
     public function refresh_qr($params)
     {
-        [$u,$company] = $this->guard($params['slug']);
+        $isAjax = $this->isAjax() || 
+                 (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
+                 (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+        
+        try {
+            [$u,$company] = $this->guard($params['slug']);
+        } catch (\Exception $e) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Acesso negado: ' . $e->getMessage()]);
+                return;
+            }
+            throw $e;
+        }
+        
         $json = $this->getJsonBody();
-        $id = (int)($json['id'] ?? $_POST['id'] ?? 0);
+        // Aceitar tanto instanceName quanto instanceId (UUID da API)
+        $instanceName = $json['instanceName'] ?? $_POST['instanceName'] ?? null;
+        $instanceId = $json['instanceId'] ?? $json['id'] ?? $_POST['instanceId'] ?? $_POST['id'] ?? null;
 
-        $inst = EvolutionInstance::find($id);
-        if (!$inst) {
-            $_SESSION['flash_error'] = 'Instância não encontrada';
+        if (!$instanceName && !$instanceId) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Nome ou ID da instância não informado']);
+                return;
+            }
             header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
-            exit;
+            return;
         }
 
-        if (!$inst['instance_identifier']) {
-            $_SESSION['flash_error'] = 'Instância não possui identificador remoto';
-            header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
-            exit;
+        // Se temos apenas o UUID, buscar o nome na API remota
+        if (!$instanceName && $instanceId) {
+            $remoteRes = $this->evolutionApiRequest($company, '/instance/fetchInstances', 'GET', null);
+            if (!isset($remoteRes['error']) && isset($remoteRes['data'])) {
+                foreach ($remoteRes['data'] as $remoteInst) {
+                    if (($remoteInst['id'] ?? '') === $instanceId) {
+                        $instanceName = $remoteInst['name'] ?? null;
+                        break;
+                    }
+                }
+            }
+            
+            if (!$instanceName) {
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => 'Instância não encontrada na API Evolution']);
+                    return;
+                }
+                header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
+                return;
+            }
         }
 
+        // BUSCAR QR CODE DIRETAMENTE NA API EVOLUTION
+        $qr = null;
+        $apiError = null;
+        
         $client = $this->makeEvolutionClient($company);
         if ($client) {
             try {
-                $info = $client->fetchInstance($inst['instance_identifier']);
+                $info = $client->fetchInstance($instanceName);
                 $qr = $info['qr_code'] ?? $info['qr'] ?? null;
-                EvolutionInstance::update($id, ['qr_code' => $qr, 'status' => $info['status'] ?? $inst['status']]);
             } catch (\Throwable $e) {
-                $_SESSION['flash_error'] = 'Erro API: ' . $e->getMessage();
-                if ($this->isAjax()) { header('Content-Type: application/json'); echo json_encode(['error' => $e->getMessage()]); return; }
+                $apiError = $e->getMessage();
             }
         } else {
-            // v2 endpoint to fetch instance info/qr
-            $res = $this->evolutionApiRequest($company, '/instance/fetchInstances?instanceName=' . rawurlencode($inst['instance_identifier']), 'GET');
+            // Usar endpoint direto da API para buscar QR code
+            $res = $this->evolutionApiRequest($company, '/instance/fetchInstances?instanceName=' . rawurlencode($instanceName), 'GET');
 
             if (isset($res['error'])) {
-                $_SESSION['flash_error'] = 'Erro API: ' . $res['error'];
-                if ($this->isAjax()) { header('Content-Type: application/json'); echo json_encode(['error' => $res['error']]); return; }
+                $apiError = $res['error'];
             } else {
                 $data = $res['data'] ?? [];
-                $qr = $data['qr_code'] ?? $data['qr'] ?? null;
-                EvolutionInstance::update($id, ['qr_code' => $qr, 'status' => $data['status'] ?? $inst['status']]);
+                if (is_array($data)) {
+                    // Se retornou array de instâncias, procurar a específica
+                    foreach ($data as $inst) {
+                        if (($inst['name'] ?? '') === $instanceName) {
+                            $qr = $inst['qr_code'] ?? $inst['qr'] ?? null;
+                            break;
+                        }
+                    }
+                } else {
+                    // Se retornou instância única
+                    $qr = $data['qr_code'] ?? $data['qr'] ?? null;
+                }
             }
         }
 
-        if ($this->isAjax()) { header('Content-Type: application/json'); echo json_encode(['ok' => true, 'qr' => $qr ?? null]); return; }
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            if ($apiError) {
+                echo json_encode(['error' => 'Erro ao buscar QR Code: ' . $apiError]);
+            } else {
+                echo json_encode(['ok' => true, 'qr' => $qr]);
+            }
+            return;
+        }
+
+        if ($apiError) {
+            $_SESSION['flash_error'] = 'Erro ao atualizar QR Code: ' . $apiError;
+        } else {
+            $_SESSION['flash_success'] = 'QR Code atualizado com sucesso';
+        }
 
         header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
     }
 
     public function delete($params)
     {
-        [$u,$company] = $this->guard($params['slug']);
+        // Forçar detecção AJAX se houver headers corretos
+        $isAjax = $this->isAjax() || 
+                 (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
+                 (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+        
+        try {
+            [$u,$company] = $this->guard($params['slug']);
+        } catch (\Exception $e) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Acesso negado: ' . $e->getMessage()]);
+                return;
+            }
+            throw $e;
+        }
+        
         $json = $this->getJsonBody();
-        $id = (int)($json['id'] ?? $_POST['id'] ?? 0);
-        $inst = EvolutionInstance::find($id);
-        if ($inst) {
-            if ($inst['instance_identifier']) {
-                $client = $this->makeEvolutionClient($company);
-                if ($client) {
-                    try {
-                        $client->deleteInstance($inst['instance_identifier']);
-                    } catch (\Throwable $e) {
-                        if ($this->isAjax()) { header('Content-Type: application/json'); echo json_encode(['error' => $e->getMessage()]); return; }
-                        // swallow - we still delete local record
+        
+        // Aceitar tanto instanceName quanto instanceId (UUID da API)
+        $instanceName = $json['instanceName'] ?? $_POST['instanceName'] ?? null;
+        $instanceId = $json['instanceId'] ?? $json['id'] ?? $_POST['instanceId'] ?? $_POST['id'] ?? null;
+        
+        if (!$instanceName && !$instanceId) {
+            if ($isAjax) { 
+                header('Content-Type: application/json'); 
+                echo json_encode(['error' => 'Nome ou ID da instância não informado']); 
+                return; 
+            }
+            header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
+            return;
+        }
+        
+        // Se temos apenas o UUID, buscar o nome na API remota
+        if (!$instanceName && $instanceId) {
+            $remoteRes = $this->evolutionApiRequest($company, '/instance/fetchInstances', 'GET', null);
+            if (!isset($remoteRes['error']) && isset($remoteRes['data'])) {
+                foreach ($remoteRes['data'] as $remoteInst) {
+                    if (($remoteInst['id'] ?? '') === $instanceId) {
+                        $instanceName = $remoteInst['name'] ?? null;
+                        break;
                     }
-                } else {
-                    // v2 endpoint to delete instance
-                    $this->evolutionApiRequest($company, '/instance/deleteInstance', 'POST', ['instanceName' => $inst['instance_identifier']]);
                 }
             }
-            EvolutionInstance::delete($id);
+            
+            if (!$instanceName) {
+                if ($isAjax) { 
+                    header('Content-Type: application/json'); 
+                    echo json_encode(['error' => 'Instância não encontrada na API Evolution']); 
+                    return; 
+                }
+                header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
+                return;
+            }
+        }
+        
+        // DELETAR DIRETAMENTE NA API EVOLUTION
+        $apiError = null;
+        $client = $this->makeEvolutionClient($company);
+        if ($client) {
+            try {
+                $client->deleteInstance($instanceName);
+            } catch (\Throwable $e) {
+                $apiError = $e->getMessage();
+            }
+        } else {
+            // Usar endpoint direto da API Evolution v2.3
+            $result = $this->evolutionApiRequest($company, "/instance/delete/{$instanceName}", 'DELETE', null);
+            
+            if (isset($result['error'])) {
+                $apiError = $result['error'];
+            } else if (isset($result['data']) && isset($result['data']['error'])) {
+                $apiError = $result['data']['error'];
+            }
         }
 
-        if ($this->isAjax()) { header('Content-Type: application/json'); echo json_encode(['ok' => true]); return; }
+        if ($isAjax) { 
+            header('Content-Type: application/json'); 
+            if ($apiError) {
+                echo json_encode(['error' => 'Erro ao deletar instância: ' . $apiError]); 
+            } else {
+                echo json_encode(['ok' => true, 'message' => 'Instância deletada com sucesso da API Evolution']); 
+            }
+            return; 
+        }
 
+        // Para requisições não-AJAX, definir mensagem de feedback
+        if ($apiError) {
+            $_SESSION['flash_error'] = 'Erro ao deletar instância: ' . $apiError;
+        } else {
+            $_SESSION['flash_success'] = 'Instância deletada com sucesso';
+        }
+        
         header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/evolution'));
+    }
+
+    /**
+     * Configura webhook para uma instância específica
+     */
+    public function configure_webhook($companySlug, $instanceName = null)
+    {
+        $company = Company::findBySlug($companySlug);
+        if (!$company) {
+            http_response_code(404);
+            exit('Company not found');
+        }
+
+        if (!$instanceName) {
+            http_response_code(400);
+            exit('Instance name is required');
+        }
+
+        // URL do webhook
+        $webhookUrl = base_url('webhook/evolution.php');
+        
+        // Configurações do webhook seguindo Evolution API v2.3 (formato correto)
+        $webhookConfig = [
+            'enabled' => true,
+            'url' => $webhookUrl,
+            'events' => [
+                'APPLICATION_STARTUP',
+                'QRCODE_UPDATED',
+                'MESSAGES_SET',
+                'MESSAGES_UPSERT',
+                'MESSAGES_UPDATE',
+                'MESSAGES_DELETE',
+                'SEND_MESSAGE',
+                'CONTACTS_SET',
+                'CONTACTS_UPSERT',
+                'CONTACTS_UPDATE',
+                'PRESENCE_UPDATE',
+                'CHATS_SET',
+                'CHATS_UPSERT',
+                'CHATS_UPDATE',
+                'CHATS_DELETE',
+                'GROUPS_UPSERT',
+                'GROUP_UPDATE',
+                'GROUP_PARTICIPANTS_UPDATE',
+                'CONNECTION_UPDATE',
+                'LABELS_EDIT',
+                'LABELS_ASSOCIATION',
+                'CALL'
+            ],
+            'webhook_by_events' => true,
+            'webhook_base64' => false
+        ];
+
+        $result = $this->evolutionApiRequest($company, "/webhook/set/{$instanceName}", 'POST', $webhookConfig);
+        
+        header('Content-Type: application/json');
+        if (isset($result['error'])) {
+            http_response_code(400);
+            echo json_encode(['error' => $result['error']]);
+        } else {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Webhook configurado com sucesso',
+                'data' => $result['data'] ?? null
+            ]);
+        }
+    }
+
+    /**
+     * Remove webhook de uma instância
+     */
+    public function remove_webhook($companySlug, $instanceName = null)
+    {
+        $company = Company::findBySlug($companySlug);
+        if (!$company) {
+            http_response_code(404);
+            exit('Company not found');
+        }
+
+        if (!$instanceName) {
+            http_response_code(400);
+            exit('Instance name is required');
+        }
+
+        $result = $this->evolutionApiRequest($company, "/webhook/delete/{$instanceName}", 'DELETE', null);
+        
+        header('Content-Type: application/json');
+        if (isset($result['error'])) {
+            http_response_code(400);
+            echo json_encode(['error' => $result['error']]);
+        } else {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Webhook removido com sucesso',
+                'data' => $result['data'] ?? null
+            ]);
+        }
+    }
+
+    /**
+     * Lista configurações de webhook de uma instância
+     */
+    public function webhook_status($companySlug, $instanceName = null)
+    {
+        $company = Company::findBySlug($companySlug);
+        if (!$company) {
+            http_response_code(404);
+            exit('Company not found');
+        }
+
+        if (!$instanceName) {
+            http_response_code(400);
+            exit('Instance name is required');
+        }
+
+        $result = $this->evolutionApiRequest($company, "/webhook/find/{$instanceName}", 'GET', null);
+        
+        header('Content-Type: application/json');
+        if (isset($result['error'])) {
+            http_response_code(400);
+            echo json_encode(['error' => $result['error']]);
+        } else {
+            echo json_encode([
+                'success' => true,
+                'data' => $result['data'] ?? null
+            ]);
+        }
     }
 }

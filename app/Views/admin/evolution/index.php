@@ -54,6 +54,7 @@ ob_start(); ?>
                 <div class="text-xs text-slate-400">@<?= e($inst['instance_identifier']) ?> • <?= e($inst['status']) ?></div>
               </div>
               <div class="flex gap-2">
+                <a href="<?= base_url('admin/' . $slug . '/evolution/instance/' . rawurlencode($inst['instance_identifier'])) ?>" class="inline-block rounded-xl border border-blue-500 px-3 py-1 text-sm text-blue-400 hover:bg-blue-500/10">Configurar</a>
                 <button class="btn-refresh rounded-xl border px-3 py-1 text-sm" data-id="<?= e($inst['id']) ?>">Atualizar QR</button>
                 <button class="btn-delete rounded-xl border px-3 py-1 text-sm text-red-400" data-id="<?= e($inst['id']) ?>">Delete</button>
               </div>
@@ -114,7 +115,7 @@ ob_start(); ?>
     const inst = json.instance;
     const container = document.getElementById('instances');
     const div = document.createElement('div'); div.className='rounded-xl border border-slate-700 bg-slate-800 p-4 shadow-sm text-white';
-    div.innerHTML = `<div class="flex items-start gap-4"><div class="flex-1"><div class="flex items-center justify-between"><div><strong class="text-lg">${inst.label||inst.number}</strong><div class="text-xs text-slate-400">@${inst.instance_identifier} • ${inst.status}</div></div><div class="flex gap-2"><button class="btn-refresh rounded-xl border px-3 py-1 text-sm" data-id="">Atualizar QR</button><button class="btn-delete rounded-xl border px-3 py-1 text-sm text-red-400" data-id="">Delete</button></div></div>${inst.qr?`<div class="mt-3"><img src="data:image/png;base64,${inst.qr}" class="h-48"></div>`:'<div class="mt-3 text-sm text-slate-400">QR code não disponível.</div>'}</div></div>`;
+    div.innerHTML = `<div class="flex items-start gap-4"><div class="flex-1"><div class="flex items-center justify-between"><div><strong class="text-lg">${inst.label||inst.number}</strong><div class="text-xs text-slate-400">@${inst.instance_identifier} • ${inst.status}</div></div><div class="flex gap-2"><a href="${base}/instance/${encodeURIComponent(inst.instance_identifier)}" class="inline-block rounded-xl border border-blue-500 px-3 py-1 text-sm text-blue-400 hover:bg-blue-500/10">Configurar</a><button class="btn-refresh rounded-xl border px-3 py-1 text-sm" data-id="">Atualizar QR</button><button class="btn-delete rounded-xl border px-3 py-1 text-sm text-red-400" data-id="">Delete</button></div></div>${inst.qr?`<div class="mt-3"><img src="data:image/png;base64,${inst.qr}" class="h-48"></div>`:'<div class="mt-3 text-sm text-slate-400">QR code não disponível.</div>'}</div></div>`;
     container.prepend(div);
   });
 

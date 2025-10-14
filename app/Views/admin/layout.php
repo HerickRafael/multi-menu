@@ -19,6 +19,38 @@ if ($bellConfig !== '') {
         $resolvedBellUrl = base_url(ltrim($bellConfig, '/'));
     }
 }
+
+// Helper function para renderizar status pills
+if (!function_exists('status_pill')) {
+    function status_pill($status, $text = null, $showDot = true) {
+        $statusMap = [
+            // Evolution / Conexão
+            'open' => 'connected',
+            'connecting' => 'connecting', 
+            'disconnected' => 'disconnected',
+            'close' => 'disconnected',
+            
+            // Pedidos
+            'concluido' => 'connected',
+            'concluded' => 'connected', 
+            'cancelado' => 'disconnected',
+            'cancelled' => 'disconnected',
+            'pendente' => 'pending',
+            'pending' => 'pending',
+            'preparando' => 'connecting', 
+            'preparing' => 'connecting',
+            'erro' => 'error',
+            'error' => 'error',
+            'failed' => 'error'
+        ];
+        
+        $statusClass = $statusMap[strtolower($status)] ?? 'pending';
+        $displayText = $text ?? ucfirst($status);
+        $dot = $showDot ? '<span class="status-dot"></span>' : '';
+        
+        return '<span class="status-pill status-' . $statusClass . '">' . $dot . htmlspecialchars($displayText) . '</span>';
+    }
+}
 ?>
 <head>
   <meta charset="utf-8">
@@ -56,6 +88,30 @@ if ($bellConfig !== '') {
     .admin-order-toast-btn { display: inline-flex; align-items: center; justify-content: center; font-size: 0.74rem; font-weight: 600; border-radius: 0.75rem; padding: 0.45rem 0.9rem; text-decoration: none; transition: background 0.15s ease, color 0.15s ease; border: none; cursor: pointer; }
     .admin-order-toast-btn.primary { background: var(--admin-primary-gradient); color: #fff; }
     .admin-order-toast-btn.secondary { background: rgba(226,232,240,0.6); color: #1f2937; }
+    
+    /* Status System - Reutilizável para toda aplicação */
+    .status-pill { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 500; border-radius: 9999px; padding: 0.375rem 0.75rem; }
+    .status-dot { width: 0.375rem; height: 0.375rem; border-radius: 50%; flex-shrink: 0; }
+    
+    /* Status: Conectado / Concluído / Ativo */
+    .status-connected { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .status-connected .status-dot { background-color: #16a34a; }
+    
+    /* Status: Desconectado / Cancelado / Inativo */
+    .status-disconnected { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .status-disconnected .status-dot { background-color: #dc2626; }
+    
+    /* Status: Pendente / Aguardando / Em Processo */
+    .status-pending { background-color: #fffbeb; color: #92400e; border: 1px solid #fed7aa; }
+    .status-pending .status-dot { background-color: #f59e0b; }
+    
+    /* Status: Conectando / Preparando / Em Progresso */
+    .status-connecting { background-color: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .status-connecting .status-dot { background-color: #3b82f6; }
+    
+    /* Status: Erro / Falha */
+    .status-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+    .status-error .status-dot { background-color: #ef4444; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900"
@@ -67,6 +123,9 @@ if ($bellConfig !== '') {
   <div class="max-w-7xl mx-auto p-4">
     <?= $content ?? '' ?>
   </div>
+
+  <!-- JavaScript comum do admin -->
+  <script src="<?= base_url('public/assets/js/admin-common.js') ?>"></script>
 
   <?php if (!isset($_SERVER['REQUEST_URI']) || !preg_match('/\/kds(\/|$)/', $_SERVER['REQUEST_URI'])): ?>
     <div class="admin-order-toasts" id="admin-order-toasts" aria-live="polite"></div>
