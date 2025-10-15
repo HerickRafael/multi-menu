@@ -6,13 +6,6 @@ $activeSlug = $slug ?? ($company['slug'] ?? '');
 $backUrl = base_url('admin/' . rawurlencode($activeSlug) . '/evolution');
 
 // helper de escape
-if (!function_exists('e')) {
-    function e($s) {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-
 
 ob_start(); ?>
 
@@ -193,8 +186,6 @@ ob_start(); ?>
       <?php endif; ?>
     </div>
   </section>
-
-
 
   <!-- STATISTICS CARDS -->
   <section class="grid gap-6 md:grid-cols-3">
@@ -901,8 +892,6 @@ ob_start(); ?>
         removeLoading();
       }
     }
-
-
 
     // Toggle switches functionality
     function setupToggleSwitch(elementId, settingKey) {

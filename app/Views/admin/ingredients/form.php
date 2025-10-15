@@ -10,13 +10,6 @@ $action  = $editing
 
 $image = $ingredient['image_path'] ?? null;
 
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
 $unitOptions = [
   ['value' => 'un', 'label' => 'Unidade (un)'],
   ['value' => 'kg', 'label' => 'Quilo (kg)'],

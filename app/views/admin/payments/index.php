@@ -1,10 +1,4 @@
 <?php
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 
 if (!function_exists('render_payment_method_row')) {
     function render_payment_method_row(array $method, array $pixTypeLabels, string $base)
@@ -841,7 +835,6 @@ ob_start();
               }
             });
           }
-
 
           const deleteBtn = row.querySelector('.pm-delete');
           if (deleteBtn && !deleteBtn.dataset.wired) {

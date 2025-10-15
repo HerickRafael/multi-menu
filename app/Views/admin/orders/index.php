@@ -5,14 +5,6 @@ $title = 'Pedidos - ' . ($company['name'] ?? 'Empresa');
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 $backUrl = $slug ? base_url('admin/' . $slug . '/dashboard') : base_url('admin');
 
-// helper de escape (se ainda não existir)
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
 // filtros (status e busca por cliente)
 $status = (string)($_GET['status'] ?? '');
 $q      = trim((string)($_GET['q'] ?? ''));
@@ -62,7 +54,6 @@ ob_start(); ?>
 
     <div class="ml-auto flex items-center gap-2">
 
-
     <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>"
        class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-gear" viewBox="0 0 16 16">
@@ -70,7 +61,6 @@ ob_start(); ?>
   <path d="M11.886 9.46c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.044c-.613-.181-.613-1.049 0-1.23l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0"/>
 </svg>     Dashboard
     </a>
-
 
       <a href="<?= e(base_url('admin/' . $slug . '/orders/create')) ?>"
         class="inline-flex items-center gap-2 rounded-xl admin-gradient-bg px-3 py-2 text-sm font-medium text-white shadow hover:opacity-95">

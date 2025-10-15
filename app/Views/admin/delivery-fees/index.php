@@ -1,13 +1,6 @@
 <?php
 // admin/delivery-fees/index.php
 
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
 $company      = is_array($company ?? null) ? $company : [];
 $cities       = is_array($cities ?? null) ? $cities : [];
 $zones        = is_array($zones ?? null) ? $zones : [];

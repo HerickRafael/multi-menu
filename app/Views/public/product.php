@@ -4,20 +4,6 @@
  * Página pública do produto
  * ============================================================================ */
 
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (!function_exists('price_br')) {
-    function price_br($v)
-    {
-        return 'R$ ' . number_format((float)$v, 2, ',', '.');
-    }
-}
-
 if (session_status() !== PHP_SESSION_ACTIVE) {
     $sessName = function_exists('config') ? (config('session_name') ?? 'mm_session') : 'mm_session';
 

@@ -1,17 +1,4 @@
 <?php
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (!function_exists('price_br')) {
-    function price_br($v)
-    {
-        return 'R$ ' . number_format((float)$v, 2, ',', '.');
-    }
-}
 
 $company         = is_array($company ?? null) ? $company : [];
 $items           = is_array($items ?? null) ? $items : [];

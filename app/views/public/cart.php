@@ -1,10 +1,5 @@
 <?php
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
+
 $items  = isset($items) && is_array($items) ? $items : [];
 $totals = isset($totals) && is_array($totals) ? $totals : ['subtotal' => 0.0, 'total' => 0.0];
 $company = $company ?? [];

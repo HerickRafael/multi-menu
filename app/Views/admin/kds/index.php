@@ -4,13 +4,6 @@
 $title = 'KDS - ' . ($company['name'] ?? 'Empresa');
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
 $initialSnapshot = is_array($initialSnapshot ?? null) ? $initialSnapshot : [];
 $kdsConfig       = is_array($kdsConfig ?? null) ? $kdsConfig : [];
 $hasCanceled     = !empty($hasCanceled);
@@ -268,8 +261,6 @@ $configJson  = json_encode($kdsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_S
     transition: all 0.2s ease;
     position: relative;
   }
-
-
 
   .kds-card[data-status="paid"]::before {
     background: #3b82f6;

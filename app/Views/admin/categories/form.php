@@ -6,13 +6,6 @@ $action   = $editing
   ? "admin/{$slug}/categories/" . (int)$cat['id']
   : "admin/{$slug}/categories";
 
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
 ob_start(); ?>
 
 <div class="mx-auto max-w-4xl p-4">

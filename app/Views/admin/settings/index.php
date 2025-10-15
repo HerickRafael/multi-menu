@@ -6,12 +6,6 @@ $slug  = rawurlencode((string)($company['slug'] ?? ''));
 $days  = [1 => 'Segunda',2 => 'Terça',3 => 'Quarta',4 => 'Quinta',5 => 'Sexta',6 => 'Sábado',7 => 'Domingo'];
 
 // helper de escape (se ainda não existir)
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 
 // Normalização de cores (se ainda não existir)
 if (!function_exists('settings_color_value')) {

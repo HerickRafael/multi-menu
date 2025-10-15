@@ -6,11 +6,6 @@ $slug = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 $backUrl = $slug ? base_url('admin/' . $slug . '/dashboard') : base_url('admin');
 
 // helper de escape
-if (!function_exists('e')) {
-    function e($s) {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 
 ob_start(); ?>
 

@@ -3,12 +3,6 @@ $title = ($company['name'] ?? 'Cardápio') . ' - Cardápio';
 ob_start();
 
 // Helper de escape seguro (fallback caso não exista a função e())
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 
 /* Helpers de badges */
 function badgePromo($p)
@@ -47,12 +41,6 @@ function badgePromo($p)
 }
 
 // usa o helper global do seu projeto para novidade
-if (!function_exists('badgeNew')) {
-    function badgeNew($p)
-    {
-        return is_new_product($p);
-    }
-}
 
 if (!function_exists('normalize_color_hex')) {
     function normalize_color_hex($value, $default)
@@ -213,7 +201,6 @@ $forceLoginHome = !empty($_GET['login']) && !$customer;
            class="w-24 h-24 rounded-full object-cover border-4 absolute -top-10 right-6 pointer-events-none"
            style="background-color: <?= e($logoBorderColor) ?>; border-color: <?= e($logoBorderColor) ?>;"
            alt="<?= e($company['name'] ?? 'Logo') ?>">
-
 
         <!-- Linha de status + horário de hoje + info -->
         <div class="flex flex-wrap items-center gap-2 text-sm mt-1">

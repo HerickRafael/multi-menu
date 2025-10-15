@@ -5,18 +5,10 @@ $title = 'Pedido #' . ($order['id'] ?? '');
 $o     = $order ?? [];
 $slug  = rawurlencode((string)($activeSlug ?? ($company['slug'] ?? '')));
 
-// helper de escape (se ainda não existir)
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
 // labels e cores de status
 $statusLabels = [
   'pending'   => 'Pendente',
-  'paid'      => 'Pago',
+  'paid'      => 'Pago', 
   'completed' => 'Concluído',
   'canceled'  => 'Cancelado',
 ];

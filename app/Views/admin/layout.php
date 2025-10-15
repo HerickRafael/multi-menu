@@ -20,37 +20,6 @@ if ($bellConfig !== '') {
     }
 }
 
-// Helper function para renderizar status pills
-if (!function_exists('status_pill')) {
-    function status_pill($status, $text = null, $showDot = true) {
-        $statusMap = [
-            // Evolution / Conexão
-            'open' => 'connected',
-            'connecting' => 'connecting', 
-            'disconnected' => 'disconnected',
-            'close' => 'disconnected',
-            
-            // Pedidos
-            'concluido' => 'connected',
-            'concluded' => 'connected', 
-            'cancelado' => 'disconnected',
-            'cancelled' => 'disconnected',
-            'pendente' => 'pending',
-            'pending' => 'pending',
-            'preparando' => 'connecting', 
-            'preparing' => 'connecting',
-            'erro' => 'error',
-            'error' => 'error',
-            'failed' => 'error'
-        ];
-        
-        $statusClass = $statusMap[strtolower($status)] ?? 'pending';
-        $displayText = $text ?? ucfirst($status);
-        $dot = $showDot ? '<span class="status-dot"></span>' : '';
-        
-        return '<span class="status-pill status-' . $statusClass . '">' . $dot . htmlspecialchars($displayText) . '</span>';
-    }
-}
 ?>
 <head>
   <meta charset="utf-8">
@@ -131,7 +100,7 @@ if (!function_exists('status_pill')) {
   <!-- JavaScript comum do admin -->
   <script src="<?= base_url('assets/js/toast-system.js') ?>"></script>
   <script src="<?= base_url('assets/js/skeleton-system.js') ?>"></script> 
-  <script src="<?= base_url('public/assets/js/admin-common.js') ?>"></script>
+  <script src="<?= base_url('assets/js/admin-common.js') ?>"></script>
 
   <?php if (!isset($_SERVER['REQUEST_URI']) || !preg_match('/\/kds(\/|$)/', $_SERVER['REQUEST_URI'])): ?>
     <div class="admin-order-toasts" id="admin-order-toasts" aria-live="polite"></div>

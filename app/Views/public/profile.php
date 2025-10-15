@@ -1,10 +1,4 @@
 <?php
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 
 $company   = is_array($company ?? null) ? $company : [];
 $customer  = is_array($customer ?? null) ? $customer : [];

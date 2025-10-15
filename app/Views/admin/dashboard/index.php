@@ -2,21 +2,6 @@
 // admin/dashboard/index.php — Dashboard (estilo moderno coeso)
 
 // Helpers (caso a view seja renderizada isolada)
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (!function_exists('base_url')) {
-    function base_url($p = '')
-    {
-        $b = rtrim($_SERVER['BASE_URL'] ?? '/', '/');
-
-        return $b . '/' . ltrim((string)$p, '/');
-    }
-}
 
 // Normalizações seguras
 $company            = is_array($company ?? null) ? $company : [];
@@ -161,7 +146,6 @@ ob_start(); ?>
   </ul>
 </div>
 
-
   <!-- Produtos (sem botão Editar; item inteiro clicável pro form) -->
   <div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
        data-href="<?= e(base_url('admin/' . $slug . '/products')) ?>" role="button" tabindex="0">
@@ -263,7 +247,6 @@ ob_start(); ?>
   </ul>
 </div>
 
-
 <!-- Pedidos (dashboard) — visual e status iguais ao admin/orders/index.php -->
 <div class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md card-link"
      data-href="<?= e(base_url('admin/' . $slug . '/orders')) ?>" role="button" tabindex="0">
@@ -344,10 +327,7 @@ $ordersToShow = array_slice($recentOrders, 0, 8);
   </ul>
 </div>
 
-
-
 </div>
-
 
 <!-- Gestão operacional -->
 <div class="mt-6 grid gap-3 sm:grid-cols-3">

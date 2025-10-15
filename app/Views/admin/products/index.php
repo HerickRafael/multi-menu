@@ -5,12 +5,6 @@ $title = 'Produtos - ' . ($company['name'] ?? '');
 $slug  = rawurlencode((string)($company['slug'] ?? ''));
 
 // helper de escape (se ainda não existir)
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 
 $q       = trim((string)($_GET['q'] ?? ''));
 $cat     = (string)($_GET['cat'] ?? '');

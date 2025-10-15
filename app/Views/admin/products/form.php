@@ -31,12 +31,6 @@ $editing = !empty($p['id']);
 $slug    = rawurlencode((string)($company['slug'] ?? ''));
 $action  = $editing ? "admin/{$slug}/products/" . (int)$p['id'] : "admin/{$slug}/products";
 
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 ?>
 <?php ob_start(); ?>
 
@@ -139,7 +133,6 @@ if (!function_exists('e')) {
     </label>
   </div>
 </fieldset>
-
 
   <!-- CARD: Tipo & Preço -->
   <fieldset class="rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">

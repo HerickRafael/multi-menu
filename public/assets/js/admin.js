@@ -169,26 +169,6 @@
     syncUnit();
   }
 
-  function init(){
-    initWhats();
-    initColorSync();
-    initImagePreviews();
-    initToggleDays();
-    initMoneyInputs();
-    initUnitSelect();
-    initCardLinks();
-    initDeliverySearch();
-    initOrderForm();
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-
-})();
-
-// ===== Additional admin behaviors migrated from inline scripts =====
-(function(){
-  'use strict';
-
   function initCardLinks(){
     try{
       document.querySelectorAll('.card-link').forEach(function(card){
@@ -289,6 +269,18 @@
     }catch(e){/* ignore */}
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ initCardLinks(); initDeliverySearch(); initOrderForm(); }); else { initCardLinks(); initDeliverySearch(); initOrderForm(); }
+  function init(){
+    initWhats();
+    initColorSync();
+    initImagePreviews();
+    initToggleDays();
+    initMoneyInputs();
+    initUnitSelect();
+    initCardLinks();
+    initDeliverySearch();
+    initOrderForm();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
 })();

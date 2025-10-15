@@ -7,12 +7,6 @@ $company = $company ?? [];
 $slug = isset($slug) ? (string)$slug : (string)($company['slug'] ?? '');
 $slug = trim($slug, '/');
 
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
 $homeUrl = function_exists('base_url') ? base_url($slug !== '' ? $slug : '') : '#';
 $cartUrl = function_exists('base_url') ? base_url(($slug !== '' ? $slug . '/' : '') . 'cart') : '#';
 $profileUrl = function_exists('base_url') ? base_url(($slug !== '' ? $slug . '/' : '') . 'profile') : '#';

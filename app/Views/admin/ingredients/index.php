@@ -2,28 +2,6 @@
 // admin/ingredients/index.php — Lista de ingredientes (versão moderna, sem coluna de Produtos)
 
 // Helpers (caso a view seja renderizada isolada)
-if (!function_exists('e')) {
-    function e($s)
-    {
-        return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (!function_exists('base_url')) {
-    function base_url($p = '')
-    {
-        $b = rtrim($_SERVER['BASE_URL'] ?? '/', '/');
-
-        return $b . '/' . ltrim((string)$p, '/');
-    }
-}
-
-if (!function_exists('price_br')) {
-    function price_br($v)
-    {
-        return 'R$ ' . number_format((float)$v, 2, ',', '.');
-    }
-}
 
 $title = 'Ingredientes - ' . ($company['name'] ?? '');
 $slug  = rawurlencode((string)($company['slug'] ?? ''));
@@ -52,7 +30,6 @@ ob_start(); ?>
   </div>
 
   <div class="ml-auto flex items-center gap-2">
-
 
     <a href="<?= e(base_url('admin/' . $slug . '/dashboard')) ?>"
        class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
