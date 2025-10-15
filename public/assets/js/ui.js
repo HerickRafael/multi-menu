@@ -1,5 +1,7 @@
+// Enhanced UI with Lazy Loading and Skeleton
 (function(){
-  // util
+  'use strict';
+  
   function once(el, key){
     if (!el) return false;
     if (el.dataset[key]) return false;
@@ -7,21 +9,143 @@
     return true;
   }
 
-  // Modal generic initializer by id
+  // Skeleton Loading
+  function initSkeletonLoading(){
+    const skeleton = document.getElementById('skeleton-loading');
+    const mainContent = document.getElementById('main-content');
+    
+    if (skeleton && mainContent) {
+      skeleton.classList.remove('hidden');
+      mainContent.style.opacity = '0';
+      
+      setTimeout(function(){
+        skeleton.classList.add('hidden');
+        mainContent.style.opacity = '1';
+        mainContent.style.transition = 'opacity 0.5s ease-in-out';
+      }, 800);
+    }
+  }
+
+  // Lazy Loading
+  function initLazyLoading(){
+    const lazyImages = document.querySelectorAll('.lazy-load');
+    
+    if ('IntersectionObserver' in window) {
+      const imageObserver = new IntersectionObserver(function(entries, observer){
+        entries.forEach(function(entry){
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            const skeleton = img.nextElementSibling;
+            
+            img.onload = function(){
+              img.style.opacity = '1';
+              img.dataset.loaded = 'true';
+              if (skeleton && skeleton.classList.contains('skeleton-shimmer')) {
+                skeleton.style.display = 'none';
+              }
+            };
+            
+            if (img.complete) {
+              img.onload();
+            }
+            
+            observer.unobserve(img);
+          }
+        });
+      }, {
+        rootMargin: '50px 0px',
+        threshold: 0.01
+      });
+
+      lazyImages.forEach(function(img){ 
+        imageObserver.observe(img); 
+      });
+    } else {
+      lazyImages.forEach(function(img){
+        img.style.opacity = '1';
+        img.dataset.loaded = 'true';
+        const skeleton = img.nextElementSibling;
+        if (skeleton && skeleton.classList.contains('skeleton-shimmer')) {
+          skeleton.style.display = 'none';
+        }
+      });
+    }
+  }
+
+  // Enhanced Search with Skeleton
+  function initEnhancedSearch(){
+    const form = document.querySelector('form[data-search-url]');
+    if (!form || !once(form, 'search')) return;
+    
+    const input = form.querySelector('input[name="q"]');
+    const results = document.getElementById('search-results');
+    const url = form.dataset.searchUrl;
+    
+    if (!input || !results || !url) return;
+    
+    let searchTimeout;
+    
+    function showSearchSkeleton(){
+      results.innerHTML = '<div class="mb-4"><div class="h-6 bg-gray-200 rounded w-48 mb-3 animate-pulse"></div><div class="grid gap-3"><div class="bg-white border rounded-2xl p-4 flex gap-3 animate-pulse"><div class="w-24 h-24 bg-gray-200 rounded-xl"></div><div class="flex-1"><div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-3 bg-gray-200 rounded w-1/2 mb-2"></div></div></div></div></div>';
+    }
+    
+    function doSearch(){
+      const term = input.value.trim();
+      
+      if (term === '') { 
+        results.innerHTML = ''; 
+        return; 
+      }
+      
+      showSearchSkeleton();
+      
+      fetch(url + '?q=' + encodeURIComponent(term), { 
+        headers: { 'X-Requested-With': 'XMLHttpRequest' } 
+      })
+      .then(function(res){ return res.text(); })
+      .then(function(html){
+        setTimeout(function(){
+          results.innerHTML = html;
+          initLazyLoading();
+        }, 300);
+      })
+      .catch(function(e){
+        console.error('Search error:', e);
+        results.innerHTML = '<div class="p-4 text-red-600">Erro ao buscar produtos. Tente novamente.</div>';
+      });
+    }
+    
+    input.addEventListener('input', function(){
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(doSearch, 400);
+    });
+  }
+
+  // Modal Functions
   function initModal(id, openSelectors, closeSelectors){
     const modal = document.getElementById(id);
-    if (!modal) return;
-    if (!once(modal, 'init')) return;
+    if (!modal || !once(modal, 'init')) return;
+    
     function open(){ modal.classList.remove('hidden'); }
     function close(){ modal.classList.add('hidden'); }
-    (openSelectors||[]).forEach(sel=>{
-      document.querySelectorAll(sel).forEach(btn=> btn.addEventListener('click', open));
+    
+    (openSelectors||[]).forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(btn){ 
+        btn.addEventListener('click', open); 
+      });
     });
-    (closeSelectors||[]).forEach(sel=>{
-      document.querySelectorAll(sel).forEach(btn=> btn.addEventListener('click', close));
+    
+    (closeSelectors||[]).forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(btn){ 
+        btn.addEventListener('click', close); 
+      });
     });
-    modal.addEventListener('click', (e)=>{ if (e.target===modal) close(); });
-    return { open, close };
+    
+    modal.addEventListener('click', function(e){ 
+      if (e.target===modal) close(); 
+    });
+    
+    return { open: open, close: close };
   }
 
   function initHoursModal(){
@@ -30,38 +154,52 @@
 
   function initLoginModal(){
     const modal = document.getElementById('login-modal');
-    if (!modal) return null;
-    if (!once(modal, 'init')) return null;
+    if (!modal || !once(modal, 'init')) return null;
+    
     const redirectInput = modal.querySelector('input[name="redirect_to"]');
-    function open(){ if (redirectInput) redirectInput.value = window.location.pathname + window.location.search; modal.classList.remove('hidden'); }
+    
+    function open(){ 
+      if (redirectInput) redirectInput.value = window.location.pathname + window.location.search; 
+      modal.classList.remove('hidden'); 
+    }
     function close(){ modal.classList.add('hidden'); }
-    document.querySelectorAll('#btn-open-login').forEach(btn=> btn.addEventListener('click', open));
-    document.querySelectorAll('#login-close').forEach(btn=> btn.addEventListener('click', close));
-    modal.addEventListener('click', (e)=>{ if (e.target===modal) close(); });
-    return { open, close };
+    
+    document.querySelectorAll('#btn-open-login').forEach(function(btn){ 
+      btn.addEventListener('click', open); 
+    });
+    
+    document.querySelectorAll('#login-close').forEach(function(btn){ 
+      btn.addEventListener('click', close); 
+    });
+    
+    modal.addEventListener('click', function(e){ 
+      if (e.target===modal) close(); 
+    });
+    
+    return { open: open, close: close };
   }
 
   function initCategoryTabs(){
     const tabs = Array.from(document.querySelectorAll('.category-tab'));
-    if (!tabs.length) return;
-    if (!once(tabs[0].closest('div') || tabs[0], 'tabs')) {
-      // already initialized (approx)
-    }
+    if (!tabs.length || !once(tabs[0].closest('div') || tabs[0], 'tabs')) return;
 
     function activate(tab){
       if (!tab) return;
-      tabs.forEach(t => t.classList.remove('active'));
+      tabs.forEach(function(t){ t.classList.remove('active'); });
       tab.classList.add('active');
     }
-    tabs.forEach(t => t.addEventListener('click', () => activate(t)));
+    
+    tabs.forEach(function(t){ 
+      t.addEventListener('click', function(){ activate(t); }); 
+    });
 
     function onScroll(){
       let chosen = tabs[0];
       const offset = 80;
-      tabs.forEach(t => {
+      tabs.forEach(function(t){
         const id = (t.getAttribute('href')||'').slice(1);
         const anchor = document.getElementById(id);
-        const target = anchor?.nextElementSibling || anchor;
+        const target = anchor && anchor.nextElementSibling || anchor;
         if (target && target.getBoundingClientRect().top - offset <= 0) {
           chosen = t;
         }
@@ -75,119 +213,59 @@
     onScroll();
   }
 
-  function debounce(fn, wait){ let t; return function(...args){ clearTimeout(t); t = setTimeout(()=> fn.apply(this,args), wait); }; }
-
-  function initSearch(){
-    const form = document.querySelector('form[data-search-url]');
-    if (!form) return;
-    if (!once(form, 'search')) return;
-    const input = form.querySelector('input[name="q"]');
-    const results = document.getElementById('search-results');
-    const url = form.dataset.searchUrl;
-    if (!input || !results || !url) return;
-    const doSearch = async ()=>{
-      const term = input.value.trim();
-      if (term === '') { results.innerHTML = ''; return; }
-      try {
-        const res  = await fetch(url + '?q=' + encodeURIComponent(term), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        const html = await res.text();
-        results.innerHTML = html;
-      } catch (e) {
-        console.error(e);
+  // Initialize everything
+  function init(){
+    document.body.classList.add('js-loading');
+    
+    initSkeletonLoading();
+    initLazyLoading();
+    initHoursModal();
+    initLoginModal();
+    initCategoryTabs();
+    initEnhancedSearch();
+    
+    // Copy functionality
+    document.querySelectorAll('[data-action="copy"]').forEach(function(el){
+      el.addEventListener('click', function(){
+        const target = el.dataset.target;
+        const copyEl = target ? document.querySelector(target) : el;
+        if (!copyEl) return;
+        
+        const text = copyEl.innerText || copyEl.value || copyEl.textContent || '';
+        
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text);
+        } else {
+          const tmp = document.createElement('textarea'); 
+          tmp.value = text; 
+          document.body.appendChild(tmp); 
+          tmp.select(); 
+          document.execCommand('copy'); 
+          tmp.remove();
+        }
+      });
+    });
+    
+    window.addEventListener('load', function(){
+      setTimeout(function(){
+        document.body.classList.remove('js-loading');
+        document.body.classList.add('js-loaded');
+      }, 100);
+    });
+    
+    // Force login if needed
+    try {
+      const login = initLoginModal();
+      if (window.__FORCE_LOGIN && login && typeof login.open === 'function') {
+        login.open();
       }
-    };
-    input.addEventListener('input', debounce(doSearch, 300));
+    } catch(e){}
   }
 
-  // Auto-init on DOM ready
-  document.addEventListener('DOMContentLoaded', function(){
-    const hours = initHoursModal();
-    const login = initLoginModal();
-    initCategoryTabs();
-    initSearch();
-    // If user is anonymous, intercept clicks on footer cart/profile links to open login modal
-    try {
-      if (!window.__IS_CUSTOMER && login && typeof login.open === 'function') {
-        document.querySelectorAll('nav a').forEach(a => {
-          const href = (a.getAttribute('href') || '').toLowerCase();
-          if (href.endsWith('/cart') || href.endsWith('/profile') || href.includes('/cart') || href.includes('/profile')) {
-            a.addEventListener('click', function(e){
-              // prefer to open login modal instead of navigating
-              e.preventDefault();
-              login.open();
-            });
-          }
-        });
-      }
-    } catch (e) {}
-    // Delegated handlers for data-action
-    document.body.addEventListener('click', function(e){
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const action = btn.dataset.action;
-      if (action === 'navigate'){
-        const href = btn.dataset.href;
-        // Para botões de 'back' tentamos priorizar referrer (se for da mesma origem),
-        // depois history.back() com fallback para data-href.
-        if (btn.classList.contains('back')) {
-          try {
-            const ref = document.referrer || '';
-            if (ref) {
-              try {
-                const refUrl = new URL(ref);
-                if (refUrl.origin === window.location.origin && ref !== window.location.href) {
-                  window.location.href = ref;
-                  return;
-                }
-              } catch (e) {
-                // invalid referrer URL, ignore
-              }
-            }
-          } catch (e) {}
-
-          const current = window.location.href;
-          try {
-            window.history.back();
-          } catch (e) {}
-
-          // fallback se a URL não mudou em X ms
-          setTimeout(function(){
-            if (window.location.href === current) {
-              // se href é igual à URL atual, envie para a home (evita ficar parado)
-              if (href && href !== current) {
-                window.location.href = href;
-              } else if (href && href === current) {
-                window.location.href = '/';
-              }
-            }
-          }, 250);
-          return;
-        }
-
-        if (href) window.location.href = href;
-      } else if (action === 'confirm-navigate'){
-        const msg = btn.dataset.message || 'Tem certeza?';
-        const href = btn.dataset.href;
-        if (confirm(msg) && href) window.location.href = href;
-      } else if (action === 'print'){
-        window.print();
-      } else if (action === 'copy'){
-        const target = btn.dataset.target;
-        if (!target) return;
-        const el = document.querySelector(target);
-        if (!el) return;
-        const text = el.innerText || el.value || el.textContent || '';
-        navigator.clipboard?.writeText(text).then(()=>{
-          // optional visual feedback
-        }).catch(()=>{
-          // fallback
-          const tmp = document.createElement('textarea'); tmp.value = text; document.body.appendChild(tmp); tmp.select(); document.execCommand('copy'); tmp.remove();
-        });
-      }
-    });
-    try {
-      if (window.__FORCE_LOGIN && login && typeof login.open === 'function') login.open();
-    } catch(e){}
-  });
-
+  // Run when ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

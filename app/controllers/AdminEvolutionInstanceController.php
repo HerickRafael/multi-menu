@@ -14,20 +14,43 @@ class AdminEvolutionInstanceController extends Controller
         Auth::start();
         $u = Auth::user();
 
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'
+                 || (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false)
+                 || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
         if (!$u) {
-            header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
-            exit;
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Sessão expirada. Faça login novamente.']);
+                exit;
+            } else {
+                header('Location: ' . base_url('admin/' . rawurlencode($slug) . '/login'));
+                exit;
+            }
         }
+        
         $company = Company::findBySlug($slug);
 
         if (!$company) {
-            echo 'Empresa inválida';
-            exit;
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Empresa inválida ou inativa']);
+                exit;
+            } else {
+                echo 'Empresa inválida';
+                exit;
+            }
         }
 
         if ($u['role'] !== 'root' && (int)$u['company_id'] !== (int)$company['id']) {
-            echo 'Acesso negado';
-            exit;
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Acesso negado']);
+                exit;
+            } else {
+                echo 'Acesso negado';
+                exit;
+            }
         }
 
         return [$u, $company];
@@ -154,28 +177,19 @@ class AdminEvolutionInstanceController extends Controller
      */
     private function getInstanceDataByName($instanceName)
     {
-        $curl = curl_init();
+        $url = "https://evolutionvictor.mlojas.com/instance/fetchInstances?instanceName=" . rawurlencode($instanceName);
+        $result = $this->callEvolutionAPI($url);
         
-        curl_setopt_array($curl, [
-            CURLOPT_URL => "https://evolutionvictor.mlojas.com/instance/fetchInstances?instanceName=" . rawurlencode($instanceName),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
-                'Content-Type: application/json'
-            ]
-        ]);
-        
-        $response = curl_exec($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-        
-        if ($httpCode === 200) {
-            $data = json_decode($response, true);
+        if ($result['success'] && !empty($result['data'])) {
+            $data = $result['data'];
             // Se retornou um array com dados, pegar o primeiro item
             if (is_array($data) && !empty($data)) {
-                return is_array($data[0]) ? $data[0] : $data;
+                // Verificar se é um array de arrays (múltiplas instâncias) ou um objeto único
+                if (array_key_exists(0, $data) && is_array($data[0])) {
+                    return $data[0]; // Primeiro item do array
+                }
             }
-            return $data;
+            return $data; // Retornar os dados como estão
         }
         
         // Retornar dados padrão se não conseguir obter da API
@@ -183,6 +197,90 @@ class AdminEvolutionInstanceController extends Controller
             'instance_identifier' => $instanceName,
             'status' => 'disconnected',
             'token' => null
+        ];
+    }
+
+    /**
+     * Helper para chamadas consistentes da API Evolution
+     */
+    private function callEvolutionAPI($url, $method = 'GET', $data = null, $timeout = 15)
+    {
+        $curl = curl_init();
+        
+        $headers = [
+            'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
+            'Content-Type: application/json'
+        ];
+        
+        $options = [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => $timeout
+        ];
+        
+        if ($method === 'POST') {
+            $options[CURLOPT_POST] = true;
+            if ($data) {
+                $options[CURLOPT_POSTFIELDS] = json_encode($data);
+            }
+        } elseif ($method === 'DELETE') {
+            $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
+            if ($data) {
+                $options[CURLOPT_POSTFIELDS] = json_encode($data);
+            }
+        }
+        
+        curl_setopt_array($curl, $options);
+        
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($curl);
+        curl_close($curl);
+        
+        if ($curlError) {
+            return [
+                'success' => false,
+                'error' => 'Erro de conexão: ' . $curlError,
+                'httpCode' => $httpCode,
+                'data' => null,
+                'rawResponse' => $response
+            ];
+        }
+        
+        if ($httpCode !== 200 && $httpCode !== 201 && $httpCode !== 204) {
+            $errorData = json_decode($response, true);
+            $errorMsg = is_array($errorData) && isset($errorData['message']) 
+                ? $errorData['message'] 
+                : ($response ?: 'Erro HTTP ' . $httpCode);
+            
+            return [
+                'success' => false,
+                'error' => $errorMsg,
+                'httpCode' => $httpCode,
+                'data' => $errorData,
+                'rawResponse' => $response
+            ];
+        }
+        
+        $decodedData = json_decode($response, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return [
+                'success' => false,
+                'error' => 'Resposta inválida da API: ' . json_last_error_msg(),
+                'httpCode' => $httpCode,
+                'data' => null,
+                'rawResponse' => $response
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'httpCode' => $httpCode,
+            'error' => null,
+            'data' => $decodedData,
+            'rawResponse' => $response
         ];
     }
     
@@ -223,37 +321,15 @@ class AdminEvolutionInstanceController extends Controller
             
             [$user, $company] = $this->guard($slug);
             
-            $curl = curl_init();
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://evolutionvictor.mlojas.com/instance/connectionState/" . rawurlencode($instanceName),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_TIMEOUT => 30
-            ]);
-            
-            $response = curl_exec($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+            $url = "https://evolutionvictor.mlojas.com/instance/connectionState/" . rawurlencode($instanceName);
+            $result = $this->callEvolutionAPI($url, 'GET', null, 30);
             
             header('Content-Type: application/json');
             
-            if ($curlError) {
-                echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $curlError]);
-                return;
-            }
-            
-            if ($httpCode === 200) {
-                $data = json_decode($response, true);
-                echo json_encode(['success' => true, 'data' => $data]);
+            if ($result['success']) {
+                echo json_encode(['success' => true, 'data' => $result['data']]);
             } else {
-                $errorData = json_decode($response, true);
-                $errorMsg = $errorData['message'] ?? $response ?? 'Erro desconhecido';
-                echo json_encode(['success' => false, 'error' => 'Falha ao obter estado: ' . $errorMsg]);
+                echo json_encode(['success' => false, 'error' => 'Falha ao obter estado: ' . $result['error']]);
             }
             
         } catch (Exception $e) {
@@ -276,32 +352,13 @@ class AdminEvolutionInstanceController extends Controller
         try {
             [$user, $company] = $this->guard($slug);
             
-            $curl = curl_init();
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://evolutionvictor.mlojas.com/instance/connect/" . rawurlencode($instanceName),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_TIMEOUT => 30
-            ]);
-            
-            $response = curl_exec($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+            $url = "https://evolutionvictor.mlojas.com/instance/connect/" . rawurlencode($instanceName);
+            $result = $this->callEvolutionAPI($url, 'GET', null, 30);
             
             header('Content-Type: application/json');
             
-            if ($curlError) {
-                echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $curlError]);
-                return;
-            }
-            
-            if ($httpCode === 200) {
-                $data = json_decode($response, true);
+            if ($result['success']) {
+                $data = $result['data'];
                 
                 // Se a resposta contém QR code, significa que precisa escanear
                 if (isset($data['base64']) || isset($data['qrcode'])) {
@@ -319,9 +376,7 @@ class AdminEvolutionInstanceController extends Controller
                     ]);
                 }
             } else {
-                $errorData = json_decode($response, true);
-                $errorMsg = $errorData['message'] ?? $response ?? 'Erro desconhecido';
-                echo json_encode(['success' => false, 'error' => 'Falha ao conectar: ' . $errorMsg]);
+                echo json_encode(['success' => false, 'error' => 'Falha ao conectar: ' . $result['error']]);
             }
             
         } catch (Exception $e) {
@@ -344,42 +399,19 @@ class AdminEvolutionInstanceController extends Controller
         try {
             [$user, $company] = $this->guard($slug);
             
-            $curl = curl_init();
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://evolutionvictor.mlojas.com/instance/restart/" . rawurlencode($instanceName),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_HTTPHEADER => [
-                    'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_TIMEOUT => 30
-            ]);
-            
-            $response = curl_exec($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+            $url = "https://evolutionvictor.mlojas.com/instance/restart/" . rawurlencode($instanceName);
+            $result = $this->callEvolutionAPI($url, 'POST', null, 30);
             
             header('Content-Type: application/json');
             
-            if ($curlError) {
-                echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $curlError]);
-                return;
-            }
-            
-            if ($httpCode === 200 || $httpCode === 201) {
-                $data = json_decode($response, true);
+            if ($result['success']) {
                 echo json_encode([
                     'success' => true, 
                     'message' => 'Instância reiniciada com sucesso',
-                    'data' => $data
+                    'data' => $result['data']
                 ]);
             } else {
-                $errorData = json_decode($response, true);
-                $errorMsg = $errorData['message'] ?? $response ?? 'Erro desconhecido';
-                echo json_encode(['success' => false, 'error' => 'Falha ao reiniciar: ' . $errorMsg]);
+                echo json_encode(['success' => false, 'error' => 'Falha ao reiniciar: ' . $result['error']]);
             }
             
         } catch (Exception $e) {
@@ -402,42 +434,19 @@ class AdminEvolutionInstanceController extends Controller
         try {
             [$user, $company] = $this->guard($slug);
             
-            $curl = curl_init();
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://evolutionvictor.mlojas.com/instance/logout/" . rawurlencode($instanceName),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CUSTOMREQUEST => 'DELETE',
-                CURLOPT_HTTPHEADER => [
-                    'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_TIMEOUT => 30
-            ]);
-            
-            $response = curl_exec($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+            $url = "https://evolutionvictor.mlojas.com/instance/logout/" . rawurlencode($instanceName);
+            $result = $this->callEvolutionAPI($url, 'DELETE', null, 30);
             
             header('Content-Type: application/json');
             
-            if ($curlError) {
-                echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $curlError]);
-                return;
-            }
-            
-            if ($httpCode === 200 || $httpCode === 204) {
-                $data = json_decode($response, true);
+            if ($result['success'] || $result['httpCode'] === 204) {
                 echo json_encode([
                     'success' => true, 
                     'message' => 'Instância desconectada com sucesso',
-                    'data' => $data
+                    'data' => $result['data']
                 ]);
             } else {
-                $errorData = json_decode($response, true);
-                $errorMsg = $errorData['message'] ?? $response ?? 'Erro desconhecido';
-                echo json_encode(['success' => false, 'error' => 'Falha ao desconectar: ' . $errorMsg]);
+                echo json_encode(['success' => false, 'error' => 'Falha ao desconectar: ' . $result['error']]);
             }
             
         } catch (Exception $e) {
@@ -462,41 +471,17 @@ class AdminEvolutionInstanceController extends Controller
             [$user, $company] = $this->guard($slug);
             
             // Fazer a chamada direta para o endpoint de conexão que retorna o QR code
-            $curl = curl_init();
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://evolutionvictor.mlojas.com/instance/connect/" . rawurlencode($instanceName),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_TIMEOUT => 30
-            ]);
-            
-            $response = curl_exec($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+            $url = "https://evolutionvictor.mlojas.com/instance/connect/" . rawurlencode($instanceName);
+            $result = $this->callEvolutionAPI($url, 'GET', null, 30);
 
             header('Content-Type: application/json');
 
-            if ($curlError) {
-                echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $curlError]);
+            if (!$result['success']) {
+                echo json_encode(['success' => false, 'error' => $result['error']]);
                 return;
             }
 
-            if ($httpCode !== 200) {
-                echo json_encode(['success' => false, 'error' => 'API retornou HTTP ' . $httpCode . ': ' . $response]);
-                return;
-            }
-
-            $data = json_decode($response, true);
-            
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                echo json_encode(['success' => false, 'error' => 'Resposta inválida da API: ' . json_last_error_msg()]);
-                return;
-            }
+            $data = $result['data'];
 
             // Buscar o QR code na resposta
             $qr = $data['base64'] ?? $data['qrcode']['base64'] ?? $data['qr'] ?? null;
@@ -509,7 +494,7 @@ class AdminEvolutionInstanceController extends Controller
                 echo json_encode(['success' => true, 'qr' => $qr]);
             } else {
                 // Log da resposta para debug
-                error_log("QR Code Debug - Response: " . $response);
+                error_log("QR Code Debug - Response: " . json_encode($data));
                 echo json_encode(['success' => false, 'error' => 'QR Code não encontrado na resposta da API']);
             }
             
@@ -536,56 +521,26 @@ class AdminEvolutionInstanceController extends Controller
         try {
             [$user, $company] = $this->guard($slug);
             
-            // Buscar dados da instância (inclui contadores)
-            $curl = curl_init();
-            
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://evolutionvictor.mlojas.com/instance/fetchInstances?instanceName=" . rawurlencode($instanceName),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'apikey: 0cdfec38b34fdae0d7624e8e28debd9f',
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_TIMEOUT => 30
-            ]);
-            
-            $response = curl_exec($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($curl);
-            curl_close($curl);
+            // Usar exatamente o mesmo código da getInstanceDataByName que funciona
+            $instanceData = $this->getInstanceDataByName($instanceName);
             
             header('Content-Type: application/json');
             
-            if ($curlError) {
-                echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $curlError]);
-                return;
-            }
-            
-            if ($httpCode === 200) {
-                $data = json_decode($response, true);
+            if ($instanceData) {
+                // Extrair estatísticas dos dados já obtidos
+                $stats = [
+                    'status' => $instanceData['connectionStatus'] ?? 'disconnected',
+                    'contacts' => $instanceData['_count']['Contact'] ?? 0,
+                    'chats' => $instanceData['_count']['Chat'] ?? 0,
+                    'messages' => $instanceData['_count']['Message'] ?? 0,
+                    'profileName' => $instanceData['profileName'] ?? null,
+                    'profilePicUrl' => $instanceData['profilePicUrl'] ?? null,
+                    'number' => $instanceData['number'] ?? null
+                ];
                 
-                if (is_array($data) && !empty($data)) {
-                    $instance = is_array($data[0]) ? $data[0] : $data;
-                    
-                    // Extrair estatísticas
-                    $stats = [
-                        'status' => $instance['connectionStatus'] ?? 'disconnected',
-                        'contacts' => $instance['_count']['Contact'] ?? 0,
-                        'chats' => $instance['_count']['Chat'] ?? 0,
-                        'messages' => $instance['_count']['Message'] ?? 0,
-                        'profileName' => $instance['profileName'] ?? null,
-                        'profilePicUrl' => $instance['profilePicUrl'] ?? null,
-                        'number' => $instance['number'] ?? null
-                    ];
-                    
-                    echo json_encode(['success' => true, 'data' => $stats]);
-                } else {
-                    echo json_encode(['success' => false, 'error' => 'Instância não encontrada']);
-                }
+                echo json_encode(['success' => true, 'data' => $stats]);
             } else {
-                $errorData = json_decode($response, true);
-                $errorMsg = $errorData['message'] ?? $response ?? 'Erro desconhecido';
-                echo json_encode(['success' => false, 'error' => 'Falha ao buscar estatísticas: ' . $errorMsg]);
+                echo json_encode(['success' => false, 'error' => 'Instância não encontrada']);
             }
             
         } catch (Exception $e) {

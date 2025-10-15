@@ -81,6 +81,43 @@ if ($bellConfig !== '') {
     /* Status: Erro / Falha */
     .status-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
     .status-error .status-dot { background-color: #ef4444; }
+    
+    /* Animação de rotação para ícones de atualizar */
+    @keyframes spin-refresh {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .refresh-icon-spinning {
+      animation: spin-refresh 1s linear infinite;
+    }
+    
+    .refresh-icon-spin {
+      animation: spin-refresh 0.6s ease-in-out;
+    }
+    
+    .loading-refresh-icon {
+      animation: spin-refresh 1s linear infinite;
+    }
+    
+    /* Status: Erro / Falha */
+    .status-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+    .status-error .status-dot { background-color: #ef4444; }
+    
+    /* Animação de rotação para botões de atualizar */
+    @keyframes spin-refresh {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .refresh-icon-spin {
+      animation: spin-refresh 0.6s ease-in-out;
+    }
+    .refresh-icon-spinning {
+      animation: spin-refresh 1s linear infinite;
+    }
+    button:active .refresh-icon {
+      animation: spin-refresh 0.6s ease-in-out;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900"
@@ -100,7 +137,7 @@ if ($bellConfig !== '') {
   <!-- JavaScript comum do admin -->
   <script src="<?= base_url('assets/js/toast-system.js') ?>"></script>
   <script src="<?= base_url('assets/js/skeleton-system.js') ?>"></script> 
-  <script src="<?= base_url('assets/js/admin-common.js') ?>"></script>
+  <script src="<?= base_url('assets/js/admin-common.js?v=' . time()) ?>"></script>
 
   <?php if (!isset($_SERVER['REQUEST_URI']) || !preg_match('/\/kds(\/|$)/', $_SERVER['REQUEST_URI'])): ?>
     <div class="admin-order-toasts" id="admin-order-toasts" aria-live="polite"></div>
@@ -236,5 +273,33 @@ if ($bellConfig !== '') {
   <?php endif; ?>
 
   <script src="<?= base_url('assets/js/admin.js') ?>"></script>
+  
+  <!-- Script para animação de rotação dos ícones de atualizar -->
+  <script>
+  (function() {
+    // Adiciona animação ao clicar em qualquer botão com .refresh-icon
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      
+      const icon = btn.querySelector('.refresh-icon');
+      if (!icon) return;
+      
+      // Remove a classe se já existir para permitir re-animação
+      icon.classList.remove('refresh-icon-spin');
+      
+      // Force reflow para reiniciar animação
+      void icon.offsetWidth;
+      
+      // Adiciona a classe de animação
+      icon.classList.add('refresh-icon-spin');
+      
+      // Remove após a animação terminar
+      setTimeout(() => {
+        icon.classList.remove('refresh-icon-spin');
+      }, 600);
+    });
+  })();
+  </script>
 </body>
 </html>

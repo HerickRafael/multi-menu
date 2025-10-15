@@ -7,9 +7,16 @@ if (!isset($p) || !is_array($p)) {
 ?>
 <a href="<?= base_url(rawurlencode((string)($company['slug'] ?? '')) . '/produto/' . (int)$p['id']) ?>" class="block">
   <div class="ui-card rounded-2xl shadow p-4 bg-white border flex gap-3 hover:bg-gray-50">
-    <img src="<?= base_url($p['image'] ?: 'assets/logo-placeholder.png') ?>"
-         alt="<?= e($p['name']) ?>"
-         class="w-24 h-24 object-cover rounded-xl">
+    <div class="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden relative">
+      <img src="<?= base_url($p['image'] ?: 'assets/logo-placeholder.png') ?>"
+           alt="<?= e($p['name']) ?>"
+           class="w-full h-full object-cover lazy-load opacity-0 transition-opacity duration-300"
+           loading="lazy"
+           onload="this.style.opacity='1'"
+           onerror="this.src='<?= base_url('assets/logo-placeholder.png') ?>'">
+      <!-- Skeleton loader -->
+      <div class="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-pulse skeleton-shimmer"></div>
+    </div>
 
     <div class="flex-1">
       <div class="flex items-center gap-2 mb-1">

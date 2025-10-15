@@ -51,7 +51,13 @@ ob_start(); ?>
               </div>
               <div class="flex gap-2">
                 <a href="<?= base_url('admin/' . $slug . '/evolution/instance/' . rawurlencode($inst['instance_identifier'])) ?>" class="inline-block rounded-xl border border-blue-500 px-3 py-1 text-sm text-blue-400 hover:bg-blue-500/10">Configurar</a>
-                <button class="btn-refresh rounded-xl border px-3 py-1 text-sm" data-id="<?= e($inst['id']) ?>">Atualizar QR</button>
+                <button class="btn-refresh inline-flex items-center gap-1.5 rounded-xl border px-3 py-1 text-sm" data-id="<?= e($inst['id']) ?>">
+                  <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                    <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                  </svg>
+                  Atualizar QR
+                </button>
                 <button class="btn-delete rounded-xl border px-3 py-1 text-sm text-red-400" data-id="<?= e($inst['id']) ?>">Delete</button>
               </div>
             </div>
@@ -111,7 +117,7 @@ ob_start(); ?>
     const inst = json.instance;
     const container = document.getElementById('instances');
     const div = document.createElement('div'); div.className='rounded-xl border border-slate-700 bg-slate-800 p-4 shadow-sm text-white';
-    div.innerHTML = `<div class="flex items-start gap-4"><div class="flex-1"><div class="flex items-center justify-between"><div><strong class="text-lg">${inst.label||inst.number}</strong><div class="text-xs text-slate-400">@${inst.instance_identifier} • ${inst.status}</div></div><div class="flex gap-2"><a href="${base}/instance/${encodeURIComponent(inst.instance_identifier)}" class="inline-block rounded-xl border border-blue-500 px-3 py-1 text-sm text-blue-400 hover:bg-blue-500/10">Configurar</a><button class="btn-refresh rounded-xl border px-3 py-1 text-sm" data-id="">Atualizar QR</button><button class="btn-delete rounded-xl border px-3 py-1 text-sm text-red-400" data-id="">Delete</button></div></div>${inst.qr?`<div class="mt-3"><img src="data:image/png;base64,${inst.qr}" class="h-48"></div>`:'<div class="mt-3 text-sm text-slate-400">QR code não disponível.</div>'}</div></div>`;
+    div.innerHTML = `<div class="flex items-start gap-4"><div class="flex-1"><div class="flex items-center justify-between"><div><strong class="text-lg">${inst.label||inst.number}</strong><div class="text-xs text-slate-400">@${inst.instance_identifier} • ${inst.status}</div></div><div class="flex gap-2"><a href="${base}/instance/${encodeURIComponent(inst.instance_identifier)}" class="inline-block rounded-xl border border-blue-500 px-3 py-1 text-sm text-blue-400 hover:bg-blue-500/10">Configurar</a><button class="btn-refresh inline-flex items-center gap-1.5 rounded-xl border px-3 py-1 text-sm" data-id=""><svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/><path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/></svg>Atualizar QR</button><button class="btn-delete rounded-xl border px-3 py-1 text-sm text-red-400" data-id="">Delete</button></div></div>${inst.qr?`<div class="mt-3"><img src="data:image/png;base64,${inst.qr}" class="h-48"></div>`:'<div class="mt-3 text-sm text-slate-400">QR code não disponível.</div>'}</div></div>`;
     container.prepend(div);
   });
 

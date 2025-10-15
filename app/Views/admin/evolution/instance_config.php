@@ -62,9 +62,9 @@ ob_start(); ?>
       </div>
       
       <button id="btnRefresh" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-          <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
-          <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+        <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+          <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
         </svg>
         Atualizar
       </button>
@@ -166,7 +166,10 @@ ob_start(); ?>
         <div class="flex items-center gap-2">
           <button id="btnQr" class="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 hover:bg-amber-600 text-white">Obter QR Code</button>
           <button id="btnRefreshState" class="p-2 rounded-lg hover:bg-amber-100" title="Recarregar estado">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 108 20"/></svg>
+            <svg class="refresh-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+              <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+            </svg>
           </button>
           <button id="btnRestart" class="px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">REINICIAR</button>
           <button id="btnDisconnect" class="px-3 py-2 rounded-lg text-sm font-medium bg-red-100 hover:bg-red-200 text-red-700">DESCONECTAR</button>
@@ -178,7 +181,10 @@ ob_start(); ?>
       <?php if ($isConnected): ?>
       <div class="flex items-center justify-end gap-2 pt-2">
         <button id="btnRefreshState" class="p-2 rounded-lg hover:bg-slate-100 text-slate-500" title="Recarregar estado">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 108 20"/></svg>
+          <svg class="refresh-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+          </svg>
         </button>
         <button id="btnRestart" class="px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700">REINICIAR</button>
         <button id="btnDisconnect" class="px-3 py-2 rounded-lg text-sm font-medium bg-red-100 hover:bg-red-200 text-red-700">DESCONECTAR</button>
@@ -528,8 +534,11 @@ ob_start(); ?>
       </div>
       <div class="bg-slate-50 rounded-xl p-8 border border-slate-200" id="qrContainer">
         <div class="text-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p class="text-sm text-slate-600">Carregando QR Code...</p>
+          <svg class="mx-auto mb-4 w-8 h-8 loading-refresh-icon text-indigo-600" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"></path>
+            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"></path>
+          </svg>
+          <p class="text-sm text-slate-600">Carregando QR Code</p>
         </div>
       </div>
       <div class="mt-6 flex justify-end gap-3">
@@ -542,6 +551,9 @@ ob_start(); ?>
   <div id="toasts" class="fixed bottom-4 right-4 space-y-2 z-[200]"></div>
 
   <script>
+    // Cache busting - forçar reload do JavaScript
+    console.log('Evolution Instance Config JS - v2.0 - <?= date("Y-m-d H:i:s") ?>');
+    
     const el = (id) => document.getElementById(id);
     const instanceName = '<?= htmlspecialchars($instanceName) ?>';
     const baseUrl = '<?= base_url('admin/' . rawurlencode($company['slug']) . '/evolution/instance/') ?>';
@@ -681,15 +693,21 @@ ob_start(); ?>
       modal.classList.remove('hidden');
       el('qrContainer').innerHTML = `
         <div class="text-center text-slate-400">
-          <svg class="animate-spin mx-auto mb-2 w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 108 20"/>
+          <svg class="mx-auto mb-2 w-8 h-8 loading-refresh-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"></path>
+            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"></path>
           </svg>
-          Gerando QR Code...
+          Gerando QR Code
         </div>
       `;
       
       try {
         const response = await fetch(baseUrl + instanceName + '/qr_code');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
         
         if (result.success && result.qr) {
@@ -742,6 +760,11 @@ ob_start(); ?>
         el('btnRestart').textContent = 'REINICIANDO...';
         
         const response = await fetch(baseUrl + instanceName + '/restart', {method: 'POST'});
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
         
         if (result.success) {
@@ -768,6 +791,11 @@ ob_start(); ?>
         el('btnDisconnect').textContent = 'DESCONECTANDO...';
         
         const response = await fetch(baseUrl + instanceName + '/disconnect', {method: 'POST'});
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
         
         if (result.success) {
@@ -788,108 +816,111 @@ ob_start(); ?>
     async function refreshStats(showToast = true) {
       const refreshBtn = el('btnRefresh');
       
+      // Verificar se o botão existe
+      if (!refreshBtn) {
+        console.error('Botão btnRefresh não encontrado!');
+        if (showToast) {
+          toast('Erro: Botão de atualizar não encontrado', 'error');
+        }
+        return;
+      }
+      
+      console.log('Botão encontrado:', refreshBtn);
+      
       // Usar loading system do admin-common.js se disponível
       let removeLoading = () => {};
       
-      if (window.AdminCommon && window.AdminCommon.setButtonLoading) {
-        removeLoading = window.AdminCommon.setButtonLoading(refreshBtn, 'Atualizando...');
-      } else {
-        // Fallback melhorado
-        const originalHtml = refreshBtn.innerHTML;
-        refreshBtn.innerHTML = `
-          <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 108 20"/>
-          </svg>
-          Atualizando...
-        `;
-        refreshBtn.disabled = true;
-        refreshBtn.classList.add('opacity-75');
-        
-        removeLoading = () => {
-          refreshBtn.innerHTML = originalHtml;
-          refreshBtn.disabled = false;
-          refreshBtn.classList.remove('opacity-75');
-        };
-      }
+      // Sistema de loading simplificado - sem AdminCommon.js
+      const originalHtml = refreshBtn.innerHTML;
+      const originalDisabled = refreshBtn.disabled;
+      
+      // Aplicar loading state
+      refreshBtn.innerHTML = `
+        <svg class="h-4 w-4 loading-refresh-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"></path>
+          <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"></path>
+        </svg>
+        Atualizando
+      `;
+      refreshBtn.disabled = true;
+      refreshBtn.classList.add('opacity-75');
+      
+      // Função para remover loading
+      removeLoading = () => {
+        try {
+          if (refreshBtn && originalHtml) {
+            refreshBtn.innerHTML = originalHtml;
+            refreshBtn.disabled = originalDisabled;
+            refreshBtn.classList.remove('opacity-75');
+            console.log('Loading state removido com sucesso');
+          }
+        } catch (error) {
+          console.error('Erro ao remover loading state:', error);
+        }
+      };
+      
+      // Timeout de segurança para garantir que o loading seja removido
+      const safetyTimeout = setTimeout(() => {
+        console.warn('Timeout de segurança ativado - removendo loading state');
+        removeLoading();
+      }, 10000); // 10 segundos
       
       try {
+        console.log('Iniciando refresh stats para:', baseUrl + instanceName + '/stats');
         
-        const response = await fetch(baseUrl + instanceName + '/stats');
+        const response = await fetch(baseUrl + instanceName + '/stats', {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        console.log('Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          console.error('Response not ok:', response.status, response.statusText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('Result:', result);
         
         if (result.success) {
           const stats = result.data;
+          console.log('Stats recebidas com sucesso:', stats);
           
-          // Atualizar status usando sistema unificado
-          const statusPill = el('statusPill');
-          const statusText = stats.status === 'open' ? 'Conectado' : 
-                           stats.status === 'connecting' ? 'Conectando' :
-                           stats.status === 'close' ? 'Desconectado' : 
-                           stats.status.charAt(0).toUpperCase() + stats.status.slice(1);
-          
-          // Usar sistema de status unificado
-          if (window.AdminCommon && window.AdminCommon.createStatusPill) {
-            statusPill.outerHTML = window.AdminCommon.createStatusPill(stats.status);
-          } else {
-            // Fallback - mapear status para classes corretas
-            let statusClass;
-            switch(stats.status) {
-              case 'open':
-                statusClass = 'status-connected';
-                break;
-              case 'connecting':
-                statusClass = 'status-connecting';
-                break;
-              case 'close':
-              case 'disconnected':
-                statusClass = 'status-disconnected';
-                break;
-              default:
-                statusClass = 'status-pending';
-            }
+          // Atualizar apenas os contadores - sem toasts
+          try {
+            document.querySelectorAll('[data-stat]').forEach(el => {
+              const stat = el.dataset.stat;
+              if (stats[stat] !== undefined) {
+                el.textContent = new Intl.NumberFormat('pt-BR').format(stats[stat]);
+              }
+            });
             
-            statusPill.className = `status-pill ${statusClass}`;
-            statusPill.innerHTML = `
-              <span class="status-dot"></span>
-              ${statusText}
-            `;
+            console.log('Contadores atualizados com sucesso');
+          } catch (error) {
+            console.error('Erro ao atualizar contadores:', error);
           }
           
-          // Atualizar contadores
-          document.querySelectorAll('[data-stat]').forEach(el => {
-            const stat = el.dataset.stat;
-            if (stats[stat] !== undefined) {
-              el.textContent = new Intl.NumberFormat('pt-BR').format(stats[stat]);
-            }
-          });
-          
-          // Atualizar banner de conexão
-          const disconnectedBanner = document.querySelector('.border-amber-500\\/20');
-          const connectedBanner = document.querySelector('.border-green-500\\/20');
-          
-          if (isConnected) {
-            if (disconnectedBanner) disconnectedBanner.style.display = 'none';
-            if (connectedBanner) connectedBanner.style.display = 'flex';
-          } else {
-            if (disconnectedBanner) disconnectedBanner.style.display = 'flex';
-            if (connectedBanner) connectedBanner.style.display = 'none';
-          }
-          
-          if (showToast) {
-            toast('Estatísticas atualizadas', 'info');
-          }
+          // Sem toast de sucesso
         } else {
-          if (showToast) {
-            toast(result.error || 'Erro ao atualizar estatísticas', 'error');
-          }
+          console.error('API retornou erro:', result.error);
+          // Sem toast de erro
         }
       } catch (error) {
-        if (showToast) {
-          toast('Erro de conexão ao atualizar', 'error');
-        }
+        console.error('Erro ao atualizar estatísticas:', error);
+        // Sem toast de erro
       } finally {
+        // Limpar timeout de segurança
+        clearTimeout(safetyTimeout);
+        
         // Remover loading state
+        console.log('Executando removeLoading no finally...');
         removeLoading();
+        console.log('removeLoading executado com sucesso');
       }
     }
 
@@ -1256,12 +1287,6 @@ ob_start(); ?>
       });
     }
 
-    // Refresh button
-    el('btnRefresh')?.addEventListener('click', () => refreshStats(true));
-    
-    // Auto refresh a cada 30 segundos (sem toast)
-    setInterval(() => refreshStats(false), 30000);
-    
     // Sistema de skeleton loading usando SkeletonSystem centralizado
     const SkeletonLoader = window.SkeletonSystem ? window.SkeletonSystem.createSkeletonLoader({
       header: { skeleton: 'headerSkeleton', content: 'headerContent' },
@@ -1549,26 +1574,10 @@ ob_start(); ?>
       setTimeout(initializeProfessionalUX, 50);
     }
     
-    // Refresh button enhancement
-    el('btnRefresh')?.addEventListener('click', () => {
-      // Aplicar micro-interação
-      MicroInteractions.bounce(el('btnRefresh'));
-      
-      // Mostrar progress indicator durante refresh
-      const progressEl = el('loadingProgress');
-      const textEl = el('loadingText');
-      if (progressEl && textEl) {
-        textEl.textContent = 'Atualizando dados...';
-        progressEl.classList.remove('hidden');
-        progressEl.classList.add('flex');
-        
-        // Esconder após 3 segundos (tempo médio de refresh)
-        setTimeout(() => {
-          progressEl.classList.add('hidden');
-          progressEl.classList.remove('flex');
-        }, 3000);
-      }
-    });
+    // Refresh button - apenas um event listener
+    el('btnRefresh')?.addEventListener('click', () => refreshStats(true));
+    
+    // Auto refresh removido temporariamente para evitar conflitos
   </script>
 
 <?php $content = ob_get_clean(); ?>

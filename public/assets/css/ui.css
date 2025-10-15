@@ -8,6 +8,67 @@
   --color-accent: #f59e0b;
 }
 
+/* ===== LOADING & SKELETON STYLES ===== */
+
+/* Progressive Enhancement States */
+.js-loading .main-content {
+  opacity: 0;
+}
+
+.js-loaded .main-content {
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Lazy Loading e Skeleton Effects */
+.lazy-load {
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.lazy-load[data-loaded="true"] {
+  opacity: 1;
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.lazy-load[data-loaded="true"] + .skeleton-shimmer {
+  display: none;
+}
+
+/* Skeleton placeholder styles */
+.skeleton-tab {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Enhanced loading states */
+.search-loading .search-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
 /* Card */
 .ui-card{background:var(--color-card);border-radius:18px;border:1px solid var(--color-border);padding:18px;display:grid;gap:14px;box-shadow:0 10px 30px -18px rgba(15,23,42,.35);} 
 /* Alias visual para .card (compatibilidade) */
