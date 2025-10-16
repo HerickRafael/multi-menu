@@ -520,6 +520,112 @@ ob_start(); ?>
     </div>
   </section>
 
+  <!-- NOTIFICAÇÃO DE PEDIDO -->
+  <section class="mb-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+    <div class="p-6">
+      <h3 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        </svg>
+        Notificação de Pedido
+      </h3>
+      
+      <!-- Skeleton loading para notificação de pedido -->
+      <div id="orderNotificationSkeleton" class="space-y-4">
+        <div class="animate-pulse">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="h-4 bg-slate-300 rounded w-40 mb-1"></div>
+              <div class="h-3 bg-slate-200 rounded w-60"></div>
+            </div>
+            <div class="h-6 w-11 bg-slate-200 rounded-full"></div>
+          </div>
+          
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+            <div class="h-4 bg-slate-300 rounded w-32 mb-3"></div>
+            <div class="h-10 bg-slate-200 rounded w-full mb-3"></div>
+            <div class="h-8 bg-slate-200 rounded w-28"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conteúdo real da notificação de pedido -->
+      <div id="orderNotificationContent" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <p class="text-sm font-medium text-slate-900">Notificar novos pedidos</p>
+            <p class="text-xs text-slate-500">Enviar mensagem para números WhatsApp quando houver novo pedido</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="statusOrderNotification" class="text-xs text-slate-400 hidden">Carregando...</span>
+            <button id="toggleOrderNotification" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out hover:bg-slate-300" data-enabled="false" data-loading="false">
+              <span class="pointer-events-none inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Container para configuração de números - inicialmente oculto -->
+        <div id="orderNotificationGroupContainer" class="hidden border border-slate-200 rounded-xl p-4 bg-slate-50">
+          <!-- Aviso sobre grupos em manutenção -->
+          <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div class="flex items-start gap-2">
+              <svg class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <div>
+                <p class="text-sm font-medium text-amber-800">Notificação via grupos em manutenção</p>
+                <p class="text-xs text-amber-700 mt-1">No momento, as notificações estão sendo enviadas para números individuais. Os grupos WhatsApp estarão disponíveis em breve.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="orderNotificationNumber1" class="block text-sm font-medium text-slate-700 mb-2">
+              Número Principal para Notificações
+            </label>
+            <input type="tel" id="orderNotificationNumber1" placeholder="Ex: 5511999999999" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" maxlength="20">
+            <p class="text-xs text-slate-500 mt-1">Digite o número com código do país (Ex: 5511999999999)</p>
+          </div>
+          
+          <div class="mb-3">
+            <label for="orderNotificationNumber2" class="block text-sm font-medium text-slate-700 mb-2">
+              Número Secundário (opcional)
+            </label>
+            <input type="tel" id="orderNotificationNumber2" placeholder="Ex: 5511888888888" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" maxlength="20">
+            <p class="text-xs text-slate-500 mt-1">Número adicional para receber cópia das notificações</p>
+          </div>
+          
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-slate-700 mb-2">
+              Formato da Mensagem
+            </label>
+            <div class="bg-slate-100 border border-slate-200 rounded-lg p-3 text-sm">
+              <p class="text-slate-600 mb-2">A mensagem será formatada automaticamente com:</p>
+              <ul class="text-xs text-slate-500 space-y-1">
+                <li>🍔 <strong>Cabeçalho</strong> - Nome da empresa e novo pedido</li>
+                <li>📋 <strong>Pedido</strong> - Número do pedido</li>
+                <li>👤 <strong>Cliente</strong> - Nome completo do cliente</li>
+                <li>� <strong>Pagamento</strong> - Forma de pagamento escolhida</li>
+                <li>�💰 <strong>Total</strong> - Valor total formatado</li>
+                <li>� <strong>Itens</strong> - Lista com quantidades e preços</li>
+                <li>⏰ <strong>Data/Hora</strong> - Timestamp do pedido</li>
+                <li>📱 <strong>Origem</strong> - Sistema automático</li>
+              </ul>
+              <p class="text-xs text-slate-400 mt-2">✨ Formato otimizado para WhatsApp mobile</p>
+            </div>
+          </div>
+          
+          <button id="saveOrderNotification" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700 transition-colors">
+            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            Salvar Configuração
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
 
   <!-- QR CODE MODAL -->
@@ -552,11 +658,16 @@ ob_start(); ?>
 
   <script>
     // Cache busting - forçar reload do JavaScript
-    console.log('Evolution Instance Config JS - v2.0 - <?= date("Y-m-d H:i:s") ?>');
+    console.log('Evolution Instance Config JS - v2.1 - <?= date("Y-m-d H:i:s") ?>');
     
     const el = (id) => document.getElementById(id);
     const instanceName = '<?= htmlspecialchars($instanceName) ?>';
     const baseUrl = '<?= base_url('admin/' . rawurlencode($company['slug']) . '/evolution/instance/') ?>';
+
+    console.log('Configuração inicial:');
+    console.log('- instanceName:', instanceName);
+    console.log('- baseUrl:', baseUrl);
+    console.log('- URL de grupos:', baseUrl + instanceName + '/groups');
 
     // Sistema de toast profissional - reutilizar admin-common.js
     function toast(message, type = 'info') {
@@ -1152,6 +1263,277 @@ ob_start(); ?>
       }
     }
 
+    // === FUNÇÕES PARA NOTIFICAÇÃO DE PEDIDO ===
+    
+    // Carregar grupos da instância
+    async function loadInstanceGroups() {
+      try {
+        console.log('Iniciando busca de grupos para instância:', instanceName);
+        
+        const url = baseUrl + instanceName + '/groups';
+        console.log('URL da requisição:', url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        console.log('Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          // Se a resposta não for ok, vamos ver se é um problema de roteamento
+          const text = await response.text();
+          console.log('Response text:', text.substring(0, 200));
+          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text.substring(0, 100)}`);
+        }
+        
+        const result = await response.json();
+        console.log('Resultado da API de grupos:', result);
+        
+        if (result.success) {
+          const groups = result.data || [];
+          console.log(`${groups.length} grupos encontrados`);
+          return groups;
+        } else {
+          throw new Error(result.error || 'Erro desconhecido da API');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar grupos:', error);
+        // Não retornar dados fictícios - deixar que o erro seja tratado
+        throw error;
+      }
+    }
+
+    // Configurar seletor de grupos
+    async function setupGroupSelector() {
+      const groupSelect = el('orderNotificationGroup');
+      if (!groupSelect) {
+        console.error('Elemento orderNotificationGroup não encontrado');
+        return;
+      }
+      
+      // Mostrar loading
+      groupSelect.innerHTML = '<option value="">🔄 Carregando grupos...</option>';
+      groupSelect.disabled = true;
+      
+      try {
+        const groups = await loadInstanceGroups();
+        
+        // Limpar e adicionar opções
+        groupSelect.innerHTML = '<option value="">Selecione um grupo</option>';
+        
+        if (groups.length > 0) {
+          groups.forEach((group, index) => {
+            const option = document.createElement('option');
+            option.value = group.id;
+            option.textContent = `${group.subject} (${group.participants} participantes)`;
+            groupSelect.appendChild(option);
+            
+            console.log(`Grupo ${index + 1}:`, {
+              id: group.id,
+              subject: group.subject,
+              participants: group.participants
+            });
+          });
+          
+          toast(`${groups.length} grupos encontrados`, 'success');
+        } else {
+          groupSelect.innerHTML = '<option value="">❌ Nenhum grupo encontrado</option>';
+          toast('Nenhum grupo encontrado nesta instância', 'warn');
+        }
+        
+      } catch (error) {
+        console.error('Erro ao configurar seletor de grupos:', error);
+        groupSelect.innerHTML = '<option value="">❌ Erro ao carregar grupos</option>';
+        toast('Erro ao carregar grupos: ' + error.message, 'error');
+      } finally {
+        groupSelect.disabled = false;
+      }
+    }
+
+    // Configurar toggle de notificação de pedido
+    function setupOrderNotificationToggle() {
+      const toggle = el('toggleOrderNotification');
+      const container = el('orderNotificationGroupContainer');
+      
+      if (!toggle || !container) return;
+      
+      toggle.addEventListener('click', async () => {
+        const currentState = toggle.dataset.enabled === 'true';
+        const newState = !currentState;
+        
+        // Atualizar estado visual do toggle
+        updateToggleState(toggle, newState);
+        toggle.dataset.enabled = newState.toString();
+        
+        // Mostrar/ocultar container de configuração
+        if (newState) {
+          container.classList.remove('hidden');
+          
+          // Buscar grupos imediatamente quando ativado
+          toast('Carregando grupos da instância...', 'info');
+          await setupGroupSelector();
+          
+          // Animação suave
+          setTimeout(() => {
+            container.style.maxHeight = container.scrollHeight + 'px';
+            container.style.opacity = '1';
+          }, 10);
+        } else {
+          container.style.maxHeight = '0';
+          container.style.opacity = '0';
+          setTimeout(() => {
+            container.classList.add('hidden');
+          }, 300);
+        }
+      });
+    }
+
+    // Salvar configuração de notificação de pedido
+    async function saveOrderNotificationConfig() {
+      const toggle = el('toggleOrderNotification');
+      const number1Input = el('orderNotificationNumber1');
+      const number2Input = el('orderNotificationNumber2');
+      const saveButton = el('saveOrderNotification');
+      
+      if (!toggle || !number1Input || !number2Input || !saveButton) return;
+      
+      const isEnabled = toggle.dataset.enabled === 'true';
+      const number1 = number1Input.value.trim();
+      const number2 = number2Input.value.trim();
+      
+      if (isEnabled && !number1) {
+        toast('Por favor, digite pelo menos o número principal para receber as notificações', 'error');
+        number1Input.focus();
+        return;
+      }
+      
+      // Validar formato dos números (básico)
+      const phoneRegex = /^[0-9]{10,15}$/;
+      if (isEnabled && number1 && !phoneRegex.test(number1)) {
+        toast('Formato do número principal inválido. Use apenas números (10-15 dígitos)', 'error');
+        number1Input.focus();
+        return;
+      }
+      
+      if (isEnabled && number2 && !phoneRegex.test(number2)) {
+        toast('Formato do número secundário inválido. Use apenas números (10-15 dígitos)', 'error');
+        number2Input.focus();
+        return;
+      }
+      
+      // Mostrar loading no botão
+      const originalText = saveButton.textContent;
+      saveButton.textContent = 'Salvando...';
+      saveButton.disabled = true;
+      
+      try {
+        const response = await fetch(baseUrl + instanceName + '/order-notification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            enabled: isEnabled,
+            primary_number: number1,
+            secondary_number: number2
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          toast('Configuração de notificação salva com sucesso!', 'success');
+          
+          // Mostrar resumo dos números configurados
+          const numbers = [];
+          if (number1) numbers.push(number1);
+          if (number2) numbers.push(number2);
+          
+          if (isEnabled && numbers.length > 0) {
+            setTimeout(() => {
+              toast(`Notificações ativas para: ${numbers.join(', ')}`, 'info');
+            }, 1000);
+          }
+        } else {
+          throw new Error(result.error || 'Erro desconhecido');
+        }
+        
+      } catch (error) {
+        console.error('Erro ao salvar configuração:', error);
+        toast('Erro ao salvar configuração: ' + error.message, 'error');
+      } finally {
+        saveButton.textContent = originalText;
+        saveButton.disabled = false;
+      }
+    }
+
+    // Carregar configuração de notificação de pedido
+    async function loadOrderNotificationConfig() {
+      try {
+        const response = await fetch(baseUrl + instanceName + '/order-notification', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          const config = result.data;
+          const toggle = el('toggleOrderNotification');
+          const number1Input = el('orderNotificationNumber1');
+          const number2Input = el('orderNotificationNumber2');
+          const container = el('orderNotificationGroupContainer');
+          
+          if (toggle) {
+            toggle.dataset.enabled = config.enabled.toString();
+            updateToggleState(toggle, config.enabled);
+            
+            if (config.enabled && container) {
+              container.classList.remove('hidden');
+              setTimeout(() => {
+                container.style.maxHeight = container.scrollHeight + 'px';
+                container.style.opacity = '1';
+              }, 10);
+            }
+          }
+          
+          // Preencher os números salvos
+          if (number1Input && config.primary_number) {
+            number1Input.value = config.primary_number;
+          }
+          
+          if (number2Input && config.secondary_number) {
+            number2Input.value = config.secondary_number;
+          }
+          
+          // Log para debug
+          console.log('Configuração de notificação carregada:', config);
+        }
+        
+      } catch (error) {
+        console.error('Erro ao carregar configuração de notificação:', error);
+      }
+    }
+
+    // === FIM DAS FUNÇÕES DE NOTIFICAÇÃO DE PEDIDO ===
+
     // Inicializar toggles (usando nomes corretos da Evolution API v2)
     // POST usa camelCase, GET retorna underscore
     setupToggleSwitch('toggleRejectCalls', 'rejectCall');
@@ -1165,6 +1547,14 @@ ob_start(); ?>
     const saveMessageBtn = el('saveRejectMessage');
     if (saveMessageBtn) {
       saveMessageBtn.addEventListener('click', saveRejectCallMessage);
+    }
+
+    // Configurar bloco de notificação de pedido
+    setupOrderNotificationToggle();
+    
+    const saveOrderNotificationBtn = el('saveOrderNotification');
+    if (saveOrderNotificationBtn) {
+      saveOrderNotificationBtn.addEventListener('click', saveOrderNotificationConfig);
     }
 
     // Carregar configurações atuais dos toggles
@@ -1516,6 +1906,27 @@ ob_start(); ?>
             // Delay escalonado para visual melhor
             setTimeout(() => {
               loadInstanceSettings();
+              
+              // Carregar também o bloco de notificação de pedido
+              setTimeout(() => {
+                const orderNotificationSkeleton = el('orderNotificationSkeleton');
+                const orderNotificationContent = el('orderNotificationContent');
+                
+                console.log('Elementos de notificação encontrados:', {
+                  skeleton: !!orderNotificationSkeleton,
+                  content: !!orderNotificationContent
+                });
+                
+                if (orderNotificationSkeleton && orderNotificationContent) {
+                  orderNotificationSkeleton.classList.add('hidden');
+                  orderNotificationContent.classList.remove('hidden');
+                  
+                  // Carregar configurações salvas
+                  console.log('Carregando configurações de notificação...');
+                  loadOrderNotificationConfig();
+                }
+              }, 300);
+              
               resolve();
             }, 500);
           } catch (error) {

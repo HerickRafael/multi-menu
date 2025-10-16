@@ -4,9 +4,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Order.php';
 require_once __DIR__ . '/../models/Product.php';
-require_once __DIR__ . '/../models/Company.php';
+require_once __DIR__ . '/../services/OrderNotificationService.php';
 
 class AdminOrdersController extends Controller
 {
@@ -194,6 +196,34 @@ class AdminOrdersController extends Controller
         }
 
         Order::emitOrderEvent($db, $orderId, $companyId, 'order.created');
+
+        // Enviar notificação de novo pedido para grupos configurados
+        try {
+            $orderData = [
+                'id' => $orderId,
+                'customer_name' => $customer_name,
+                'customer_phone' => $customer_phone,
+                'total' => $total,
+                'subtotal' => $subtotal,
+                'delivery_fee' => $delivery_fee,
+                'discount' => $discount,
+                'items' => array_map(function($item) use ($db) {
+                    $product = Product::find($item['product_id']);
+                    return [
+                        'name' => $product['name'] ?? 'Produto',
+                        'quantity' => $item['quantity'],
+                        'price' => $item['unit_price']
+                    ];
+                }, $items),
+                'notes' => $notes,
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            OrderNotificationService::sendOrderNotification($companyId, $orderData);
+        } catch (Exception $e) {
+            // Log do erro mas não interrompe o fluxo do pedido
+            error_log("Erro ao enviar notificação de pedido: " . $e->getMessage());
+        }
 
         header('Location: ' . base_url('admin/' . rawurlencode($company['slug']) . '/orders/show?id=' . $orderId));
         exit;

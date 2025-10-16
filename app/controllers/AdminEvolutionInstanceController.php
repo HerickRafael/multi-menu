@@ -152,8 +152,8 @@ class AdminEvolutionInstanceController extends Controller
             // Usar o método guard para autenticação (igual aos outros controllers admin)
             [$user, $company] = $this->guard($slug);
 
-            // Buscar informações da instância na Evolution API usando o nome diretamente
-            $instanceData = $this->getInstanceDataByName($instanceName);
+            // Buscar informações da instância na Evolution API usando as configurações da empresa
+            $instanceData = $this->getInstanceDataByName($instanceName, $company);
             
             // Renderizar a view
             $data = [
@@ -175,12 +175,27 @@ class AdminEvolutionInstanceController extends Controller
     /**
      * Buscar dados específicos da instância pelo nome
      */
-    private function getInstanceDataByName($instanceName)
+    private function getInstanceDataByName($instanceName, $company = null)
     {
-        $url = "https://evolutionvictor.mlojas.com/instance/fetchInstances?instanceName=" . rawurlencode($instanceName);
-        $result = $this->callEvolutionAPI($url);
+        // Se a empresa não foi passada, tentar obter do contexto
+        if (!$company) {
+            $slug = $_GET['slug'] ?? $_POST['slug'] ?? 'wollburger'; // fallback temporário
+            $company = \Company::findBySlug($slug);
+        }
         
-        if ($result['success'] && !empty($result['data'])) {
+        if (!$company) {
+            error_log("Empresa não encontrada");
+            return [
+                'instance_identifier' => $instanceName,
+                'status' => 'disconnected',
+                'token' => null
+            ];
+        }
+        
+        // Usar o método evolutionApiRequest consistente em vez de URL hardcoded
+        $result = $this->evolutionApiRequest($company, '/instance/fetchInstances?instanceName=' . rawurlencode($instanceName), 'GET');
+        
+        if (!$result['error'] && !empty($result['data'])) {
             $data = $result['data'];
             // Se retornou um array com dados, pegar o primeiro item
             if (is_array($data) && !empty($data)) {
@@ -191,6 +206,8 @@ class AdminEvolutionInstanceController extends Controller
             }
             return $data; // Retornar os dados como estão
         }
+        
+        error_log("Erro ao buscar dados da instância $instanceName: " . ($result['error'] ?? 'dados vazios'));
         
         // Retornar dados padrão se não conseguir obter da API
         return [
@@ -521,8 +538,8 @@ class AdminEvolutionInstanceController extends Controller
         try {
             [$user, $company] = $this->guard($slug);
             
-            // Usar exatamente o mesmo código da getInstanceDataByName que funciona
-            $instanceData = $this->getInstanceDataByName($instanceName);
+            // Usar o método getInstanceDataByName com a empresa correta
+            $instanceData = $this->getInstanceDataByName($instanceName, $company);
             
             header('Content-Type: application/json');
             
@@ -626,6 +643,70 @@ class AdminEvolutionInstanceController extends Controller
     }
 
     /**
+     * API - Buscar grupos da instância
+     */
+    public function groups($params)
+    {
+        $slug = $params['slug'] ?? null;
+        $instanceName = $params['instanceName'] ?? null;
+        
+        if (!$slug || !$instanceName) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Parâmetros obrigatórios ausentes']);
+            return;
+        }
+        
+        try {
+            [$user, $company] = $this->guard($slug);
+            
+            // Log das configurações da empresa
+            error_log("Company config - Server: " . ($company['evolution_server_url'] ?? 'NOT SET'));
+            error_log("Company config - API Key: " . (isset($company['evolution_api_key']) ? 'SET' : 'NOT SET'));
+            
+            // Buscar grupos usando o endpoint da Evolution API v2 com parâmetro obrigatório
+            $path = "/group/fetchAllGroups/{$instanceName}?getParticipants=false";
+            error_log("Buscando grupos para instância: {$instanceName} no path: {$path}");
+            
+            $result = $this->evolutionApiRequest(
+                $company, 
+                $path, 
+                'GET'
+            );
+            
+            error_log("Resultado da busca de grupos: " . json_encode($result));
+            
+            header('Content-Type: application/json');
+            
+            if ($result['error']) {
+                echo json_encode(['success' => false, 'error' => $result['error']]);
+            } else {
+                // Normalizar dados dos grupos para o formato esperado
+                $groups = $result['data'] ?? [];
+                if (is_array($groups)) {
+                    $formattedGroups = array_map(function($group) {
+                        return [
+                            'id' => $group['id'] ?? '',
+                            'subject' => $group['subject'] ?? 'Grupo sem nome',
+                            'description' => $group['description'] ?? '',
+                            'participants' => count($group['participants'] ?? []),
+                            'creation' => $group['creation'] ?? null,
+                            'owner' => $group['owner'] ?? null
+                        ];
+                    }, $groups);
+                    
+                    echo json_encode(['success' => true, 'data' => $formattedGroups]);
+                } else {
+                    echo json_encode(['success' => true, 'data' => []]);
+                }
+            }
+            
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Erro interno do servidor: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * API - Buscar configurações da instância
      */
     public function get_settings($params)
@@ -661,6 +742,117 @@ class AdminEvolutionInstanceController extends Controller
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'error' => 'Erro interno do servidor: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * API - Configurar notificação de pedido
+     */
+    public function order_notification($params)
+    {
+        $slug = $params['slug'] ?? null;
+        $instanceName = $params['instanceName'] ?? null;
+        
+        if (!$slug || !$instanceName) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Parâmetros obrigatórios ausentes']);
+            return;
+        }
+        
+        try {
+            [$user, $company] = $this->guard($slug);
+            
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Salvar configuração de notificação
+                $input = json_decode(file_get_contents('php://input'), true);
+                
+                $enabled = $input['enabled'] ?? false;
+                $primaryNumber = $input['primary_number'] ?? '';
+                $secondaryNumber = $input['secondary_number'] ?? '';
+                
+                // Validar dados
+                if ($enabled && empty($primaryNumber)) {
+                    echo json_encode(['success' => false, 'error' => 'Número principal é obrigatório quando a notificação está ativada']);
+                    return;
+                }
+                
+                // Validar formato dos números
+                if ($enabled && $primaryNumber && !preg_match('/^[0-9]{10,15}$/', $primaryNumber)) {
+                    echo json_encode(['success' => false, 'error' => 'Formato do número principal inválido. Use apenas números (10-15 dígitos)']);
+                    return;
+                }
+                
+                if ($enabled && $secondaryNumber && !preg_match('/^[0-9]{10,15}$/', $secondaryNumber)) {
+                    echo json_encode(['success' => false, 'error' => 'Formato do número secundário inválido. Use apenas números (10-15 dígitos)']);
+                    return;
+                }
+                
+                // Salvar configuração na tabela de configurações da empresa
+                $this->saveInstanceConfig($company['id'], $instanceName, 'order_notification', [
+                    'enabled' => $enabled,
+                    'primary_number' => $primaryNumber,
+                    'secondary_number' => $secondaryNumber,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Configuração salva com sucesso']);
+                
+            } else {
+                // Carregar configuração de notificação
+                $config = $this->getInstanceConfig($company['id'], $instanceName, 'order_notification');
+                
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'data' => $config]);
+            }
+            
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Erro interno do servidor: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Salvar configuração da instância
+     */
+    private function saveInstanceConfig($companyId, $instanceName, $configKey, $configValue)
+    {
+        require_once __DIR__ . '/../config/db.php';
+        $pdo = db();
+        
+        $sql = "INSERT INTO instance_configs (company_id, instance_name, config_key, config_value, created_at, updated_at) 
+                VALUES (?, ?, ?, ?, NOW(), NOW()) 
+                ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), updated_at = NOW()";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$companyId, $instanceName, $configKey, json_encode($configValue)]);
+    }
+
+    /**
+     * Obter configuração da instância
+     */
+    private function getInstanceConfig($companyId, $instanceName, $configKey)
+    {
+        require_once __DIR__ . '/../config/db.php';
+        $pdo = db();
+        
+        $sql = "SELECT config_value FROM instance_configs 
+                WHERE company_id = ? AND instance_name = ? AND config_key = ?";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$companyId, $instanceName, $configKey]);
+        
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        if ($row) {
+            return json_decode($row['config_value'], true);
+        }
+        
+        // Retornar configuração padrão
+        return [
+            'enabled' => false,
+            'group_id' => '',
+            'custom_message' => ''
+        ];
     }
 
 }

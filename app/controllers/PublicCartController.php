@@ -15,6 +15,7 @@ require_once __DIR__ . '/../models/DeliveryCity.php';
 require_once __DIR__ . '/../models/DeliveryZone.php';
 require_once __DIR__ . '/../models/PaymentMethod.php';
 require_once __DIR__ . '/../models/Order.php';
+require_once __DIR__ . '/../services/OrderNotificationService.php';
 
 class PublicCartController extends Controller
 {
@@ -288,10 +289,10 @@ class PublicCartController extends Controller
         if (!empty($address['neighborhood'])) {
             $line2Segments[] = trim($address['neighborhood']);
         }
-        $cityState = trim(($address['city'] ?? '') . ((isset($address['state']) && $address['state'] !== '') ? '/' . strtoupper($address['state']) : ''));
+        $city = trim((string)($address['city'] ?? ''));
 
-        if ($cityState !== '') {
-            $line2Segments[] = $cityState;
+        if ($city !== '') {
+            $line2Segments[] = $city;
         }
 
         if ($line2Segments) {
@@ -783,7 +784,6 @@ class PublicCartController extends Controller
             'number'            => '',
             'neighborhood'      => '',
             'city'              => '',
-            'state'             => '',
             'complement'        => '',
             'reference'         => '',
             'notes'             => '',
@@ -892,6 +892,10 @@ class PublicCartController extends Controller
                 // ícone padrão do pix quando não definido
                 $pixPath = '/assets/card-brands/pix.svg';
                 $iconUrl = $baseUrlFull !== '' ? ($baseUrlFull . $pixPath) : $pixPath;
+            } elseif (($pm['type'] ?? '') === 'cash') {
+                // ícone padrão do dinheiro quando não definido
+                $cashPath = '/assets/card-brands/cash.svg';
+                $iconUrl = $baseUrlFull !== '' ? ($baseUrlFull . $cashPath) : $cashPath;
             }
             $pm['icon_url'] = $iconUrl;
         }
@@ -1035,7 +1039,6 @@ class PublicCartController extends Controller
             'street'      => trim($addressInput['street'] ?? ''),
             'number'      => trim($addressInput['number'] ?? ''),
             'complement'  => trim($addressInput['complement'] ?? ''),
-            'state'       => strtoupper(trim($addressInput['state'] ?? '')),
             'reference'   => trim($addressInput['reference'] ?? ''),
             'city_id'     => (int)($addressInput['city_id'] ?? 0),
             'zone_id'     => (int)($addressInput['zone_id'] ?? 0),
@@ -1077,6 +1080,12 @@ class PublicCartController extends Controller
         }
         $clean['payment_method_id'] = $paymentMethodId;
 
+        // Processar valor em dinheiro se for método cash
+        $cashAmount = 0.0;
+        if ($paymentMethod && ($paymentMethod['type'] ?? '') === 'cash') {
+            $cashAmount = (float)($_POST['cash_amount'] ?? 0);
+        }
+
         $errors = [];
 
         if ($clean['name'] === '') {
@@ -1103,6 +1112,11 @@ class PublicCartController extends Controller
 
         if ($clean['number'] === '') {
             $errors[] = 'Informe o número do endereço.';
+        }
+
+        // Validar se o número contém apenas dígitos
+        if ($clean['number'] !== '' && !preg_match('/^\d+$/', $clean['number'])) {
+            $errors[] = 'O número do endereço deve conter apenas números.';
         }
 
         if ($activePaymentMethods && $paymentMethodId <= 0) {
@@ -1161,6 +1175,27 @@ class PublicCartController extends Controller
         $discount = 0.0;
         $total = max(0.0, $subtotal + $deliveryFee - $discount);
 
+        // Validação específica para pagamento em dinheiro
+        if ($paymentMethod && ($paymentMethod['type'] ?? '') === 'cash') {
+            // Se cashAmount for 0, significa que não precisa de troco (pagamento exato)
+            if ($cashAmount > 0 && $cashAmount < $total) {
+                $deficit = $total - $cashAmount;
+                $errors[] = 'Valor insuficiente. Falta R$ ' . number_format($deficit, 2, ',', '.') . ' para completar o pagamento.';
+            }
+            // Se cashAmount for 0, assumimos pagamento exato sem troco
+        }
+
+        // Verificar erros antes de prosseguir
+        if ($errors) {
+            $_SESSION['checkout_flash'] = [
+                'type' => 'error',
+                'message' => implode(' ', $errors),
+            ];
+            $_SESSION['checkout_address'] = $clean;
+            header('Location: ' . base_url($slug . '/checkout'));
+            exit;
+        }
+
         $paymentMethodName = $paymentMethod ? trim((string)($paymentMethod['name'] ?? '')) : '';
         $paymentInstructions = $paymentMethod ? trim((string)($paymentMethod['instructions'] ?? '')) : '';
 
@@ -1176,6 +1211,20 @@ class PublicCartController extends Controller
             if ($paymentInstructions !== '') {
                 $paymentLine .= ' — ' . $paymentInstructions;
             }
+
+            // Adicionar informações de troco para pagamento em dinheiro
+            if (($paymentMethod['type'] ?? '') === 'cash') {
+                if ($cashAmount > 0) {
+                    $change = $cashAmount - $total;
+                    $paymentLine .= ' — Valor informado: R$ ' . number_format($cashAmount, 2, ',', '.');
+                    if ($change > 0) {
+                        $paymentLine .= ' (Troco: R$ ' . number_format($change, 2, ',', '.') . ')';
+                    }
+                } else {
+                    $paymentLine .= ' — Pagamento exato (sem troco)';
+                }
+            }
+
             $orderNotesParts[] = $paymentLine;
         }
         $orderNotes = $orderNotesParts ? implode("\n\n", $orderNotesParts) : null;
@@ -1196,6 +1245,7 @@ class PublicCartController extends Controller
                 'status'           => 'pending',
                 'notes'            => $orderNotes,
                 'customer_address' => $formattedAddress,
+                'payment_method_id' => $paymentMethodId,
             ]);
 
             foreach ($orderItemsPayload as $payload) {
@@ -1205,6 +1255,36 @@ class PublicCartController extends Controller
             $this->persistOrderAddress($db, $orderId, $formattedAddress);
 
             Order::emitOrderEvent($db, $orderId, $companyId, 'order.created');
+
+            // Enviar notificação de novo pedido para grupos configurados
+            try {
+                $orderData = [
+                    'id' => $orderId,
+                    'customer_name' => $clean['name'],
+                    'customer_phone' => $clean['phone'],
+                    'total' => $total,
+                    'subtotal' => $subtotal,
+                    'delivery_fee' => $deliveryFee,
+                    'discount' => $discount,
+                    'payment_method' => $paymentMethod ? $paymentMethod['name'] : 'Não informado',
+                    'items' => array_map(function($payload) use ($db) {
+                        $product = Product::find($payload['product_id']);
+                        return [
+                            'name' => $product['name'] ?? 'Produto',
+                            'quantity' => $payload['quantity'],
+                            'price' => $payload['unit_price']
+                        ];
+                    }, $orderItemsPayload),
+                    'notes' => $orderNotes,
+                    'customer_address' => $formattedAddress,
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+                
+                OrderNotificationService::sendOrderNotification($companyId, $orderData);
+            } catch (Exception $e) {
+                // Log do erro mas não interrompe o fluxo do pedido
+                error_log("Erro ao enviar notificação de pedido: " . $e->getMessage());
+            }
 
             $db->commit();
         } catch (Throwable $e) {

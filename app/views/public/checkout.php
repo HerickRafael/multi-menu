@@ -73,7 +73,6 @@ $flash = is_array($flash ?? null) ? $flash : null;
 
 $addressCityName = (string)($address['city'] ?? '');
 $addressNeighborhoodName = (string)($address['neighborhood'] ?? '');
-$addressState = (string)($address['state'] ?? '');
 
 $citiesForJs = array_map(static function ($city) {
     return [
@@ -209,7 +208,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
       </label>
       <label class="field">
         <span>Cidade atendida</span>
-        <select id="checkout-city" name="address[city_id]">
+        <select id="checkout-city" name="address[city_id]" required>
           <option value="">Selecione a cidade</option>
           <?php foreach ($cities as $city): $cityId = (int)($city['id'] ?? 0); ?>
             <option value="<?= $cityId ?>"<?= $cityId === $selectedCityId ? ' selected' : '' ?>><?= e($city['name'] ?? '') ?></option>
@@ -219,7 +218,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
       <?php $initialZones = ($selectedCityId && isset($zonesByCity[$selectedCityId])) ? $zonesByCity[$selectedCityId] : []; ?>
       <label class="field">
         <span>Bairro</span>
-        <select id="checkout-zone" name="address[zone_id]"<?= $selectedCityId ? '' : ' disabled' ?>>
+        <select id="checkout-zone" name="address[zone_id]" required<?= $selectedCityId ? '' : ' disabled' ?>>
           <option value=""><?= $selectedCityId ? 'Selecione o bairro' : 'Escolha a cidade primeiro' ?></option>
           <?php foreach ($initialZones as $zone): $zoneId = (int)($zone['id'] ?? 0); ?>
             <option value="<?= $zoneId ?>" data-fee="<?= e(number_format((float)($zone['fee'] ?? 0), 2, '.', '')) ?>" data-city-name="<?= e($zone['city_name'] ?? '') ?>" data-zone-name="<?= e($zone['name'] ?? '') ?>"<?= $zoneId === $selectedZoneId ? ' selected' : '' ?>>
@@ -234,15 +233,11 @@ foreach ($zonesByCity as $cityId => $zoneList) {
       </label>
       <label class="field">
         <span>Número</span>
-        <input type="text" name="address[number]" placeholder="123" value="<?= e($address['number'] ?? '') ?>" required>
+        <input type="number" name="address[number]" placeholder="123" value="<?= e($address['number'] ?? '') ?>" required min="1" step="1">
       </label>
       <label class="field">
         <span>Complemento</span>
         <input type="text" name="address[complement]" placeholder="Apto, bloco, casa" value="<?= e($address['complement'] ?? '') ?>">
-      </label>
-      <label class="field">
-        <span>Estado (UF)</span>
-        <input type="text" name="address[state]" placeholder="SP" maxlength="2" value="<?= e($addressState) ?>">
       </label>
       <label class="field">
         <span>Ponto de referência</span>
@@ -281,6 +276,7 @@ foreach ($zonesByCity as $cityId => $zoneList) {
           $creditMethods = [];
           $debitMethods = [];
           $voucherMethods = [];
+          $cashMethods = [];
           $otherMethods = [];
           
           foreach ($paymentMethods as $method) {
@@ -293,6 +289,8 @@ foreach ($zonesByCity as $cityId => $zoneList) {
               $debitMethods[] = $method;
             } elseif ($type === 'voucher') {
               $voucherMethods[] = $method;
+            } elseif ($type === 'cash') {
+              $cashMethods[] = $method;
             } else {
               $otherMethods[] = $method;
             }
@@ -316,6 +314,45 @@ foreach ($zonesByCity as $cityId => $zoneList) {
               <?= $paymentInstructions ? nl2br(e($paymentInstructions)) : '' ?>
             </div>
           <?php endif; ?>
+          
+          <?php if ($cashMethods): ?>
+            <!-- Cash Payment Option -->
+            <div class="payment-type-btn<?= ($selectedPayment && ($selectedPayment['type'] ?? '') === 'cash') ? ' active' : '' ?>" data-type="cash" onclick="selectPaymentType('cash')">
+              <div class="payment-info">
+                <img src="<?= function_exists('base_url') ? base_url('assets/card-brands/cash.svg') : '/assets/card-brands/cash.svg' ?>" alt="Dinheiro" class="payment-icon">
+                <div class="payment-text">
+                  <div class="payment-title">Dinheiro</div>
+                  <div class="payment-subtitle">Pagamento na entrega</div>
+                </div>
+              </div>
+            </div>
+          <?php endif; ?>
+          
+          <!-- Cash Payment Information (appears after selecting cash) -->
+          <div id="cash-payment-block" class="payment-note hidden">
+            <div class="cash-payment-content">
+              <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151;">Troco necessário?</h4>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <label style="display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 13px; color: #6b7280;">Você precisa de troco para quanto? Se não precisar, deixe em branco</span>
+                  <input type="number" id="cash-amount" name="cash_amount" placeholder="Ex: 50,00" step="0.01" min="0" 
+                         style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;"
+                         oninput="calculateChange()">
+                </label>
+                <div id="change-info" style="display: none; padding: 8px 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span>Total do pedido:</span>
+                    <span id="order-total-display">R$ 0,00</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                    <span>Troco:</span>
+                    <span id="change-amount" style="color: #059669;">R$ 0,00</span>
+                  </div>
+                </div>
+                <div id="cash-error" style="display: none; color: #dc2626; font-size: 12px; padding: 4px 0;"></div>
+              </div>
+            </div>
+          </div>
           
           <?php if ($creditMethods): ?>
             <!-- Credit Card Payment Option -->
@@ -702,6 +739,12 @@ foreach ($zonesByCity as $cityId => $zoneList) {
       paymentBox.classList.add('hidden');
     }
     
+    // Hide cash payment block when switching to other methods
+    const cashBlock = document.getElementById('cash-payment-block');
+    if (type !== 'cash' && cashBlock) {
+      cashBlock.classList.add('hidden');
+    }
+    
     // If clicking the same button that was active, just close it (toggle behavior)
     if (isCurrentlyActive) {
       selectedPaymentType = '';
@@ -766,6 +809,18 @@ foreach ($zonesByCity as $cityId => $zoneList) {
         selectedMethodId = pixMethod.id;
         updatePaymentData();
         showPaymentInstructions(pixMethod);
+      }
+    } else if (type === 'cash') {
+      // Show cash payment block
+      const cashBlock = document.getElementById('cash-payment-block');
+      if (cashBlock) {
+        cashBlock.classList.remove('hidden');
+      }
+      // Find first cash method and select it
+      const cashMethod = Object.values(paymentMethods).find(method => method.type === 'cash');
+      if (cashMethod) {
+        selectedMethodId = cashMethod.id;
+        updatePaymentData();
       }
     }
   };
@@ -1055,6 +1110,70 @@ foreach ($zonesByCity as $cityId => $zoneList) {
       showPaymentInstructions(method);
     }
   }
+
+  // Validação do campo número - apenas números
+  const numberInput = document.querySelector('input[name="address[number]"]');
+  if (numberInput) {
+    numberInput.addEventListener('input', (e) => {
+      // Remove todos os caracteres que não são números
+      e.target.value = e.target.value.replace(/[^\d]/g, '');
+    });
+    
+    numberInput.addEventListener('keydown', (e) => {
+      // Permitir apenas números, backspace, delete, tab e arrow keys
+      const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+      if (!allowedKeys.includes(e.key) && (e.key < '0' || e.key > '9')) {
+        e.preventDefault();
+      }
+    });
+  }
+
+  // Funções para pagamento em dinheiro
+  window.calculateChange = function() {
+    const cashAmountInput = document.getElementById('cash-amount');
+    const changeInfo = document.getElementById('change-info');
+    const changeAmount = document.getElementById('change-amount');
+    const orderTotalDisplay = document.getElementById('order-total-display');
+    const cashError = document.getElementById('cash-error');
+    
+    if (!cashAmountInput || !changeInfo || !changeAmount || !orderTotalDisplay || !cashError) return;
+    
+    const cashValue = parseFloat(cashAmountInput.value) || 0;
+    const orderTotal = parseFloat(document.getElementById('total-amount')?.textContent?.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    
+    // Atualizar display do total do pedido
+    orderTotalDisplay.textContent = `R$ ${orderTotal.toFixed(2).replace('.', ',')}`;
+    
+    if (cashValue === 0) {
+      changeInfo.style.display = 'none';
+      cashError.style.display = 'none';
+      return;
+    }
+    
+    if (cashValue < orderTotal) {
+      changeInfo.style.display = 'none';
+      cashError.style.display = 'block';
+      cashError.textContent = `Valor insuficiente. Você informou R$ ${cashValue.toFixed(2).replace('.', ',')}, mas o total é R$ ${orderTotal.toFixed(2).replace('.', ',')}`;
+      return;
+    }
+    
+    const change = cashValue - orderTotal;
+    changeAmount.textContent = `R$ ${change.toFixed(2).replace('.', ',')}`;
+    changeInfo.style.display = 'block';
+    cashError.style.display = 'none';
+  };
+
+  // Atualizar cálculo do troco quando o total do pedido mudar
+  const originalUpdateSummary = window.updateSummary;
+  window.updateSummary = function(fee, hasValidZone) {
+    if (originalUpdateSummary) {
+      originalUpdateSummary(fee, hasValidZone);
+    }
+    // Recalcular troco se o pagamento em dinheiro estiver ativo
+    if (selectedPaymentType === 'cash') {
+      setTimeout(calculateChange, 100);
+    }
+  };
 })();
 </script>
 </body>

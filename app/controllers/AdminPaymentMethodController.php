@@ -27,6 +27,7 @@ class AdminPaymentMethodController extends Controller
             'debit' => 'Débito',
             'voucher' => 'Vale-refeição',
             'others' => 'Outros',
+            'cash' => 'Dinheiro',
         ];
         if (isset($labels[$slug])) {
             return $labels[$slug];
@@ -105,7 +106,8 @@ class AdminPaymentMethodController extends Controller
             'credit' => 'Crédito (genérico)',
             'debit' => 'Débito (genérico)',
             'voucher' => 'Vale-refeição (genérico)',
-            'others' => 'Outros (genérico)'
+            'others' => 'Outros (genérico)',
+            'cash' => 'Dinheiro (genérico)'
         ];
         $items = [];
         if (is_dir($dir)) {
@@ -343,7 +345,7 @@ class AdminPaymentMethodController extends Controller
     // active não é mais definido no formulário de criação; controle é pela lista
     $active = 1; // por padrão, novo método entra ativo (pode ser alterado depois nos toggles)
 
-        $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
+        $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix', 'cash'];
         $type = trim($_POST['type'] ?? 'others');
         if (!in_array($type, $allowedTypes, true)) {
             $type = 'others';
@@ -539,7 +541,7 @@ class AdminPaymentMethodController extends Controller
             $active = (int)($method['active'] ?? 0);
         }
 
-        $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
+        $allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix', 'cash'];
         $type = trim($_POST['type'] ?? ($method['type'] ?? 'others'));
         if (!in_array($type, $allowedTypes, true)) {
             $type = 'others';

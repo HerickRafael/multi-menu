@@ -139,7 +139,7 @@ ob_start();
               </div>
               <div class="address-meta">
                 <?= e($address['street'] ?? '') ?>, <?= e($address['number'] ?? '') ?> <?= e($address['complement'] ? ' - '.$address['complement'] : '') ?><br>
-                <?= e($address['neighborhood'] ?? '') ?> · <?= e($address['city'] ?? '') ?> / <?= e($address['state'] ?? '') ?>
+                <?= e($address['neighborhood'] ?? '') ?> · <?= e($address['city'] ?? '') ?>
               </div>
               <?php if (!empty($address['reference'])): ?>
                 <div class="address-meta">Referência: <?= e($address['reference']) ?></div>

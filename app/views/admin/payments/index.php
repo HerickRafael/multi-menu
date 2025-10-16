@@ -81,7 +81,7 @@ $user    = $user ?? null;
 
 $old['meta'] = is_array($old['meta'] ?? null) ? $old['meta'] : [];
 $oldType = is_string($old['type'] ?? null) ? $old['type'] : 'credit';
-$allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix'];
+$allowedTypes = ['credit', 'debit', 'others', 'voucher', 'pix', 'cash'];
 if (!in_array($oldType, $allowedTypes, true)) {
     $oldType = 'credit';
 }
@@ -224,15 +224,17 @@ ob_start();
         function togglePixFields(){
           if (!type) return;
           const isPix = type.value === 'pix';
+          const isCash = type.value === 'cash';
+          const isFixedType = isPix || isCash; // PIX e Cash têm ícones fixos
           const libSelected = libInput && libInput.value ? true : false;
           if (pixFields) {
             pixFields.classList.toggle('hidden', !isPix);
           }
           if (nameField) {
-            nameField.classList.toggle('hidden', isPix || libSelected);
+            nameField.classList.toggle('hidden', isFixedType || libSelected);
           }
-          if (uploadField) uploadField.classList.toggle('hidden', isPix || libSelected);
-          if (libraryField) libraryField.classList.toggle('hidden', isPix);
+          if (uploadField) uploadField.classList.toggle('hidden', isFixedType || libSelected);
+          if (libraryField) libraryField.classList.toggle('hidden', isFixedType);
           if (nameInput) {
             if (!nameInput.dataset.originalRequired) {
               nameInput.dataset.originalRequired = nameInput.hasAttribute('required') ? '1' : '0';
@@ -241,6 +243,11 @@ ob_start();
               nameInput.removeAttribute('required');
               if (!nameInput.value) {
                 nameInput.value = 'Pix';
+              }
+            } else if (isCash) {
+              nameInput.removeAttribute('required');
+              if (!nameInput.value) {
+                nameInput.value = 'Dinheiro';
               }
             } else if (nameInput.dataset.originalRequired === '1') {
               nameInput.setAttribute('required', 'required');
@@ -303,6 +310,7 @@ ob_start();
           <option value="others" <?= $oldType === 'others' ? 'selected' : '' ?>>Outros</option>
           <option value="voucher" <?= $oldType === 'voucher' ? 'selected' : '' ?>>Vale-refeição</option>
           <option value="pix" <?= $oldType === 'pix' ? 'selected' : '' ?>>Pix</option>
+          <option value="cash" <?= $oldType === 'cash' ? 'selected' : '' ?>>Dinheiro</option>
         </select>
       </label>
 
@@ -449,7 +457,7 @@ ob_start();
               }
               if (libSelected) {
                 nameInput.removeAttribute('required');
-              } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && typeSelect.value === 'pix')) {
+              } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && (typeSelect.value === 'pix' || typeSelect.value === 'cash'))) {
                 nameInput.setAttribute('required', 'required');
               }
               if (libSelected && label) {
@@ -496,7 +504,7 @@ ob_start();
           if (input && input.value) {
             selectBrand(input.value);
           }
-          if (libraryField && typeSelect && typeSelect.value === 'pix') {
+          if (libraryField && typeSelect && (typeSelect.value === 'pix' || typeSelect.value === 'cash')) {
             libraryField.classList.add('hidden');
             if (uploadField) uploadField.classList.add('hidden');
           }
@@ -561,6 +569,7 @@ ob_start();
       <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="others">Outros</button>
       <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="voucher">Vale-refeição</button>
       <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="pix">Pix</button>
+      <button type="button" class="pm-tab text-slate-500 hover:text-slate-700" data-type="cash">Dinheiro</button>
     </div>
 
     <!-- Cabeçalho da lista -->
@@ -972,7 +981,7 @@ ob_start();
           }
           const meta = ensureMethodMeta(method);
           if (nameInput) {
-            nameInput.value = method.type === 'pix' ? 'Pix' : (method.name || '');
+            nameInput.value = method.type === 'pix' ? 'Pix' : method.type === 'cash' ? 'Dinheiro' : (method.name || '');
           }
           if (instructionsInput) {
             instructionsInput.value = method.instructions || '';
@@ -1363,6 +1372,7 @@ ob_start();
             <option value="others">Outros</option>
             <option value="voucher">Vale-refeição</option>
             <option value="pix">Pix</option>
+            <option value="cash">Dinheiro</option>
           </select>
         </label>
         <label class="grid gap-1 text-sm">
@@ -1562,7 +1572,7 @@ ob_start();
           }
           if (libSelected) {
             nameInput.removeAttribute('required');
-          } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && typeSelect.value === 'pix')) {
+          } else if (nameInput.dataset.originalRequired === '1' && !(typeSelect && (typeSelect.value === 'pix' || typeSelect.value === 'cash'))) {
             nameInput.setAttribute('required', 'required');
           }
           if (libSelected && label) {
@@ -1612,14 +1622,16 @@ ob_start();
         close();
       }
 
-      // esconde biblioteca/upload quando tipo = pix
+      // esconde biblioteca/upload quando tipo = pix ou cash
       function syncPixVisibility(){
         const isPix = typeSelect && typeSelect.value === 'pix';
-        if (libraryField) libraryField.classList.toggle('hidden', isPix);
+        const isCash = typeSelect && typeSelect.value === 'cash';
+        const isFixedType = isPix || isCash;
+        if (libraryField) libraryField.classList.toggle('hidden', isFixedType);
         const uploadField = document.getElementById('pm-edit-upload-field');
-        if (uploadField) uploadField.classList.toggle('hidden', isPix);
+        if (uploadField) uploadField.classList.toggle('hidden', isFixedType);
         const nameWrapper = document.getElementById('pm-edit-name-field');
-        if (nameWrapper) nameWrapper.classList.toggle('hidden', isPix);
+        if (nameWrapper) nameWrapper.classList.toggle('hidden', isFixedType);
       }
       if (typeSelect) typeSelect.addEventListener('change', syncPixVisibility);
       syncPixVisibility();

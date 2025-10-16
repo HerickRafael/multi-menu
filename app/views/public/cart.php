@@ -68,7 +68,7 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
 
   /* cartão base */
   .item{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin:10px 12px;box-shadow:var(--shadow)}
-  .avatar{width:44px;height:44px;border-radius:999px;background:#F2F4F7;border:1px solid var(--border);overflow:hidden;display:grid;place-items:center}
+  .avatar{width:52px;height:52px;border-radius:12px;background:#F2F4F7;border:1px solid var(--border);overflow:hidden;display:grid;place-items:center}
   .avatar img{width:100%;height:100%;object-fit:cover}
   .info{min-width:0}
   .name{font-weight:800;font-size:16px;margin:0 0 4px}

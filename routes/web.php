@@ -73,6 +73,9 @@ $router->post('/admin/{slug}/evolution/instance/{instanceName}/restart',  'Admin
 $router->post('/admin/{slug}/evolution/instance/{instanceName}/disconnect', 'AdminEvolutionInstanceController@disconnect');
 $router->get('/admin/{slug}/evolution/instance/{instanceName}/qr_code',   'AdminEvolutionInstanceController@qr_code');
 $router->get('/admin/{slug}/evolution/instance/{instanceName}/stats',     'AdminEvolutionInstanceController@stats');
+$router->get('/admin/{slug}/evolution/instance/{instanceName}/groups',    'AdminEvolutionInstanceController@groups');
+$router->post('/admin/{slug}/evolution/instance/{instanceName}/order-notification', 'AdminEvolutionInstanceController@order_notification');
+$router->get('/admin/{slug}/evolution/instance/{instanceName}/order-notification',  'AdminEvolutionInstanceController@order_notification');
 $router->post('/admin/{slug}/evolution/instance/{instanceName}/settings', 'AdminEvolutionInstanceController@save_settings');
 $router->get('/admin/{slug}/evolution/instance/{instanceName}/settings',  'AdminEvolutionInstanceController@get_settings');
 
