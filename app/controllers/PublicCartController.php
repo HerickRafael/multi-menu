@@ -1296,7 +1296,7 @@ class PublicCartController extends Controller
                             }
                         }
                         
-                        // Processar dados de personalização (mostrar apenas adições/remoções)
+                        // Processar dados de personalização (mostrar apenas adições/remoções, NÃO inclusos)
                         if (isset($item['customization']) && is_array($item['customization'])) {
                             $customParts = [];
                             if (!empty($item['customization']['groups'])) {
@@ -1310,39 +1310,58 @@ class PublicCartController extends Controller
                                             $qty = $customItem['qty'] ?? 1;
                                             $deltaQty = $customItem['delta_qty'] ?? null;
                                             $price = $customItem['price'] ?? 0;
+                                            $status = $customItem['status'] ?? ''; // 'Incluso', 'Extra', etc
                                             
-                                            // Mostrar apenas se:
-                                            // 1. Tem delta_qty diferente de 0 (adicionado ou removido)
-                                            // 2. OU se tem preço (custo extra)
-                                            // 3. OU se é tipo 'addon' ou 'single' (sempre customização)
+                                            // NÃO mostrar ingredientes inclusos (sem custo e delta 0)
+                                            // Mostrar apenas:
+                                            // 1. Items com delta_qty != 0 (adicionados ou removidos)
+                                            // 2. Items com preço > 0 (extras pagos)
+                                            // 3. Items tipo addon/single (sempre customização ativa)
+                                            
                                             if ($itemName) {
+                                                // Verificar se é "Incluso" - NÃO mostrar
+                                                // Incluso = sem preço E sem modificação de quantidade
+                                                $isIncluso = (
+                                                    $status === 'Incluso' || 
+                                                    ($price == 0 && ($deltaQty === null || $deltaQty == 0))
+                                                );
+                                                
+                                                // Decidir se mostra baseado no tipo e se não é incluso
                                                 $shouldShow = false;
                                                 
-                                                // Para tipos addon/single: sempre mostrar
-                                                if (in_array($groupType, ['addon', 'single'])) {
-                                                    $shouldShow = true;
-                                                }
-                                                // Para tipo qty: mostrar apenas se delta_qty != 0 ou tem preço
-                                                elseif ($groupType === 'qty') {
-                                                    if ($deltaQty !== null && $deltaQty != 0) {
+                                                if (!$isIncluso) {
+                                                    // Para tipos addon/single: sempre mostrar
+                                                    if (in_array($groupType, ['addon', 'single'])) {
                                                         $shouldShow = true;
-                                                    } elseif ($price != 0) {
-                                                        $shouldShow = true;
+                                                    }
+                                                    // Para tipo qty: mostrar apenas se delta_qty != 0 ou tem preço
+                                                    elseif ($groupType === 'qty') {
+                                                        if ($deltaQty !== null && $deltaQty != 0) {
+                                                            $shouldShow = true;
+                                                        } elseif ($price > 0) {
+                                                            $shouldShow = true;
+                                                        }
                                                     }
                                                 }
                                                 
-                                                if ($shouldShow) {
+                                                if ($shouldShow && !empty($itemName)) {
+                                                    // Formatar com preço quando aplicável
+                                                    $priceText = '';
+                                                    if ($price > 0) {
+                                                        $priceText = ' (+ R$ ' . number_format($price, 2, ',', '.') . ')';
+                                                    }
+                                                    
                                                     // Formatar quantidade
                                                     if ($deltaQty !== null && $deltaQty > 0) {
                                                         // Item adicionado
-                                                        $customParts[] = "+{$deltaQty}x {$itemName}";
+                                                        $customParts[] = "+{$deltaQty}x {$itemName}{$priceText}";
                                                     } elseif ($deltaQty !== null && $deltaQty < 0) {
                                                         // Item removido
                                                         $customParts[] = "Sem {$itemName}";
                                                     } elseif ($qty > 1) {
-                                                        $customParts[] = "{$qty}x {$itemName}";
+                                                        $customParts[] = "{$qty}x {$itemName}{$priceText}";
                                                     } else {
-                                                        $customParts[] = $itemName;
+                                                        $customParts[] = "{$itemName}{$priceText}";
                                                     }
                                                 }
                                             }

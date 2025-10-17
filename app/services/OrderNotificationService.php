@@ -144,7 +144,8 @@ class OrderNotificationService
     }
 
     /**
-     * Gerar mensagem formatada padrão com todos os dados do pedido para WhatsApp Mobile
+     * Gerar mensagem formatada padrão com todos os dados do pedido para WhatsApp
+     * Formato de notinha térmica sem emojis
      */
     private static function generateStandardOrderMessage($orderData, $company)
     {
@@ -154,76 +155,221 @@ class OrderNotificationService
         // Dados básicos do pedido
         $orderId = $orderData['id'] ?? 'N/A';
         $clientName = $orderData['cliente_nome'] ?? $orderData['customer_name'] ?? 'Cliente não informado';
-        $total = $orderData['total'] ?? 0;
+        $customerPhone = $orderData['customer_phone'] ?? '';
+        $customerAddress = $orderData['customer_address'] ?? '';
+        $total = (float)($orderData['total'] ?? 0);
+        $subtotal = (float)($orderData['subtotal'] ?? $total);
+        $deliveryFee = (float)($orderData['delivery_fee'] ?? 0);
+        $discount = (float)($orderData['discount'] ?? 0);
         $items = $orderData['itens'] ?? $orderData['items'] ?? [];
         $paymentMethod = $orderData['forma_pagamento'] ?? $orderData['payment_method'] ?? $orderData['pagamento'] ?? 'Não informado';
+        $notes = $orderData['notes'] ?? $orderData['observacoes'] ?? '';
         
-        // Cabeçalho otimizado para mobile
-        $message = "🍔 *{$companyName}*\n";
-        $message .= "🔔 *NOVO PEDIDO!*\n";
-        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        // Cabeçalho estilo notinha
+        $message = "*{$companyName}*\n";
+        if (!empty($company['whatsapp'])) {
+            $message .= "Tel: {$company['whatsapp']}\n";
+        }
+        $message .= "- - - - - - - - - - - - - - - -\n\n";
         
-        // Informações principais - formato compacto
-        $message .= "📋 *Pedido:* #{$orderId}\n";
-        $message .= "👤 *Cliente:* {$clientName}\n";
-        $message .= "💰 *Pagamento:* {$paymentMethod}\n";
-        $message .= "💵 *Total:* R$ " . number_format($total, 2, ',', '.') . "\n\n";
+        // Número do pedido
+        $message .= "*PEDIDO #{$orderId}*\n";
+        $message .= date('d/m/Y H:i') . "\n";
+        $message .= "- - - - - - - - - - - - - - - -\n\n";
         
-        // Lista de itens - formato mobile friendly
-        if (!empty($items)) {
-            $message .= "🛒 *ITENS:*\n";
-            
-            foreach ($items as $item) {
-                $quantity = $item['quantidade'] ?? $item['quantity'] ?? 1;
-                $name = $item['nome'] ?? $item['name'] ?? 'Item';
-                $price = $item['preco'] ?? $item['price'] ?? 0;
-                $customization = $item['personalizacao'] ?? $item['customization'] ?? '';
-                $combo = $item['combo'] ?? '';
-                $subtotal = $price * $quantity;
-                
-                // Formato compacto para mobile
-                $message .= "• {$quantity}x {$name}\n";
-                
-                // Combo/Grupos de opções (se houver) - formato alternado
-                if (!empty($combo)) {
-                    $message .= "  🍱 *Opções:*\n";
-                    $comboItems = explode(',', $combo);
-                    foreach ($comboItems as $index => $comboItem) {
-                        $comboItem = trim($comboItem);
-                        if ($index % 2 == 0) {
-                            $message .= "     *{$comboItem}*\n";
-                        } else {
-                            $message .= "     {$comboItem}\n";
-                        }
-                    }
-                }
-                
-                // Personalização/Ingredientes (se houver) - formato alternado
-                if (!empty($customization)) {
-                    $message .= "  ✏️ *Personalização:*\n";
-                    $customItems = explode(',', $customization);
-                    foreach ($customItems as $index => $customItem) {
-                        $customItem = trim($customItem);
-                        if ($index % 2 == 0) {
-                            $message .= "     *{$customItem}*\n";
-                        } else {
-                            $message .= "     {$customItem}\n";
-                        }
-                    }
-                }
-                
-                $message .= "  💵 R$ " . number_format($subtotal, 2, ',', '.') . "\n";
-            }
-            $message .= "\n";
+        // Dados do cliente
+        $message .= "*CLIENTE*\n";
+        $message .= "{$clientName}\n";
+        if (!empty($customerPhone)) {
+            $message .= "Tel: {$customerPhone}\n";
         }
         
-        // Informações finais - compactas
-        $message .= "⏰ " . date('d/m/Y H:i') . "\n";
-        $message .= "📱 Sistema Automático\n\n";
+        // Endereço (se houver)
+        if (!empty($customerAddress)) {
+            $message .= "\n*ENDERECO*\n";
+            // Remove quebras de linha e substitui por vírgulas
+            $address = str_replace("\n", ', ', $customerAddress);
+            $message .= "{$address}\n";
+        }
         
-        // Call to action motivacional
-        $message .= "✨ *Preparar pedido!* 🚀\n";
-        $message .= "💪 Vamos lá, equipe!";
+        // Forma de pagamento
+        $message .= "\n*PAGAMENTO*\n";
+        $message .= "{$paymentMethod}\n";
+        
+        $message .= "- - - - - - - - - - - - - - - -\n\n";
+        
+        // Lista de itens - formato notinha
+        $message .= "*ITENS*\n\n";
+        
+        if (!empty($items)) {
+            foreach ($items as $item) {
+                $quantity = (int)($item['quantidade'] ?? $item['quantity'] ?? 1);
+                $name = $item['nome'] ?? $item['name'] ?? 'Item';
+                $price = (float)($item['preco'] ?? $item['price'] ?? 0);
+                $itemSubtotal = $price * $quantity;
+                
+                // Nome do produto com valor (padrão igual ao subtotal)
+                $itemValue = 'R$ ' . number_format($itemSubtotal, 2, ',', '.');
+                $itemLine = "{$quantity}x {$name}";
+                $message .= str_pad($itemLine, 32 - strlen($itemValue), ' ') . $itemValue . "\n";
+                
+                // Combo/Grupos de opções (se houver)
+                $combo = $item['combo'] ?? '';
+                if (!empty($combo)) {
+                    // Separar por vírgula, mas não dentro de parênteses (preços)
+                    $comboItems = preg_split('/,\s+(?=\d|[A-Z])/i', $combo);
+                    foreach ($comboItems as $comboItem) {
+                        $comboItem = trim($comboItem);
+                        
+                        // Extrair preço do final: "(+ R$ X,XX)"
+                        $comboPrice = 0;
+                        $comboText = $comboItem;
+                        
+                        if (preg_match('/\(\+\s*R\$\s*([\d,\.]+)\)\s*$/', $comboItem, $priceMatch)) {
+                            $comboPrice = floatval(str_replace(',', '.', $priceMatch[1]));
+                            $comboText = trim(preg_replace('/\s*\(\+\s*R\$\s*[\d,\.]+\)\s*$/', '', $comboItem));
+                        }
+                        
+                        // Extrair quantidade: "2x Nome"
+                        $comboQty = '';
+                        $comboName = $comboText;
+                        
+                        if (preg_match('/^(\d+)x\s+(.+)$/', $comboText, $qtyMatch)) {
+                            $comboQty = $qtyMatch[1];
+                            $comboName = $qtyMatch[2];
+                        }
+                        
+                        // Montar linha
+                        if ($comboPrice > 0) {
+                            $comboValue = 'R$ ' . number_format($comboPrice, 2, ',', '.');
+                            $comboLine = "  " . ($comboQty ? "{$comboQty}x " : "") . $comboName;
+                            
+                            // Garantir que a linha cabe (máximo 32 chars)
+                            $availableSpace = 32 - strlen($comboValue);
+                            if (strlen($comboLine) >= $availableSpace) {
+                                // Nome muito longo - truncar deixando espaço para o valor
+                                $maxNameLength = $availableSpace - 1;
+                                if (strlen($comboLine) > $maxNameLength) {
+                                    $comboLine = substr($comboLine, 0, $maxNameLength);
+                                }
+                            }
+                            
+                            $message .= str_pad($comboLine, 32 - strlen($comboValue), ' ') . $comboValue . "\n";
+                        } else {
+                            $comboLine = "  " . ($comboQty ? "{$comboQty}x " : "") . $comboName;
+                            $message .= $comboLine . "\n";
+                        }
+                    }
+                }
+                
+                // Personalização/Ingredientes (se houver)
+                $customization = $item['personalizacao'] ?? $item['customization'] ?? '';
+                if (!empty($customization)) {
+                    // Separar por vírgula, mas não dentro de parênteses
+                    // Regex: vírgula seguida de espaço e dígito ou letra (próximo item)
+                    $customItems = preg_split('/,\s+(?=\d|[A-Z]|Sem|[\+\-])/i', $customization);
+                    foreach ($customItems as $customItem) {
+                        $customItem = trim($customItem);
+                        
+                        // Extrair preço do final: "(+ R$ X,XX)" ou "(+ R$ X.XX)"
+                        $itemPrice = 0;
+                        $itemName = $customItem;
+                        
+                        // Tentar encontrar preço no formato (+ R$ X,XX) no final da string
+                        if (preg_match('/\(\+\s*R\$\s*([\d,\.]+)\)\s*$/', $customItem, $priceMatch)) {
+                            $itemPrice = floatval(str_replace(',', '.', $priceMatch[1]));
+                            // Remover o preço da string para pegar só o nome
+                            $itemName = trim(preg_replace('/\s*\(\+\s*R\$\s*[\d,\.]+\)\s*$/', '', $customItem));
+                        }
+                        
+                        // Verificar se tem quantidade no início
+                        $qty = '';
+                        $prefix = '';
+                        
+                        // Formato: "+1x Nome" ou "-1x Nome" ou "1x Nome"
+                        if (preg_match('/^([+\-])?(\d+)x\s+(.+)$/', $itemName, $qtyMatch)) {
+                            $prefix = $qtyMatch[1] ?? '';
+                            $qty = $qtyMatch[2];
+                            $itemName = $qtyMatch[3];
+                        }
+                        
+                        // Formato: "Sem Nome"
+                        if (preg_match('/^Sem\s+(.+)$/i', $itemName, $semMatch)) {
+                            $message .= "  Sem {$semMatch[1]}\n";
+                            continue;
+                        }
+                        
+                        // Montar linha com indentação
+                        if ($prefix === '-') {
+                            // Item removido
+                            $customLine = "  {$qty}x {$itemName}";
+                            $message .= $customLine . "\n";
+                        } else {
+                            // Item adicionado ou normal
+                            if ($itemPrice > 0) {
+                                // Tem preço - alinhar no final
+                                $customValue = 'R$ ' . number_format($itemPrice, 2, ',', '.');
+                                $customLine = "  " . ($qty ? "{$qty}x " : "") . $itemName;
+                                
+                                // Garantir que a linha cabe (máximo 32 chars)
+                                $availableSpace = 32 - strlen($customValue);
+                                if (strlen($customLine) >= $availableSpace) {
+                                    // Nome muito longo - garantir pelo menos 1 espaço
+                                    $maxNameLength = $availableSpace - 1;
+                                    if (strlen($customLine) > $maxNameLength) {
+                                        $customLine = substr($customLine, 0, $maxNameLength);
+                                    }
+                                }
+                                
+                                $message .= str_pad($customLine, 32 - strlen($customValue), ' ') . $customValue . "\n";
+                            } else {
+                                // Sem preço (incluso/grátis)
+                                $customLine = "  " . ($qty ? "{$qty}x " : "") . $itemName;
+                                $message .= $customLine . "\n";
+                            }
+                        }
+                    }
+                }
+                
+                // Observações do item (se houver)
+                if (!empty($item['notes'])) {
+                    $message .= "  Obs: {$item['notes']}\n";
+                }
+                
+                $message .= "\n";
+            }
+        }
+        
+        $message .= "- - - - - - - - - - - - - - - -\n\n";
+        
+        // Totais formatados com largura de 32 caracteres
+        $subtotalStr = 'R$ ' . number_format($subtotal, 2, ',', '.');
+        $message .= str_pad('Subtotal:', 32 - strlen($subtotalStr), ' ') . $subtotalStr . "\n";
+        
+        if ($deliveryFee > 0) {
+            $deliveryStr = 'R$ ' . number_format($deliveryFee, 2, ',', '.');
+            $message .= str_pad('Taxa Entrega:', 32 - strlen($deliveryStr), ' ') . $deliveryStr . "\n";
+        }
+        
+        if ($discount > 0) {
+            $discountStr = '- R$ ' . number_format($discount, 2, ',', '.');
+            $message .= str_pad('Desconto:', 32 - strlen($discountStr), ' ') . $discountStr . "\n";
+        }
+        
+        $totalStr = 'R$ ' . number_format($total, 2, ',', '.');
+        $message .= "\n" . str_pad('*TOTAL:', 32 - strlen($totalStr) - 1, ' ') . $totalStr . "*\n";
+        
+        // Observações gerais (se houver)
+        if (!empty($notes)) {
+            $message .= "\n- - - - - - - - - - - - - - - -\n\n";
+            $message .= "*OBSERVACOES*\n";
+            $message .= "{$notes}\n";
+        }
+        
+        // Rodapé
+        $message .= "\n- - - - - - - - - - - - - - - -\n\n";
+        $message .= "*Novo pedido recebido!*\n";
+        $message .= "Preparar o quanto antes.";
         
         return $message;
     }

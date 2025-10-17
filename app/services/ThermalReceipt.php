@@ -192,7 +192,7 @@ class ThermalReceipt
                 $pdf->Ln(1);
             }
             
-            // Personalização
+            // Personalização (não mostrar ingredientes inclusos)
             $customData = null;
             if (!empty($it['customization_data'])) {
                 $customData = is_string($it['customization_data']) 
@@ -201,10 +201,8 @@ class ThermalReceipt
             }
             
             if (!empty($customData) && is_array($customData)) {
-                $pdf->SetFont('Arial', 'I', 7);
-                $pdf->Cell(4, 3, '', 0, 0);
-                $pdf->Cell(0, 3, $pdfText('> Personalizacao:'), 0, 1);
-                $pdf->SetFont('Arial', '', 7);
+                // Filtrar apenas items que NÃO são inclusos
+                $customItemsToShow = [];
                 
                 foreach ($customData as $custom) {
                     $customName = $custom['name'] ?? '';
@@ -212,20 +210,50 @@ class ThermalReceipt
                     $customQty = (int)($custom['quantity'] ?? 1);
                     $customPrice = (float)($custom['price'] ?? 0);
                     
-                    $prefix = $customAction === 'remove' ? '- ' : '+ ';
-                    $pdf->Cell(6, 3, '', 0, 0);
+                    // Verificar se é incluso (sem preço e ação de adicionar, mas não é remoção)
+                    // Inclusos: price = 0 e action = 'add'
+                    // Devem aparecer: price > 0 (extras) OU action = 'remove' (removidos)
+                    $isIncluso = ($customPrice == 0 && $customAction === 'add');
                     
-                    $customText = '  ' . $prefix . ($customQty > 1 ? $customQty . 'x ' : '') . $customName;
-                    
-                    if ($customPrice > 0) {
-                        $customText .= ' (+R$ ' . number_format($customPrice, 2, ',', '.') . ')';
-                    } elseif ($customPrice == 0 && $customAction !== 'remove') {
-                        $customText .= ' (Gratis)';
+                    // Mostrar apenas se NÃO for incluso
+                    if (!$isIncluso) {
+                        $customItemsToShow[] = [
+                            'name' => $customName,
+                            'action' => $customAction,
+                            'qty' => $customQty,
+                            'price' => $customPrice
+                        ];
                     }
-                    
-                    $pdf->MultiCell(0, 3, $pdfText($customText), 0);
                 }
-                $pdf->Ln(1);
+                
+                // Mostrar seção apenas se houver itens para exibir
+                if (!empty($customItemsToShow)) {
+                    $pdf->SetFont('Arial', 'I', 7);
+                    $pdf->Cell(4, 3, '', 0, 0);
+                    $pdf->Cell(0, 3, $pdfText('> Personalizacao:'), 0, 1);
+                    $pdf->SetFont('Arial', '', 7);
+                    
+                    foreach ($customItemsToShow as $custom) {
+                        $customName = $custom['name'];
+                        $customAction = $custom['action'];
+                        $customQty = $custom['qty'];
+                        $customPrice = $custom['price'];
+                        
+                        $prefix = $customAction === 'remove' ? '- ' : '+ ';
+                        $pdf->Cell(6, 3, '', 0, 0);
+                        
+                        $customText = '  ' . $prefix . ($customQty > 1 ? $customQty . 'x ' : '') . $customName;
+                        
+                        if ($customPrice > 0) {
+                            $customText .= ' (+R$ ' . number_format($customPrice, 2, ',', '.') . ')';
+                        } elseif ($customPrice == 0 && $customAction !== 'remove') {
+                            $customText .= ' (Gratis)';
+                        }
+                        
+                        $pdf->MultiCell(0, 3, $pdfText($customText), 0);
+                    }
+                    $pdf->Ln(1);
+                }
             }
             
             // Observações do item

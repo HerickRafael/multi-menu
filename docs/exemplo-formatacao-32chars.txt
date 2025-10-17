@@ -1,0 +1,61 @@
+================================
+TESTE DE FORMATAÇÃO - 32 CHARS
+================================
+
+Esta régua tem exatamente 32 caracteres:
+|-------------------------------|
+
+Linha separadora (16 traços):
+- - - - - - - - - - - - - - - -
+|-------------------------------|
+✓ Alinhado perfeitamente!
+
+
+EXEMPLO DE MENSAGEM FORMATADA:
+================================
+
+*WOLLBURGER*
+Tel: 55
+- - - - - - - - - - - - - - - -
+
+*PEDIDO #184*
+17/10/2025 04:30
+- - - - - - - - - - - - - - - -
+
+*CLIENTE*
+herick
+Tel: 51920017687
+
+*ITENS*
+
+1x *X-Burger Gourmet*
+  > Personalizacao:
+    + Bacon (+R$ 3,00)
+    + Cheddar (+R$ 2,50)
+                         R$ 35,50
+
+1x *Coca-Cola 350ml*
+                          R$ 6,00
+
+- - - - - - - - - - - - - - - -
+
+Subtotal:               R$ 41,50
+Taxa Entrega:            R$ 5,00
+
+*TOTAL:                R$ 46,50*
+
+- - - - - - - - - - - - - - - -
+
+*Novo pedido recebido!*
+Preparar o quanto antes.
+
+
+ANÁLISE DE ALINHAMENTO:
+================================
+
+Todos os valores terminam na coluna 32:
+Item 1:     "R$ 35,50" ✓
+Item 2:     "R$ 6,00"  ✓
+Subtotal:   "R$ 41,50" ✓
+Taxa:       "R$ 5,00"  ✓
+TOTAL:      "R$ 46,50" ✓
