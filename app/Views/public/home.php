@@ -354,39 +354,6 @@ foreach ($names as $d => $nm):
 <!-- MAIN (mesma largura do cabeçalho: p-5) -->
 <div class="max-w-5xl mx-auto p-4">
 
-<!-- Skeleton Loading Template (hidden by default) -->
-<div id="skeleton-loading" class="hidden">
-  <!-- Skeleton Tabs -->
-  <div class="flex gap-2 overflow-x-auto flex-nowrap mb-3 pb-1">
-    <div class="skeleton-tab h-8 w-24 bg-gray-200 rounded-full animate-pulse"></div>
-    <div class="skeleton-tab h-8 w-32 bg-gray-200 rounded-full animate-pulse"></div>
-    <div class="skeleton-tab h-8 w-28 bg-gray-200 rounded-full animate-pulse"></div>
-  </div>
-  
-  <!-- Skeleton Search -->
-  <div class="mb-4">
-    <div class="h-10 bg-gray-200 rounded-xl animate-pulse"></div>
-  </div>
-  
-  <!-- Skeleton Products -->
-  <div class="grid gap-3 mb-6">
-    <?php for ($i = 0; $i < 6; $i++): ?>
-    <div class="bg-white border rounded-2xl p-4 flex gap-3 animate-pulse">
-      <div class="w-24 h-24 bg-gray-200 rounded-xl"></div>
-      <div class="flex-1">
-        <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-        <div class="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-        <div class="h-3 bg-gray-200 rounded w-full mb-2"></div>
-        <div class="h-5 bg-gray-200 rounded w-20"></div>
-      </div>
-    </div>
-    <?php endfor; ?>
-  </div>
-</div>
-
-<!-- Main Content Container -->
-<div id="main-content">
-
 <!-- modals/tabs/search handled by public/assets/js/ui.js -->
 
 <!-- Abas (categorias) -->
@@ -473,8 +440,6 @@ foreach ($names as $d => $nm):
     <?php foreach ($items as $p): include __DIR__ . '/partials_card.php'; endforeach; ?>
   </div>
 <?php endforeach; ?>
-
-</div> <!-- End main-content -->
 
 </div> <!-- End max-w-5xl container -->
 

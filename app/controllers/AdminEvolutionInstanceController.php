@@ -768,6 +768,7 @@ class AdminEvolutionInstanceController extends Controller
                 $enabled = $input['enabled'] ?? false;
                 $primaryNumber = $input['primary_number'] ?? '';
                 $secondaryNumber = $input['secondary_number'] ?? '';
+                $messageFields = $input['message_fields'] ?? null;
                 
                 // Validar dados
                 if ($enabled && empty($primaryNumber)) {
@@ -786,13 +787,24 @@ class AdminEvolutionInstanceController extends Controller
                     return;
                 }
                 
-                // Salvar configuração na tabela de configurações da empresa
-                $this->saveInstanceConfig($company['id'], $instanceName, 'order_notification', [
+                // Preparar dados para salvar
+                $configData = [
                     'enabled' => $enabled,
                     'primary_number' => $primaryNumber,
                     'secondary_number' => $secondaryNumber,
                     'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                ];
+                
+                // Adicionar campos da mensagem se fornecidos
+                if ($messageFields !== null) {
+                    $configData['message_fields'] = $messageFields;
+                }
+                
+                // Debug: Log da configuração que será salva
+                error_log('[Order Notification] Salvando configuração: ' . json_encode($configData));
+                
+                // Salvar configuração na tabela de configurações da empresa
+                $this->saveInstanceConfig($company['id'], $instanceName, 'order_notification', $configData);
                 
                 header('Content-Type: application/json');
                 echo json_encode(['success' => true, 'message' => 'Configuração salva com sucesso']);
@@ -800,6 +812,9 @@ class AdminEvolutionInstanceController extends Controller
             } else {
                 // Carregar configuração de notificação
                 $config = $this->getInstanceConfig($company['id'], $instanceName, 'order_notification');
+                
+                // Debug: Log da configuração carregada
+                error_log('[Order Notification] Configuração carregada: ' . json_encode($config));
                 
                 header('Content-Type: application/json');
                 echo json_encode(['success' => true, 'data' => $config]);

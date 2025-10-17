@@ -86,15 +86,18 @@ class Order
 
     public static function addItem(PDO $db, int $orderId, array $item): void
     {
-        $sql = 'INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total)
-                VALUES (:oid,:pid,:qty,:unit,:line)';
+        $sql = 'INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total, combo_data, customization_data, notes)
+                VALUES (:oid,:pid,:qty,:unit,:line,:combo,:custom,:notes)';
         $st = $db->prepare($sql);
         $st->execute([
-            ':oid'  => $orderId,
-            ':pid'  => $item['product_id'],
-            ':qty'  => $item['quantity'],
-            ':unit' => $item['unit_price'],
-            ':line' => $item['line_total'],
+            ':oid'    => $orderId,
+            ':pid'    => $item['product_id'],
+            ':qty'    => $item['quantity'],
+            ':unit'   => $item['unit_price'],
+            ':line'   => $item['line_total'],
+            ':combo'  => isset($item['combo_data']) ? json_encode($item['combo_data']) : null,
+            ':custom' => isset($item['customization_data']) ? json_encode($item['customization_data']) : null,
+            ':notes'  => $item['notes'] ?? null,
         ]);
     }
 

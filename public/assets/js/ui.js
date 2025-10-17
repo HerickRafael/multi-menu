@@ -1,4 +1,4 @@
-// Enhanced UI with Lazy Loading and Skeleton
+// Enhanced UI
 (function(){
   'use strict';
   
@@ -7,69 +7,6 @@
     if (el.dataset[key]) return false;
     el.dataset[key] = '1';
     return true;
-  }
-
-  // Skeleton Loading
-  function initSkeletonLoading(){
-    const skeleton = document.getElementById('skeleton-loading');
-    const mainContent = document.getElementById('main-content');
-    
-    if (skeleton && mainContent) {
-      skeleton.classList.remove('hidden');
-      mainContent.style.opacity = '0';
-      
-      setTimeout(function(){
-        skeleton.classList.add('hidden');
-        mainContent.style.opacity = '1';
-        mainContent.style.transition = 'opacity 0.5s ease-in-out';
-      }, 800);
-    }
-  }
-
-  // Lazy Loading
-  function initLazyLoading(){
-    const lazyImages = document.querySelectorAll('.lazy-load');
-    
-    if ('IntersectionObserver' in window) {
-      const imageObserver = new IntersectionObserver(function(entries, observer){
-        entries.forEach(function(entry){
-          if (entry.isIntersecting) {
-            const img = entry.target;
-            const skeleton = img.nextElementSibling;
-            
-            img.onload = function(){
-              img.style.opacity = '1';
-              img.dataset.loaded = 'true';
-              if (skeleton && skeleton.classList.contains('skeleton-shimmer')) {
-                skeleton.style.display = 'none';
-              }
-            };
-            
-            if (img.complete) {
-              img.onload();
-            }
-            
-            observer.unobserve(img);
-          }
-        });
-      }, {
-        rootMargin: '50px 0px',
-        threshold: 0.01
-      });
-
-      lazyImages.forEach(function(img){ 
-        imageObserver.observe(img); 
-      });
-    } else {
-      lazyImages.forEach(function(img){
-        img.style.opacity = '1';
-        img.dataset.loaded = 'true';
-        const skeleton = img.nextElementSibling;
-        if (skeleton && skeleton.classList.contains('skeleton-shimmer')) {
-          skeleton.style.display = 'none';
-        }
-      });
-    }
   }
 
   // Enhanced Search with Skeleton
@@ -217,8 +154,6 @@
   function init(){
     document.body.classList.add('js-loading');
     
-    initSkeletonLoading();
-    initLazyLoading();
     initHoursModal();
     initLoginModal();
     initCategoryTabs();

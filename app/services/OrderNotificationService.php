@@ -177,10 +177,41 @@ class OrderNotificationService
                 $quantity = $item['quantidade'] ?? $item['quantity'] ?? 1;
                 $name = $item['nome'] ?? $item['name'] ?? 'Item';
                 $price = $item['preco'] ?? $item['price'] ?? 0;
+                $customization = $item['personalizacao'] ?? $item['customization'] ?? '';
+                $combo = $item['combo'] ?? '';
                 $subtotal = $price * $quantity;
                 
                 // Formato compacto para mobile
                 $message .= "• {$quantity}x {$name}\n";
+                
+                // Combo/Grupos de opções (se houver) - formato alternado
+                if (!empty($combo)) {
+                    $message .= "  🍱 *Opções:*\n";
+                    $comboItems = explode(',', $combo);
+                    foreach ($comboItems as $index => $comboItem) {
+                        $comboItem = trim($comboItem);
+                        if ($index % 2 == 0) {
+                            $message .= "     *{$comboItem}*\n";
+                        } else {
+                            $message .= "     {$comboItem}\n";
+                        }
+                    }
+                }
+                
+                // Personalização/Ingredientes (se houver) - formato alternado
+                if (!empty($customization)) {
+                    $message .= "  ✏️ *Personalização:*\n";
+                    $customItems = explode(',', $customization);
+                    foreach ($customItems as $index => $customItem) {
+                        $customItem = trim($customItem);
+                        if ($index % 2 == 0) {
+                            $message .= "     *{$customItem}*\n";
+                        } else {
+                            $message .= "     {$customItem}\n";
+                        }
+                    }
+                }
+                
                 $message .= "  💵 R$ " . number_format($subtotal, 2, ',', '.') . "\n";
             }
             $message .= "\n";

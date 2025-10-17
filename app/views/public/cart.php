@@ -68,8 +68,9 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
 
   /* cartão base */
   .item{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin:10px 12px;box-shadow:var(--shadow)}
-  .avatar{width:52px;height:52px;border-radius:12px;background:#F2F4F7;border:1px solid var(--border);overflow:hidden;display:grid;place-items:center}
+  .avatar{width:56px;height:56px;border-radius:12px;background:#F2F4F7;border:1px solid #E2E8F0;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .avatar img{width:100%;height:100%;object-fit:cover}
+  .avatar svg{width:24px;height:24px;color:#94A3B8}
   .info{min-width:0}
   .name{font-weight:800;font-size:16px;margin:0 0 4px}
   .price{font-weight:700;font-size:14px;color:var(--muted)}
@@ -98,8 +99,9 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
   .linked-list{border-top:1px solid var(--border)}
   .linked{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:12px 0}
   .linked + .linked{border-top:1px solid var(--border)}
-  .l-ava{width:36px;height:36px;border-radius:999px;background:#F2F4F7;border:1px solid var(--border);display:grid;place-items:center;overflow:hidden}
+  .l-ava{width:44px;height:44px;border-radius:8px;background:#F2F4F7;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
   .l-ava img{width:100%;height:100%;object-fit:cover}
+  .l-ava svg{width:20px;height:20px;color:#94A3B8}
   .l-name{font-weight:700;font-size:14px}
   .l-meta{font-size:12px;color:#6B7280;margin-top:2px}
   .l-right{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#6B7280}
@@ -252,7 +254,7 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
         <?php if (!empty($item['product']['image'])): ?>
           <img src="<?= e($uploadSrc($item['product']['image'])) ?>" alt="<?= e($item['product']['name'] ?? '') ?>">
         <?php else: ?>
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94A3B8" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3"/></svg>
         <?php endif; ?>
       </div>
       <div class="info">
@@ -325,7 +327,7 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
               <?php if (!empty($choice['image'])): ?>
                 <img src="<?= e($uploadSrc($choice['image'])) ?>" alt="<?= e($choice['name'] ?? '') ?>">
               <?php else: ?>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#94A3B8" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3"/></svg>
               <?php endif; ?>
             </div>
             <div>
@@ -442,7 +444,7 @@ $companyName = $company['name'] ?? 'Meu Carrinho';
         <?php if (!empty($item['product']['image'])): ?>
           <img src="<?= e($uploadSrc($item['product']['image'])) ?>" alt="<?= e($item['product']['name'] ?? '') ?>">
         <?php else: ?>
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94A3B8" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4zM8 10l3 3 2-2 3 3"/></svg>
         <?php endif; ?>
       </div>
       <div class="info">

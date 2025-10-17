@@ -579,6 +579,7 @@ ob_start(); ?>
             </div>
           </div>
           
+          <div class="mb-3">
             <label for="orderNotificationNumber1" class="block text-sm font-medium text-slate-700 mb-2">
               Número Principal para Notificações
             </label>
@@ -596,8 +597,23 @@ ob_start(); ?>
           
           <div class="mb-3">
             <label class="block text-sm font-medium text-slate-700 mb-2">
-          
-          <?php include __DIR__ . '/partials/order_message_editor.php'; ?>
+              Formato da Mensagem
+            </label>
+            <div class="bg-slate-100 border border-slate-200 rounded-lg p-3 text-sm">
+              <p class="text-slate-600 mb-2">A mensagem será formatada automaticamente com:</p>
+              <ul class="text-xs text-slate-500 space-y-1">
+                <li>🍔 <strong>Cabeçalho</strong> - Nome da empresa e novo pedido</li>
+                <li>📋 <strong>Pedido</strong> - Número do pedido</li>
+                <li>👤 <strong>Cliente</strong> - Nome completo do cliente</li>
+                <li>� <strong>Pagamento</strong> - Forma de pagamento escolhida</li>
+                <li>�💰 <strong>Total</strong> - Valor total formatado</li>
+                <li>� <strong>Itens</strong> - Lista com quantidades e preços</li>
+                <li>⏰ <strong>Data/Hora</strong> - Timestamp do pedido</li>
+                <li>📱 <strong>Origem</strong> - Sistema automático</li>
+              </ul>
+              <p class="text-xs text-slate-400 mt-2">✨ Formato otimizado para WhatsApp mobile</p>
+            </div>
+          </div>
           
           <button id="saveOrderNotification" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700 transition-colors">
             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -639,9 +655,6 @@ ob_start(); ?>
 
   <!-- Toast container -->
   <div id="toasts" class="fixed bottom-4 right-4 space-y-2 z-[200]"></div>
-
-  <!-- Editor de Template de Mensagem -->
-  <script src="<?= base_url('assets/js/order-message-editor.js') ?>"></script>
 
   <script>
     // Cache busting - forçar reload do JavaScript
@@ -1418,16 +1431,6 @@ ob_start(); ?>
       saveButton.textContent = 'Salvando...';
       saveButton.disabled = true;
       
-      // Obter campos selecionados da mensagem
-      const messageFields = window.OrderMessageEditor ? window.OrderMessageEditor.getSelectedFields() : null;
-      
-      console.log('💾 Salvando configuração:', {
-        enabled: isEnabled,
-        primary_number: number1,
-        secondary_number: number2,
-        message_fields: messageFields
-      });
-      
       try {
         const response = await fetch(baseUrl + instanceName + '/order-notification', {
           method: 'POST',
@@ -1438,8 +1441,7 @@ ob_start(); ?>
           body: JSON.stringify({
             enabled: isEnabled,
             primary_number: number1,
-            secondary_number: number2,
-            message_fields: messageFields
+            secondary_number: number2
           })
         });
         
@@ -1521,16 +1523,8 @@ ob_start(); ?>
             number2Input.value = config.secondary_number;
           }
           
-          // Carregar campos da mensagem no editor
-          if (window.OrderMessageEditor) {
-            console.log('📥 Carregando campos no editor:', config.message_fields);
-            window.OrderMessageEditor.loadFieldsConfig(config);
-          } else {
-            console.warn('⚠️ OrderMessageEditor não está disponível');
-          }
-          
           // Log para debug
-          console.log('✅ Configuração de notificação carregada:', config);
+          console.log('Configuração de notificação carregada:', config);
         }
         
       } catch (error) {

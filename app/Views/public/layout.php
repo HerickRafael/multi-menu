@@ -38,6 +38,7 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="<?= base_url('assets/css/ui.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/css/lazy-loading.css') ?>">
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-5xl mx-auto<?= !empty($showFooterMenu) ? ' p-4' : '' ?>">
@@ -70,6 +71,7 @@ try {
     // expose customer state for client-side handlers
     window.__IS_CUSTOMER = <?= !empty($_SESSION['customer']) ? 'true' : 'false' ?>;
   </script>
+  <script src="<?= base_url('assets/js/lazy-loading.js') ?>"></script>
   <script src="<?= base_url('assets/js/ui.js') ?>"></script>
 </body>
 </html>

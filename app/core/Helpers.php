@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 // Incluir helpers centralizados
 require_once __DIR__ . '/CommonHelpers.php';
+require_once __DIR__ . '/../helpers/lazy_loading_helper.php';
 
 function config($key = null)
 {

@@ -1148,10 +1148,13 @@ class PublicCartController extends Controller
             $lineTotal = (float)($item['line_total'] ?? ($unitPrice * $quantity));
 
             $orderItemsPayload[] = [
-                'product_id' => $productId,
-                'quantity'   => $quantity,
-                'unit_price' => $unitPrice,
-                'line_total' => $lineTotal,
+                'product_id'          => $productId,
+                'quantity'            => $quantity,
+                'unit_price'          => $unitPrice,
+                'line_total'          => $lineTotal,
+                'combo_data'          => $item['combo'] ?? null,
+                'customization_data'  => $item['customization'] ?? null,
+                'notes'               => $item['notes'] ?? null,
             ];
             $subtotal += $lineTotal;
 
@@ -1267,14 +1270,93 @@ class PublicCartController extends Controller
                     'delivery_fee' => $deliveryFee,
                     'discount' => $discount,
                     'payment_method' => $paymentMethod ? $paymentMethod['name'] : 'Não informado',
-                    'items' => array_map(function($payload) use ($db) {
-                        $product = Product::find($payload['product_id']);
-                        return [
+                    'items' => array_map(function($item) use ($db) {
+                        $product = Product::find($item['product']['id'] ?? 0);
+                        $itemData = [
                             'name' => $product['name'] ?? 'Produto',
-                            'quantity' => $payload['quantity'],
-                            'price' => $payload['unit_price']
+                            'quantity' => $item['qty'] ?? 1,
+                            'price' => $item['unit_price'] ?? 0,
+                            'combo' => '',
+                            'customization' => ''
                         ];
-                    }, $orderItemsPayload),
+                        
+                        // Processar dados de combo
+                        if (isset($item['combo']) && is_array($item['combo'])) {
+                            $comboParts = [];
+                            if (!empty($item['combo']['selected_items'])) {
+                                foreach ($item['combo']['selected_items'] as $comboItem) {
+                                    $comboItemName = $comboItem['simple_name'] ?? $comboItem['name'] ?? '';
+                                    if ($comboItemName) {
+                                        $comboParts[] = $comboItemName;
+                                    }
+                                }
+                            }
+                            if ($comboParts) {
+                                $itemData['combo'] = implode(', ', $comboParts);
+                            }
+                        }
+                        
+                        // Processar dados de personalização (mostrar apenas adições/remoções)
+                        if (isset($item['customization']) && is_array($item['customization'])) {
+                            $customParts = [];
+                            if (!empty($item['customization']['groups'])) {
+                                foreach ($item['customization']['groups'] as $group) {
+                                    $groupName = $group['name'] ?? '';
+                                    $groupType = $group['type'] ?? 'qty';
+                                    
+                                    if (!empty($group['items'])) {
+                                        foreach ($group['items'] as $customItem) {
+                                            $itemName = $customItem['name'] ?? '';
+                                            $qty = $customItem['qty'] ?? 1;
+                                            $deltaQty = $customItem['delta_qty'] ?? null;
+                                            $price = $customItem['price'] ?? 0;
+                                            
+                                            // Mostrar apenas se:
+                                            // 1. Tem delta_qty diferente de 0 (adicionado ou removido)
+                                            // 2. OU se tem preço (custo extra)
+                                            // 3. OU se é tipo 'addon' ou 'single' (sempre customização)
+                                            if ($itemName) {
+                                                $shouldShow = false;
+                                                
+                                                // Para tipos addon/single: sempre mostrar
+                                                if (in_array($groupType, ['addon', 'single'])) {
+                                                    $shouldShow = true;
+                                                }
+                                                // Para tipo qty: mostrar apenas se delta_qty != 0 ou tem preço
+                                                elseif ($groupType === 'qty') {
+                                                    if ($deltaQty !== null && $deltaQty != 0) {
+                                                        $shouldShow = true;
+                                                    } elseif ($price != 0) {
+                                                        $shouldShow = true;
+                                                    }
+                                                }
+                                                
+                                                if ($shouldShow) {
+                                                    // Formatar quantidade
+                                                    if ($deltaQty !== null && $deltaQty > 0) {
+                                                        // Item adicionado
+                                                        $customParts[] = "+{$deltaQty}x {$itemName}";
+                                                    } elseif ($deltaQty !== null && $deltaQty < 0) {
+                                                        // Item removido
+                                                        $customParts[] = "Sem {$itemName}";
+                                                    } elseif ($qty > 1) {
+                                                        $customParts[] = "{$qty}x {$itemName}";
+                                                    } else {
+                                                        $customParts[] = $itemName;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if ($customParts) {
+                                $itemData['customization'] = implode(', ', $customParts);
+                            }
+                        }
+                        
+                        return $itemData;
+                    }, $items),
                     'notes' => $orderNotes,
                     'customer_address' => $formattedAddress,
                     'created_at' => date('Y-m-d H:i:s')

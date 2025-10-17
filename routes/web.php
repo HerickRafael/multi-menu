@@ -40,6 +40,7 @@ $router->post('/admin/{slug}/settings',          'AdminSettingsController@save')
 // Pedidos
 $router->get('/admin/{slug}/orders',             'AdminOrdersController@index');
 $router->get('/admin/{slug}/orders/show',        'AdminOrdersController@show');
+$router->get('/admin/{slug}/orders/print',       'AdminOrdersController@printPdf');
 $router->get('/admin/{slug}/orders/create',      'AdminOrdersController@create');
 $router->post('/admin/{slug}/orders',            'AdminOrdersController@store');
 $router->post('/admin/{slug}/orders/setStatus',  'AdminOrdersController@setStatus');

@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../models/Order.php';
 require_once __DIR__ . '/../models/Product.php';
 require_once __DIR__ . '/../services/OrderNotificationService.php';
+require_once __DIR__ . '/../services/ThermalReceipt.php';
 
 class AdminOrdersController extends Controller
 {
@@ -244,5 +245,44 @@ class AdminOrdersController extends Controller
 
         http_response_code(400);
         echo 'Não foi possível excluir o pedido.';
+    }
+
+    public function printPdf($params)
+    {
+        $slug = $params['slug'];
+        [$u, $company] = $this->guard($slug);
+        $db = $this->db();
+
+        $orderId = (int)($_GET['id'] ?? 0);
+        $order = Order::findWithItems($db, $orderId, (int)$company['id']);
+
+        if (!$order) {
+            http_response_code(404);
+            echo 'Pedido não encontrado';
+            return;
+        }
+
+        try {
+            // Gera o PDF usando o serviço ThermalReceipt
+            $pdfPath = ThermalReceipt::generatePdf(
+                $company,
+                $order,
+                $order['items'] ?? []
+            );
+
+            // Envia o PDF para o navegador
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="pedido_' . $orderId . '.pdf"');
+            header('Content-Length: ' . filesize($pdfPath));
+            
+            readfile($pdfPath);
+            
+            // Remove o arquivo temporário
+            @unlink($pdfPath);
+            exit;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo 'Erro ao gerar PDF: ' . $e->getMessage();
+        }
     }
 }

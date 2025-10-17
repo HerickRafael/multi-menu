@@ -1,0 +1,106 @@
+╔══════════════════════════════════════════════════════╗
+║        EXEMPLO DE CUPOM TÉRMICO 58mm                ║
+╚══════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    [LOGO 20mm]
+
+                    WOLLBURGER
+             Rua Exemplo, 123 - Centro
+                Tel: (51) 99999-9999
+
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+
+                   PEDIDO #181
+                17/10/2025 00:02
+
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+
+CLIENTE
+Herick Rafael
+Tel: (51) 99134-1345
+
+ENDERECO
+Rua das Flores, 456, Apto 12, Centro
+
+PAGAMENTO
+Pix
+
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+
+ITENS
+
+1x Woll Smash
+  > Bled Costela 90 (carne):
+    1x Bled Costela 90 (carne) (+R$ 6,00)
+  > Personalizacao:
+    + 3x Maionese
+    + 1x Cebola
+    + 1x Queijo Cheddar
+                                      R$ 24,80
+
+1x Batata Frita Grande
+  > Personalizacao:
+    + Bacon crocante (+R$ 5,00)
+    + Cheddar extra (+R$ 3,00)
+  > Obs: Bem crocante por favor
+                                      R$ 18,00
+
+1x Refrigerante Lata
+                                       R$ 6,00
+
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+
+Subtotal:                             R$ 48,80
+Taxa de Entrega:                       R$ 6,00
+Desconto:                            - R$ 2,00
+
+TOTAL:                                R$ 52,80
+
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+
+OBSERVACOES
+Entregar na portaria, apartamento 12.
+Sem cebola roxa.
+
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+
+         Obrigado pela preferencia!
+                Volte sempre!
+
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+
+
+       [8mm de espaço para corte do papel]
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CARACTERÍSTICAS DO FORMATO:
+
+✓ Largura: 58mm (padrão de impressoras térmicas portáteis)
+✓ Margens: 2mm de cada lado (54mm de área útil)
+✓ Linhas tracejadas leves (economia de calor térmico)
+✓ Hierarquia visual clara com indentação
+✓ Combo e personalização detalhados
+✓ Valores alinhados à direita
+✓ Quebra automática de texto longo
+✓ Espaço para corte no final
+✓ Logo centralizado (se disponível)
+✓ Todas as informações do pedido visíveis
+
+FONTES UTILIZADAS:
+- Arial 12 Bold: Nome da empresa
+- Arial 10 Bold: Número do pedido, Total
+- Arial 9 Bold: Títulos de seção (ITENS, CLIENTE, etc)
+- Arial 8 Bold: Nomes de produtos, títulos de campo
+- Arial 8 Normal: Textos normais, valores
+- Arial 7 Italic: Personalização, observações
+- Arial 7 Normal: Detalhes, rodapé
+
+COMPATÍVEL COM:
+- Mini Impressora Bluetooth 58mm
+- Impressoras térmicas portáteis
+- Papel térmico padrão 58mm
+- Conexão via Bluetooth
+- Impressão direta do navegador

@@ -119,6 +119,7 @@ if ($bellConfig !== '') {
       animation: spin-refresh 0.6s ease-in-out;
     }
   </style>
+  <link rel="stylesheet" href="<?= base_url('assets/css/lazy-loading.css') ?>">
 </head>
 <body class="bg-slate-50 text-slate-900"
       data-company-slug="<?= e($companySlug ?? '') ?>"
@@ -301,5 +302,6 @@ if ($bellConfig !== '') {
     });
   })();
   </script>
+  <script src="<?= base_url('assets/js/lazy-loading.js') ?>"></script>
 </body>
 </html>
