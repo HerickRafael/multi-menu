@@ -3,6 +3,7 @@
 declare(strict_types=1);
 // app/controllers/PublicCartController.php
 
+require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../core/Helpers.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -109,8 +110,8 @@ class PublicCartController extends Controller
         $hasData = false;
 
         foreach ($mods as $gi => $group) {
-            $type = $group['type'] ?? 'extra';
-            $items = $group['items'] ?? [];
+            $type = DataValidator::getString($group, 'type', 'extra');
+            $items = DataValidator::getArray($group, 'items');
 
             if (!$items) {
                 continue;
@@ -185,19 +186,19 @@ class PublicCartController extends Controller
         $groups = Product::getComboGroupsWithItems((int)$product['id']);
 
         foreach ($groups as $index => $group) {
-            $groupId = (int)($group['id'] ?? 0);
+            $groupId = DataValidator::getInt($group, 'id');
 
             if ($groupId <= 0) {
                 continue;
             }
 
-            $items = $group['items'] ?? [];
+            $items = DataValidator::getArray($group, 'items');
 
             if (!$items) {
                 continue;
             }
 
-            $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
+            $minQty = DataValidator::getInt($group, 'min', DataValidator::getInt($group, 'min_qty'));
             $rawValue = $postData[$index] ?? null;
             $selectedIds = [];
 
@@ -233,7 +234,7 @@ class PublicCartController extends Controller
                 if (!in_array($comboItemId, $selectedIds, true)) {
                     continue;
                 }
-                $simpleId = isset($item['simple_id']) ? (int)$item['simple_id'] : (int)($item['simple_product_id'] ?? 0);
+                $simpleId = DataValidator::getInt($item, 'simple_id', 'simple_product_id');
 
                 if ($simpleId <= 0) {
                     continue;
@@ -245,7 +246,10 @@ class PublicCartController extends Controller
                 continue;
             }
 
-            $max = isset($group['max']) ? (int)$group['max'] : (int)($group['max_qty'] ?? 1);
+            $max = DataValidator::getInt($group, 'max', 'max_qty');
+            if ($max === 0) {
+                $max = 1; // Default para 1 se ambos forem 0
+            }
 
             if ($max > 0 && count($simpleChosen) > $max) {
                 $simpleChosen = array_slice($simpleChosen, 0, $max);
@@ -268,13 +272,13 @@ class PublicCartController extends Controller
     {
         $parts = [];
 
-        $line1 = trim((string)($address['street'] ?? ''));
-        $number = trim((string)($address['number'] ?? ''));
+        $line1 = trim(DataValidator::getString($address, 'street'));
+        $number = trim(DataValidator::getString($address, 'number'));
 
         if ($number !== '') {
             $line1 = $line1 !== '' ? $line1 . ', ' . $number : $number;
         }
-        $complement = trim((string)($address['complement'] ?? ''));
+        $complement = trim(DataValidator::getString($address, 'complement'));
 
         if ($complement !== '') {
             $line1 = $line1 !== '' ? $line1 . ' - ' . $complement : $complement;
@@ -286,10 +290,11 @@ class PublicCartController extends Controller
 
         $line2Segments = [];
 
-        if (!empty($address['neighborhood'])) {
-            $line2Segments[] = trim($address['neighborhood']);
+        $neighborhood = DataValidator::getString($address, 'neighborhood');
+        if ($neighborhood !== '') {
+            $line2Segments[] = trim($neighborhood);
         }
-        $city = trim((string)($address['city'] ?? ''));
+        $city = trim(DataValidator::getString($address, 'city'));
 
         if ($city !== '') {
             $line2Segments[] = $city;
@@ -299,7 +304,7 @@ class PublicCartController extends Controller
             $parts[] = implode(' - ', $line2Segments);
         }
 
-        $reference = trim((string)($address['reference'] ?? ''));
+        $reference = trim(DataValidator::getString($address, 'reference'));
 
         if ($reference !== '') {
             $parts[] = 'Referência: ' . $reference;
@@ -400,19 +405,19 @@ class PublicCartController extends Controller
             }
 
             $pricing = $comboData['pricing'];
-            $unitPrice = ($pricing['total'] ?? $pricing['base'] ?? 0) + $baseCustomization['total_delta'] + $componentExtra;
+            $unitPrice = DataValidator::getFloat($pricing, 'total', 'base') + $baseCustomization['total_delta'] + $componentExtra;
 
             if ($unitPrice < 0) {
                 $unitPrice = 0.0;
             }
 
             $hydrated[] = [
-                'uid' => (string)($item['uid'] ?? ''),
+                'uid' => DataValidator::getString($item, 'uid'),
                 'product' => [
                     'id' => $productId,
-                    'name' => $product['name'] ?? 'Produto',
-                    'image' => $product['image'] ?? null,
-                    'type' => $product['type'] ?? 'simple',
+                    'name' => DataValidator::getString($product, 'name', 'Produto'),
+                    'image' => DataValidator::getString($product, 'image'),
+                    'type' => DataValidator::getString($product, 'type', 'simple'),
                 ],
                 'qty' => $qty,
                 'combo' => $comboData,
@@ -436,25 +441,25 @@ class PublicCartController extends Controller
             'pricing' => ['base' => $this->baseProductPrice($product), 'sum_delta' => 0, 'total' => $this->baseProductPrice($product)],
         ];
 
-        if (($product['type'] ?? 'simple') !== 'combo') {
+        if (DataValidator::getString($product, 'type', 'simple') !== 'combo') {
             return $result;
         }
 
         $groups = Product::getComboGroupsWithItems((int)$product['id']);
 
         foreach ($groups as $group) {
-            $gid = (int)($group['id'] ?? 0);
+            $gid = DataValidator::getInt($group, 'id');
 
             if ($gid <= 0) {
                 continue;
             }
-            $items = $group['items'] ?? [];
+            $items = DataValidator::getArray($group, 'items');
 
             if (!$items) {
                 continue;
             }
 
-            $minQty = isset($group['min']) ? (int)$group['min'] : (int)($group['min_qty'] ?? 0);
+            $minQty = DataValidator::getInt($group, 'min', 'min_qty');
             $wanted = $comboMap[$gid] ?? null;
             $selectedSimpleIds = [];
 
@@ -485,7 +490,7 @@ class PublicCartController extends Controller
             $groupDetails = [];
 
             foreach ($items as $opt) {
-                $simpleId = isset($opt['simple_id']) ? (int)$opt['simple_id'] : (int)($opt['simple_product_id'] ?? 0);
+                $simpleId = DataValidator::getInt($opt, 'simple_id', 'simple_product_id');
 
                 if ($simpleId <= 0) {
                     continue;
@@ -494,7 +499,7 @@ class PublicCartController extends Controller
                 if (!in_array($simpleId, $selectedSimpleIds, true)) {
                     continue;
                 }
-                $delta = isset($opt['delta']) ? (float)$opt['delta'] : (float)($opt['delta_price'] ?? 0);
+                $delta = DataValidator::getFloat($opt, 'delta', 'delta_price');
                 $basePrice = null;
 
                 if (array_key_exists('base_price', $opt) && $opt['base_price'] !== null) {
@@ -503,12 +508,16 @@ class PublicCartController extends Controller
                     $basePrice = (float)$opt['price'];
                 }
                 $isDefault = !empty($opt['default']) || !empty($opt['is_default']);
+                $comboItemId = DataValidator::getInt($opt, 'id');
+                if ($comboItemId === 0) {
+                    $comboItemId = $simpleId;
+                }
                 $itemData = [
                     'simple_id' => $simpleId,
-                    'combo_item_id' => isset($opt['id']) ? (int)$opt['id'] : $simpleId,
-                    'name' => (string)($opt['name'] ?? ''),
+                    'combo_item_id' => $comboItemId,
+                    'name' => DataValidator::getString($opt, 'name'),
                     'delta' => $delta,
-                    'image' => $opt['image'] ?? null,
+                    'image' => DataValidator::getString($opt, 'image'),
                     'customizable' => !empty($opt['customizable']) || !empty($opt['allow_customize']),
                     'base_price' => $basePrice,
                     'is_default' => $isDefault,
@@ -524,7 +533,7 @@ class PublicCartController extends Controller
 
             $result['groups'][] = [
                 'id' => $gid,
-                'name' => (string)($group['name'] ?? ''),
+                'name' => DataValidator::getString($group, 'name'),
                 'items' => $groupDetails,
             ];
 
@@ -543,8 +552,8 @@ class PublicCartController extends Controller
     /** Retorna preço base do produto (considerando promocional) */
     private function baseProductPrice(array $product): float
     {
-        $price = (float)($product['price'] ?? 0);
-        $promo = (float)($product['promo_price'] ?? 0);
+        $price = DataValidator::getFloat($product, 'price');
+        $promo = DataValidator::getFloat($product, 'promo_price');
 
         if ($promo > 0 && $promo < $price) {
             return $promo;
@@ -572,8 +581,8 @@ class PublicCartController extends Controller
         }
 
         foreach ($mods as $gi => $group) {
-            $type = $group['type'] ?? 'extra';
-            $items = $group['items'] ?? [];
+            $type = DataValidator::getString($group, 'type', 'extra');
+            $items = DataValidator::getArray($group, 'items');
 
             if (!$items) {
                 continue;
@@ -589,12 +598,12 @@ class PublicCartController extends Controller
                     continue;
                 }
                 $item = $items[$index];
-                $price = isset($item['sale_price']) ? (float)$item['sale_price'] : (float)($item['delta'] ?? 0);
+                $price = DataValidator::getFloat($item, 'sale_price', 'delta');
                 $result['groups'][] = [
-                    'name' => (string)($group['name'] ?? ''),
+                    'name' => DataValidator::getString($group, 'name'),
                     'type' => 'single',
                     'items' => [[
-                        'name' => (string)($item['name'] ?? ''),
+                        'name' => DataValidator::getString($item, 'name'),
                         'price' => $price,
                     ]],
                 ];
@@ -616,9 +625,9 @@ class PublicCartController extends Controller
                         continue;
                     }
                     $item = $items[$idx];
-                    $price = isset($item['sale_price']) ? (float)$item['sale_price'] : (float)($item['delta'] ?? 0);
+                    $price = DataValidator::getFloat($item, 'sale_price', 'delta');
                     $selected[] = [
-                        'name' => (string)($item['name'] ?? ''),
+                        'name' => DataValidator::getString($item, 'name'),
                         'price' => $price,
                     ];
 
@@ -629,7 +638,7 @@ class PublicCartController extends Controller
 
                 if ($selected) {
                     $result['groups'][] = [
-                        'name' => (string)($group['name'] ?? ''),
+                        'name' => DataValidator::getString($group, 'name'),
                         'type' => 'addon',
                         'items' => $selected,
                     ];
@@ -649,8 +658,11 @@ class PublicCartController extends Controller
                         continue;
                     }
                     $item = $items[$idx];
-                    $priceUnit = isset($item['sale_price']) ? (float)$item['sale_price'] : (float)($item['delta'] ?? 0);
-                    $defaultQty = isset($item['default_qty']) ? (int)$item['default_qty'] : (isset($item['qty']) ? (int)$item['qty'] : null);
+                    $priceUnit = DataValidator::getFloat($item, 'sale_price', 'delta');
+                    $defaultQty = DataValidator::getInt($item, 'default_qty', 'qty');
+                    if ($defaultQty === 0) {
+                        $defaultQty = null;
+                    }
                     $deltaQty = $qty;
 
                     if ($defaultQty !== null) {
@@ -658,7 +670,7 @@ class PublicCartController extends Controller
                     }
                     $linePrice = $priceUnit * $deltaQty;
                     $line = [
-                        'name' => (string)($item['name'] ?? ''),
+                        'name' => DataValidator::getString($item, 'name'),
                         'qty' => $qty,
                         'unit_price' => $priceUnit,
                         'price' => $linePrice,
@@ -674,7 +686,7 @@ class PublicCartController extends Controller
 
                 if ($selected) {
                     $result['groups'][] = [
-                        'name' => (string)($group['name'] ?? ''),
+                        'name' => DataValidator::getString($group, 'name'),
                         'type' => 'qty',
                         'items' => $selected,
                     ];
@@ -861,14 +873,7 @@ class PublicCartController extends Controller
         foreach ($paymentMethods as &$pm) {
             $pm = is_array($pm) ? $pm : [];
             $metaRaw = $pm['meta'] ?? null;
-            if (is_string($metaRaw)) {
-                $decoded = json_decode($metaRaw, true);
-                $meta = is_array($decoded) ? $decoded : [];
-            } elseif (is_array($metaRaw)) {
-                $meta = $metaRaw;
-            } else {
-                $meta = [];
-            }
+            $meta = JsonHelper::decode($metaRaw);
             $pm['meta'] = $meta;
             $icon = '';
             // Preferir coluna `icon` quando disponível (migração incremental)
@@ -1183,7 +1188,7 @@ class PublicCartController extends Controller
             // Se cashAmount for 0, significa que não precisa de troco (pagamento exato)
             if ($cashAmount > 0 && $cashAmount < $total) {
                 $deficit = $total - $cashAmount;
-                $errors[] = 'Valor insuficiente. Falta R$ ' . number_format($deficit, 2, ',', '.') . ' para completar o pagamento.';
+                $errors[] = 'Valor insuficiente. Falta ' . MoneyFormatter::format($deficit) . ' para completar o pagamento.';
             }
             // Se cashAmount for 0, assumimos pagamento exato sem troco
         }
@@ -1219,9 +1224,9 @@ class PublicCartController extends Controller
             if (($paymentMethod['type'] ?? '') === 'cash') {
                 if ($cashAmount > 0) {
                     $change = $cashAmount - $total;
-                    $paymentLine .= ' — Valor informado: R$ ' . number_format($cashAmount, 2, ',', '.');
+                    $paymentLine .= ' — Valor informado: ' . MoneyFormatter::format($cashAmount);
                     if ($change > 0) {
-                        $paymentLine .= ' (Troco: R$ ' . number_format($change, 2, ',', '.') . ')';
+                        $paymentLine .= ' (Troco: ' . MoneyFormatter::format($change) . ')';
                     }
                 } else {
                     $paymentLine .= ' — Pagamento exato (sem troco)';
@@ -1348,7 +1353,7 @@ class PublicCartController extends Controller
                                                     // Formatar com preço quando aplicável
                                                     $priceText = '';
                                                     if ($price > 0) {
-                                                        $priceText = ' (+ R$ ' . number_format($price, 2, ',', '.') . ')';
+                                                        $priceText = ' (+' . MoneyFormatter::format($price) . ')';
                                                     }
                                                     
                                                     // Formatar quantidade

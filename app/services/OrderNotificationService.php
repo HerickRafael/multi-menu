@@ -4,6 +4,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../models/Company.php';
 require_once __DIR__ . '/../controllers/AdminEvolutionInstanceController.php';
 
@@ -18,7 +19,7 @@ class OrderNotificationService
             // Obter empresa
             $company = Company::find($companyId);
             if (!$company) {
-                error_log("Empresa não encontrada para ID: $companyId");
+                Logger::warning("Empresa não encontrada", ['company_id' => $companyId]);
                 return false;
             }
 
@@ -26,7 +27,7 @@ class OrderNotificationService
             $configs = self::getOrderNotificationConfigs($companyId);
             
             if (empty($configs)) {
-                error_log("Nenhuma configuração de notificação encontrada para empresa ID: $companyId");
+                Logger::warning("Nenhuma configuração de notificação encontrada", ['company_id' => $companyId]);
                 return false;
             }
 
@@ -44,7 +45,7 @@ class OrderNotificationService
             return $success;
 
         } catch (Exception $e) {
-            error_log("Erro ao enviar notificação de pedido: " . $e->getMessage());
+            Logger::error("Erro ao enviar notificação de pedido", $e, ['company_id' => $companyId]);
             return false;
         }
     }
@@ -65,8 +66,8 @@ class OrderNotificationService
         
         $configs = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $config = json_decode($row['config_value'], true);
-            if ($config && $config['enabled']) {
+            $config = JsonHelper::decode($row['config_value']);
+            if ($config && DataValidator::getBool($config, 'enabled')) {
                 $config['instance_name'] = $row['instance_name'];
                 $configs[] = $config;
             }
@@ -103,16 +104,22 @@ class OrderNotificationService
                     'text' => $message
                 ];
 
-                error_log("Enviando mensagem para número principal {$primaryNumber} via instância {$instanceName}");
-                error_log("Payload: " . json_encode($payload));
+                Logger::info("Enviando mensagem para número principal", [
+                    'number' => $primaryNumber,
+                    'instance' => $instanceName,
+                    'payload' => $payload
+                ]);
 
                 $result = $method->invoke($controller, $company, "/message/sendText/{$instanceName}", 'POST', $payload);
 
                 if (!$result['error']) {
                     $success = true;
-                    error_log("Mensagem enviada com sucesso para número principal: {$primaryNumber}");
+                    Logger::info("Mensagem enviada com sucesso para número principal", ['number' => $primaryNumber]);
                 } else {
-                    error_log("Erro ao enviar para número principal {$primaryNumber}: " . $result['error']);
+                    Logger::error("Erro ao enviar para número principal", null, [
+                        'number' => $primaryNumber,
+                        'error' => $result['error']
+                    ]);
                 }
             }
             
@@ -123,22 +130,28 @@ class OrderNotificationService
                     'text' => $message
                 ];
 
-                error_log("Enviando mensagem para número secundário {$secondaryNumber} via instância {$instanceName}");
+                Logger::info("Enviando mensagem para número secundário", [
+                    'number' => $secondaryNumber,
+                    'instance' => $instanceName
+                ]);
 
                 $result = $method->invoke($controller, $company, "/message/sendText/{$instanceName}", 'POST', $payload);
 
                 if (!$result['error']) {
                     $success = true;
-                    error_log("Mensagem enviada com sucesso para número secundário: {$secondaryNumber}");
+                    Logger::info("Mensagem enviada com sucesso para número secundário", ['number' => $secondaryNumber]);
                 } else {
-                    error_log("Erro ao enviar para número secundário {$secondaryNumber}: " . $result['error']);
+                    Logger::error("Erro ao enviar para número secundário", null, [
+                        'number' => $secondaryNumber,
+                        'error' => $result['error']
+                    ]);
                 }
             }
 
             return $success;
 
         } catch (Exception $e) {
-            error_log("Erro ao enviar mensagem: " . $e->getMessage());
+            Logger::error("Erro ao enviar mensagem", $e, ['instance' => $instanceName ?? 'unknown']);
             return false;
         }
     }
@@ -150,32 +163,34 @@ class OrderNotificationService
     private static function generateStandardOrderMessage($orderData, $company)
     {
         // Nome da empresa (se disponível)
-        $companyName = strtoupper($company['name'] ?? 'RESTAURANTE');
+        $companyName = strtoupper(DataValidator::getString($company, 'name') ?: 'RESTAURANTE');
         
         // Dados básicos do pedido
-        $orderId = $orderData['id'] ?? 'N/A';
-        $clientName = $orderData['cliente_nome'] ?? $orderData['customer_name'] ?? 'Cliente não informado';
-        $customerPhone = $orderData['customer_phone'] ?? '';
-        $customerAddress = $orderData['customer_address'] ?? '';
-        $total = (float)($orderData['total'] ?? 0);
-        $subtotal = (float)($orderData['subtotal'] ?? $total);
-        $deliveryFee = (float)($orderData['delivery_fee'] ?? 0);
-        $discount = (float)($orderData['discount'] ?? 0);
-        $items = $orderData['itens'] ?? $orderData['items'] ?? [];
-        $paymentMethod = $orderData['forma_pagamento'] ?? $orderData['payment_method'] ?? $orderData['pagamento'] ?? 'Não informado';
-        $notes = $orderData['notes'] ?? $orderData['observacoes'] ?? '';
+        $orderId = DataValidator::getString($orderData, 'id') ?: 'N/A';
+        $clientName = DataValidator::getString($orderData, 'cliente_nome', 'customer_name') ?: 'Cliente não informado';
+        $customerPhone = DataValidator::getString($orderData, 'customer_phone');
+        $customerAddress = DataValidator::getString($orderData, 'customer_address');
+        $total = DataValidator::getFloat($orderData, 'total');
+        $subtotal = DataValidator::getFloat($orderData, 'subtotal') ?: $total;
+        $deliveryFee = DataValidator::getFloat($orderData, 'delivery_fee');
+        $discount = DataValidator::getFloat($orderData, 'discount');
+        $items = DataValidator::getArray($orderData, 'itens', 'items');
+        $paymentMethod = DataValidator::getString($orderData, 'forma_pagamento', 'payment_method', 'pagamento') ?: 'Não informado';
+        $notes = DataValidator::getString($orderData, 'notes', 'observacoes');
         
         // Cabeçalho estilo notinha
         $message = "*{$companyName}*\n";
-        if (!empty($company['whatsapp'])) {
+        if (DataValidator::hasValue($company, 'whatsapp')) {
             $message .= "Tel: {$company['whatsapp']}\n";
         }
-        $message .= "- - - - - - - - - - - - - - - -\n\n";
+        $message .= ReceiptFormatter::separator();
+        $message .= "\n";
         
         // Número do pedido
         $message .= "*PEDIDO #{$orderId}*\n";
         $message .= date('d/m/Y H:i') . "\n";
-        $message .= "- - - - - - - - - - - - - - - -\n\n";
+        $message .= ReceiptFormatter::separator();
+        $message .= "\n";
         
         // Dados do cliente
         $message .= "*CLIENTE*\n";
@@ -196,135 +211,79 @@ class OrderNotificationService
         $message .= "\n*PAGAMENTO*\n";
         $message .= "{$paymentMethod}\n";
         
-        $message .= "- - - - - - - - - - - - - - - -\n\n";
+        $message .= ReceiptFormatter::separator();
+        $message .= "\n";
         
         // Lista de itens - formato notinha
         $message .= "*ITENS*\n\n";
         
         if (!empty($items)) {
             foreach ($items as $item) {
-                $quantity = (int)($item['quantidade'] ?? $item['quantity'] ?? 1);
-                $name = $item['nome'] ?? $item['name'] ?? 'Item';
-                $price = (float)($item['preco'] ?? $item['price'] ?? 0);
+                $quantity = DataValidator::getInt($item, 'quantidade', 'quantity') ?: 1;
+                $name = DataValidator::getString($item, 'nome', 'name') ?: 'Item';
+                $price = DataValidator::getFloat($item, 'preco', 'price');
                 $itemSubtotal = $price * $quantity;
                 
                 // Nome do produto com valor (padrão igual ao subtotal)
-                $itemValue = 'R$ ' . number_format($itemSubtotal, 2, ',', '.');
                 $itemLine = "{$quantity}x {$name}";
-                $message .= str_pad($itemLine, 32 - strlen($itemValue), ' ') . $itemValue . "\n";
+                $message .= ReceiptFormatter::formatItemLine($itemLine, MoneyFormatter::format($itemSubtotal));
                 
                 // Combo/Grupos de opções (se houver)
-                $combo = $item['combo'] ?? '';
+                // Combo/Grupos de opções (se houver)
+                $combo = DataValidator::getString($item, 'combo');
                 if (!empty($combo)) {
-                    // Separar por vírgula, mas não dentro de parênteses (preços)
-                    $comboItems = preg_split('/,\s+(?=\d|[A-Z])/i', $combo);
+                    $comboItems = TextParser::splitItems($combo);
                     foreach ($comboItems as $comboItem) {
-                        $comboItem = trim($comboItem);
+                        // Extrair preço e quantidade
+                        $parsed = TextParser::extractAll($comboItem);
                         
-                        // Extrair preço do final: "(+ R$ X,XX)"
-                        $comboPrice = 0;
-                        $comboText = $comboItem;
-                        
-                        if (preg_match('/\(\+\s*R\$\s*([\d,\.]+)\)\s*$/', $comboItem, $priceMatch)) {
-                            $comboPrice = floatval(str_replace(',', '.', $priceMatch[1]));
-                            $comboText = trim(preg_replace('/\s*\(\+\s*R\$\s*[\d,\.]+\)\s*$/', '', $comboItem));
-                        }
-                        
-                        // Extrair quantidade: "2x Nome"
-                        $comboQty = '';
-                        $comboName = $comboText;
-                        
-                        if (preg_match('/^(\d+)x\s+(.+)$/', $comboText, $qtyMatch)) {
-                            $comboQty = $qtyMatch[1];
-                            $comboName = $qtyMatch[2];
-                        }
-                        
-                        // Montar linha
-                        if ($comboPrice > 0) {
-                            $comboValue = 'R$ ' . number_format($comboPrice, 2, ',', '.');
-                            $comboLine = "  " . ($comboQty ? "{$comboQty}x " : "") . $comboName;
-                            
-                            // Garantir que a linha cabe (máximo 32 chars)
-                            $availableSpace = 32 - strlen($comboValue);
-                            if (strlen($comboLine) >= $availableSpace) {
-                                // Nome muito longo - truncar deixando espaço para o valor
-                                $maxNameLength = $availableSpace - 1;
-                                if (strlen($comboLine) > $maxNameLength) {
-                                    $comboLine = substr($comboLine, 0, $maxNameLength);
-                                }
-                            }
-                            
-                            $message .= str_pad($comboLine, 32 - strlen($comboValue), ' ') . $comboValue . "\n";
+                        // Montar linha com indentação
+                        if ($parsed['price'] > 0) {
+                            $comboLine = ReceiptFormatter::indent(
+                                ($parsed['qty'] > 1 ? "{$parsed['qty']}x " : "") . $parsed['text']
+                            );
+                            $message .= ReceiptFormatter::formatItemLine($comboLine, MoneyFormatter::format($parsed['price']));
                         } else {
-                            $comboLine = "  " . ($comboQty ? "{$comboQty}x " : "") . $comboName;
+                            $comboLine = ReceiptFormatter::indent(
+                                ($parsed['qty'] > 1 ? "{$parsed['qty']}x " : "") . $parsed['text']
+                            );
                             $message .= $comboLine . "\n";
                         }
                     }
                 }
-                
                 // Personalização/Ingredientes (se houver)
-                $customization = $item['personalizacao'] ?? $item['customization'] ?? '';
+                $customization = DataValidator::getString($item, 'personalizacao', 'customization');
                 if (!empty($customization)) {
-                    // Separar por vírgula, mas não dentro de parênteses
-                    // Regex: vírgula seguida de espaço e dígito ou letra (próximo item)
-                    $customItems = preg_split('/,\s+(?=\d|[A-Z]|Sem|[\+\-])/i', $customization);
+                    // Separar itens incluindo modificadores (Sem, +, -)
+                    $customItems = TextParser::splitItems($customization, true);
                     foreach ($customItems as $customItem) {
-                        $customItem = trim($customItem);
+                        // Extrair preço, quantidade e texto
+                        $parsed = TextParser::extractAll($customItem);
                         
-                        // Extrair preço do final: "(+ R$ X,XX)" ou "(+ R$ X.XX)"
-                        $itemPrice = 0;
-                        $itemName = $customItem;
-                        
-                        // Tentar encontrar preço no formato (+ R$ X,XX) no final da string
-                        if (preg_match('/\(\+\s*R\$\s*([\d,\.]+)\)\s*$/', $customItem, $priceMatch)) {
-                            $itemPrice = floatval(str_replace(',', '.', $priceMatch[1]));
-                            // Remover o preço da string para pegar só o nome
-                            $itemName = trim(preg_replace('/\s*\(\+\s*R\$\s*[\d,\.]+\)\s*$/', '', $customItem));
-                        }
-                        
-                        // Verificar se tem quantidade no início
-                        $qty = '';
-                        $prefix = '';
-                        
-                        // Formato: "+1x Nome" ou "-1x Nome" ou "1x Nome"
-                        if (preg_match('/^([+\-])?(\d+)x\s+(.+)$/', $itemName, $qtyMatch)) {
-                            $prefix = $qtyMatch[1] ?? '';
-                            $qty = $qtyMatch[2];
-                            $itemName = $qtyMatch[3];
-                        }
-                        
-                        // Formato: "Sem Nome"
-                        if (preg_match('/^Sem\s+(.+)$/i', $itemName, $semMatch)) {
-                            $message .= "  Sem {$semMatch[1]}\n";
+                        // Formato especial: "Sem Nome"
+                        if (preg_match('/^Sem\s+(.+)$/i', $parsed['text'], $semMatch)) {
+                            $message .= ReceiptFormatter::indent("Sem {$semMatch[1]}") . "\n";
                             continue;
                         }
                         
                         // Montar linha com indentação
-                        if ($prefix === '-') {
+                        if ($parsed['prefix'] === '-') {
                             // Item removido
-                            $customLine = "  {$qty}x {$itemName}";
+                            $customLine = ReceiptFormatter::indent("{$parsed['qty']}x {$parsed['text']}");
                             $message .= $customLine . "\n";
                         } else {
                             // Item adicionado ou normal
-                            if ($itemPrice > 0) {
+                            if ($parsed['price'] > 0) {
                                 // Tem preço - alinhar no final
-                                $customValue = 'R$ ' . number_format($itemPrice, 2, ',', '.');
-                                $customLine = "  " . ($qty ? "{$qty}x " : "") . $itemName;
-                                
-                                // Garantir que a linha cabe (máximo 32 chars)
-                                $availableSpace = 32 - strlen($customValue);
-                                if (strlen($customLine) >= $availableSpace) {
-                                    // Nome muito longo - garantir pelo menos 1 espaço
-                                    $maxNameLength = $availableSpace - 1;
-                                    if (strlen($customLine) > $maxNameLength) {
-                                        $customLine = substr($customLine, 0, $maxNameLength);
-                                    }
-                                }
-                                
-                                $message .= str_pad($customLine, 32 - strlen($customValue), ' ') . $customValue . "\n";
+                                $customLine = ReceiptFormatter::indent(
+                                    ($parsed['qty'] > 1 ? "{$parsed['qty']}x " : "") . $parsed['text']
+                                );
+                                $message .= ReceiptFormatter::formatItemLine($customLine, MoneyFormatter::format($parsed['price']));
                             } else {
                                 // Sem preço (incluso/grátis)
-                                $customLine = "  " . ($qty ? "{$qty}x " : "") . $itemName;
+                                $customLine = ReceiptFormatter::indent(
+                                    ($parsed['qty'] > 1 ? "{$parsed['qty']}x " : "") . $parsed['text']
+                                );
                                 $message .= $customLine . "\n";
                             }
                         }
@@ -332,42 +291,46 @@ class OrderNotificationService
                 }
                 
                 // Observações do item (se houver)
-                if (!empty($item['notes'])) {
-                    $message .= "  Obs: {$item['notes']}\n";
+                $itemNotes = DataValidator::getString($item, 'notes');
+                if (!empty($itemNotes)) {
+                    $message .= ReceiptFormatter::indent("Obs: {$itemNotes}") . "\n";
                 }
                 
                 $message .= "\n";
             }
         }
         
-        $message .= "- - - - - - - - - - - - - - - -\n\n";
+        $message .= ReceiptFormatter::separator();
+        $message .= "\n";
         
         // Totais formatados com largura de 32 caracteres
-        $subtotalStr = 'R$ ' . number_format($subtotal, 2, ',', '.');
-        $message .= str_pad('Subtotal:', 32 - strlen($subtotalStr), ' ') . $subtotalStr . "\n";
+        $message .= ReceiptFormatter::formatMoneyLine('Subtotal:', $subtotal);
         
         if ($deliveryFee > 0) {
-            $deliveryStr = 'R$ ' . number_format($deliveryFee, 2, ',', '.');
-            $message .= str_pad('Taxa Entrega:', 32 - strlen($deliveryStr), ' ') . $deliveryStr . "\n";
+            $message .= ReceiptFormatter::formatMoneyLine('Taxa Entrega:', $deliveryFee);
         }
         
         if ($discount > 0) {
-            $discountStr = '- R$ ' . number_format($discount, 2, ',', '.');
-            $message .= str_pad('Desconto:', 32 - strlen($discountStr), ' ') . $discountStr . "\n";
+            $discountValue = '- ' . MoneyFormatter::format($discount);
+            $message .= ReceiptFormatter::alignRight('Desconto:', $discountValue);
         }
         
-        $totalStr = 'R$ ' . number_format($total, 2, ',', '.');
-        $message .= "\n" . str_pad('*TOTAL:', 32 - strlen($totalStr) - 1, ' ') . $totalStr . "*\n";
+        $totalValue = MoneyFormatter::format($total);
+        $message .= "\n" . ReceiptFormatter::alignRight('*TOTAL:', $totalValue . "*");
         
         // Observações gerais (se houver)
         if (!empty($notes)) {
-            $message .= "\n- - - - - - - - - - - - - - - -\n\n";
+            $message .= "\n";
+            $message .= ReceiptFormatter::separator();
+            $message .= "\n";
             $message .= "*OBSERVACOES*\n";
             $message .= "{$notes}\n";
         }
         
         // Rodapé
-        $message .= "\n- - - - - - - - - - - - - - - -\n\n";
+        $message .= "\n";
+        $message .= ReceiptFormatter::separator();
+        $message .= "\n";
         $message .= "*Novo pedido recebido!*\n";
         $message .= "Preparar o quanto antes.";
         
@@ -396,13 +359,12 @@ class OrderNotificationService
 
         $formatted = [];
         foreach ($items as $item) {
-            // Suportar tanto 'quantidade' quanto 'quantity'
-            $quantity = $item['quantidade'] ?? $item['quantity'] ?? 1;
-            $name = $item['nome'] ?? $item['name'] ?? 'Item';
-            $price = $item['preco'] ?? $item['price'] ?? 0;
+            $quantity = DataValidator::getInt($item, 'quantidade', 'quantity') ?: 1;
+            $name = DataValidator::getString($item, 'nome', 'name') ?: 'Item';
+            $price = DataValidator::getFloat($item, 'preco', 'price');
+            $itemTotal = $price * $quantity;
             
-            $formatted[] = "• {$quantity}x {$name} - R$ " . 
-                          number_format($price * $quantity, 2, ',', '.');
+            $formatted[] = "• {$quantity}x {$name} - " . MoneyFormatter::format($itemTotal);
         }
 
         return implode("\n", $formatted);

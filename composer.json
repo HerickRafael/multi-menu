@@ -8,7 +8,31 @@
   "autoload": {
     "psr-4": {
       "App\\": "app/"
-    }
+    },
+    "files": [
+      "app/config/FormatConstants.php",
+      "app/helpers/MoneyFormatter.php",
+      "app/helpers/ReceiptFormatter.php",
+      "app/helpers/TextParser.php",
+      "app/helpers/JsonHelper.php",
+      "app/helpers/DataValidator.php",
+      "app/helpers/Logger.php",
+      "app/helpers/xss_helper.php",
+      "app/middleware/RateLimiter.php",
+      "app/middleware/CsrfProtection.php",
+      "app/middleware/SecurityHeaders.php",
+      "app/middleware/SqlInjectionPrevention.php",
+      "app/middleware/XssProtection.php",
+      "app/middleware/InputValidator.php",
+      "app/middleware/AuthenticationSystem.php",
+      "app/middleware/Authorization.php",
+      "app/middleware/SessionManager.php",
+      "app/middleware/ApiSecurity.php",
+      "app/middleware/FileUploadSecurity.php",
+      "app/middleware/AuditLogger.php",
+      "app/middleware/EncryptionLayer.php",
+      "app/middleware/SecurityMonitoring.php"
+    ]
   },
   "minimum-stability": "stable",
   "prefer-stable": true,

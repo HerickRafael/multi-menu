@@ -7,9 +7,9 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 class ThermalReceipt
 {
-    // Configurações para impressora térmica 58mm
-    private const WIDTH = 58;        // Largura em mm
-    private const MARGIN = 2;        // Margem lateral
+    // Usar constantes centralizadas
+    private const WIDTH = FormatConstants::THERMAL_WIDTH;
+    private const MARGIN = FormatConstants::THERMAL_MARGIN;
     
     /**
      * Desenha uma linha tracejada
@@ -60,8 +60,9 @@ class ThermalReceipt
 
         // Logo
         $logoPath = null;
-        if (!empty($company['logo'])) {
-            $candidate = __DIR__ . '/../../public/' . ltrim($company['logo'], '/');
+        $companyLogo = DataValidator::getString($company, 'logo');
+        if (!empty($companyLogo)) {
+            $candidate = __DIR__ . '/../../public/' . ltrim($companyLogo, '/');
             if (file_exists($candidate)) $logoPath = $candidate;
         }
 
@@ -80,17 +81,21 @@ class ThermalReceipt
             } catch (Throwable $e) {}
         }
 
-        $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell(0, 5, $pdfText(strtoupper($company['name'] ?? '')), 0, 1, 'C');
+        $companyName = strtoupper(DataValidator::getString($company, 'name'));
+        $companyAddress = DataValidator::getString($company, 'address');
+        $companyWhatsapp = DataValidator::getString($company, 'whatsapp');
         
-        if (!empty($company['address'])) {
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(0, 5, $pdfText($companyName), 0, 1, 'C');
+        
+        if (!empty($companyAddress)) {
             $pdf->SetFont('Arial', '', 7);
-            $pdf->MultiCell(0, 3, $pdfText($company['address']), 0, 'C');
+            $pdf->MultiCell(0, 3, $pdfText($companyAddress), 0, 'C');
         }
         
-        if (!empty($company['whatsapp'])) {
+        if (!empty($companyWhatsapp)) {
             $pdf->SetFont('Arial', '', 7);
-            $pdf->Cell(0, 3, $pdfText('Tel: ' . $company['whatsapp']), 0, 1, 'C');
+            $pdf->Cell(0, 3, $pdfText('Tel: ' . $companyWhatsapp), 0, 1, 'C');
         }
         
         $pdf->Ln(2);
@@ -98,12 +103,14 @@ class ThermalReceipt
         $pdf->Ln(3);
 
         // DADOS DO PEDIDO
+        $orderId = DataValidator::getString($orderRow, 'id') ?: 'N/A';
         $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell(0, 5, $pdfText('PEDIDO #' . ($orderRow['id'] ?? '')), 0, 1, 'C');
+        $pdf->Cell(0, 5, $pdfText('PEDIDO #' . $orderId), 0, 1, 'C');
         
         $pdf->SetFont('Arial', '', 8);
-        $dateTime = !empty($orderRow['created_at']) 
-            ? date('d/m/Y H:i', strtotime($orderRow['created_at'])) 
+        $createdAt = DataValidator::getString($orderRow, 'created_at');
+        $dateTime = !empty($createdAt)
+            ? date('d/m/Y H:i', strtotime($createdAt)) 
             : date('d/m/Y H:i');
         $pdf->Cell(0, 4, $pdfText($dateTime), 0, 1, 'C');
         
@@ -112,28 +119,33 @@ class ThermalReceipt
         $pdf->Ln(3);
 
         // Cliente
+        $customerName = DataValidator::getString($orderRow, 'customer_name') ?: 'Nao informado';
+        $customerPhone = DataValidator::getString($orderRow, 'customer_phone');
+        $customerAddress = DataValidator::getString($orderRow, 'customer_address');
+        $paymentMethod = DataValidator::getString($orderRow, 'payment_method');
+        
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(0, 4, $pdfText('CLIENTE'), 0, 1);
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 4, $pdfText($orderRow['customer_name'] ?? 'Nao informado'), 0, 1);
+        $pdf->Cell(0, 4, $pdfText($customerName), 0, 1);
         
-        if (!empty($orderRow['customer_phone'])) {
-            $pdf->Cell(0, 4, $pdfText('Tel: ' . $orderRow['customer_phone']), 0, 1);
+        if (!empty($customerPhone)) {
+            $pdf->Cell(0, 4, $pdfText('Tel: ' . $customerPhone), 0, 1);
         }
         
-        if (!empty($orderRow['customer_address'])) {
+        if (!empty($customerAddress)) {
             $pdf->SetFont('Arial', 'B', 8);
             $pdf->Cell(0, 4, $pdfText('ENDERECO'), 0, 1);
             $pdf->SetFont('Arial', '', 7);
-            $address = str_replace("\n", ', ', $orderRow['customer_address']);
+            $address = str_replace("\n", ', ', $customerAddress);
             $pdf->MultiCell(0, 3, $pdfText($address), 0);
         }
         
-        if (!empty($orderRow['payment_method'])) {
+        if (!empty($paymentMethod)) {
             $pdf->SetFont('Arial', 'B', 8);
             $pdf->Cell(0, 4, $pdfText('PAGAMENTO'), 0, 1);
             $pdf->SetFont('Arial', '', 8);
-            $pdf->Cell(0, 4, $pdfText($orderRow['payment_method']), 0, 1);
+            $pdf->Cell(0, 4, $pdfText($paymentMethod), 0, 1);
         }
         
         $pdf->Ln(2);
@@ -146,10 +158,10 @@ class ThermalReceipt
         $pdf->Ln(1);
 
         foreach ($items as $idx => $it) {
-            $qty = (int)($it['quantity'] ?? $it['qty'] ?? 1);
-            $name = $it['product_name'] ?? $it['name'] ?? 'Produto';
-            $price = (float)($it['price'] ?? 0);
-            $lineTotal = (float)($it['line_total'] ?? ($price * $qty));
+            $qty = DataValidator::getInt($it, 'quantity', 'qty') ?: 1;
+            $name = DataValidator::getString($it, 'product_name', 'name') ?: 'Produto';
+            $price = DataValidator::getFloat($it, 'price');
+            $lineTotal = DataValidator::getFloat($it, 'line_total') ?: ($price * $qty);
 
             // Nome do produto
             $pdf->SetFont('Arial', 'B', 8);
@@ -157,32 +169,26 @@ class ThermalReceipt
             $pdf->MultiCell(0, 4, $pdfText($name), 0);
             
             // Combo
-            $comboData = null;
-            if (!empty($it['combo_data'])) {
-                $comboData = is_string($it['combo_data']) 
-                    ? json_decode($it['combo_data'], true) 
-                    : $it['combo_data'];
-            }
+            $comboData = JsonHelper::decode($it['combo_data'] ?? null);
             
             if (!empty($comboData) && is_array($comboData)) {
                 $pdf->SetFont('Arial', '', 7);
                 foreach ($comboData as $group) {
-                    if (!empty($group['name'])) {
+                    $groupName = DataValidator::getString($group, 'name');
+                    if (!empty($groupName)) {
                         $pdf->Cell(4, 3, '', 0, 0);
-                        $pdf->Cell(0, 3, $pdfText('> ' . $group['name'] . ':'), 0, 1);
-                    }
-                    
-                    if (!empty($group['items']) && is_array($group['items'])) {
+                        $pdf->Cell(0, 3, $pdfText('> ' . $groupName . ':'), 0, 1);
+                    }                    if (!empty($group['items']) && is_array($group['items'])) {
                         foreach ($group['items'] as $option) {
-                            $optionName = $option['name'] ?? '';
-                            $optionQty = (int)($option['quantity'] ?? 1);
-                            $optionPrice = (float)($option['price'] ?? 0);
+                            $optionName = DataValidator::getString($option, 'name');
+                            $optionQty = DataValidator::getInt($option, 'quantity') ?: 1;
+                            $optionPrice = DataValidator::getFloat($option, 'price');
                             
                             $pdf->Cell(6, 3, '', 0, 0);
                             $optionText = '  ' . ($optionQty > 1 ? $optionQty . 'x ' : '') . $optionName;
                             
                             if ($optionPrice > 0) {
-                                $optionText .= ' (+R$ ' . number_format($optionPrice, 2, ',', '.') . ')';
+                                $optionText .= ' (+' . MoneyFormatter::format($optionPrice) . ')';
                             }
                             
                             $pdf->MultiCell(0, 3, $pdfText($optionText), 0);
@@ -193,22 +199,17 @@ class ThermalReceipt
             }
             
             // Personalização (não mostrar ingredientes inclusos)
-            $customData = null;
-            if (!empty($it['customization_data'])) {
-                $customData = is_string($it['customization_data']) 
-                    ? json_decode($it['customization_data'], true) 
-                    : $it['customization_data'];
-            }
+            $customData = JsonHelper::decode($it['customization_data'] ?? null);
             
             if (!empty($customData) && is_array($customData)) {
                 // Filtrar apenas items que NÃO são inclusos
                 $customItemsToShow = [];
                 
                 foreach ($customData as $custom) {
-                    $customName = $custom['name'] ?? '';
-                    $customAction = $custom['action'] ?? 'add';
-                    $customQty = (int)($custom['quantity'] ?? 1);
-                    $customPrice = (float)($custom['price'] ?? 0);
+                    $customName = DataValidator::getString($custom, 'name');
+                    $customAction = DataValidator::getString($custom, 'action') ?: 'add';
+                    $customQty = DataValidator::getInt($custom, 'quantity') ?: 1;
+                    $customPrice = DataValidator::getFloat($custom, 'price');
                     
                     // Verificar se é incluso (sem preço e ação de adicionar, mas não é remoção)
                     // Inclusos: price = 0 e action = 'add'
@@ -245,7 +246,7 @@ class ThermalReceipt
                         $customText = '  ' . $prefix . ($customQty > 1 ? $customQty . 'x ' : '') . $customName;
                         
                         if ($customPrice > 0) {
-                            $customText .= ' (+R$ ' . number_format($customPrice, 2, ',', '.') . ')';
+                            $customText .= ' (+' . MoneyFormatter::format($customPrice) . ')';
                         } elseif ($customPrice == 0 && $customAction !== 'remove') {
                             $customText .= ' (Gratis)';
                         }
@@ -257,16 +258,17 @@ class ThermalReceipt
             }
             
             // Observações do item
-            if (!empty($it['notes'])) {
+            $itemNotes = DataValidator::getString($it, 'notes');
+            if (!empty($itemNotes)) {
                 $pdf->SetFont('Arial', 'I', 7);
                 $pdf->Cell(4, 3, '', 0, 0);
-                $pdf->MultiCell(0, 3, $pdfText('> Obs: ' . $it['notes']), 0);
+                $pdf->MultiCell(0, 3, $pdfText('> Obs: ' . $itemNotes), 0);
                 $pdf->Ln(1);
             }
             
             // Valor do item
             $pdf->SetFont('Arial', 'B', 8);
-            $pdf->Cell(0, 4, $pdfText('R$ ' . number_format($lineTotal, 2, ',', '.')), 0, 1, 'R');
+            $pdf->Cell(0, 4, $pdfText(MoneyFormatter::format($lineTotal)), 0, 1, 'R');
             
             if ($idx < count($items) - 1) {
                 $pdf->Ln(2);
@@ -278,27 +280,33 @@ class ThermalReceipt
         self::drawDashedLine($pdf, self::MARGIN, $pdf->GetY(), self::WIDTH - self::MARGIN, $pdf->GetY());
         $pdf->Ln(3);
 
+        $subtotal = DataValidator::getFloat($orderRow, 'subtotal');
+        $deliveryFee = DataValidator::getFloat($orderRow, 'delivery_fee');
+        $discount = DataValidator::getFloat($orderRow, 'discount');
+        $total = DataValidator::getFloat($orderRow, 'total');
+        
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell(0, 4, $pdfText('Subtotal:'), 0, 0);
-        $pdf->Cell(0, 4, $pdfText('R$ ' . number_format((float)($orderRow['subtotal'] ?? 0), 2, ',', '.')), 0, 1, 'R');
+        $pdf->Cell(0, 4, $pdfText(MoneyFormatter::format($subtotal)), 0, 1, 'R');
         
-        if (!empty($orderRow['delivery_fee']) && (float)$orderRow['delivery_fee'] > 0) {
+        if ($deliveryFee > 0) {
             $pdf->Cell(0, 4, $pdfText('Taxa de Entrega:'), 0, 0);
-            $pdf->Cell(0, 4, $pdfText('R$ ' . number_format((float)$orderRow['delivery_fee'], 2, ',', '.')), 0, 1, 'R');
+            $pdf->Cell(0, 4, $pdfText(MoneyFormatter::format($deliveryFee)), 0, 1, 'R');
         }
         
-        if (!empty($orderRow['discount']) && (float)$orderRow['discount'] > 0) {
+        if ($discount > 0) {
             $pdf->Cell(0, 4, $pdfText('Desconto:'), 0, 0);
-            $pdf->Cell(0, 4, $pdfText('- R$ ' . number_format((float)$orderRow['discount'], 2, ',', '.')), 0, 1, 'R');
+            $pdf->Cell(0, 4, $pdfText('- ' . MoneyFormatter::format($discount)), 0, 1, 'R');
         }
         
         $pdf->Ln(2);
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(0, 5, $pdfText('TOTAL:'), 0, 0);
-        $pdf->Cell(0, 5, $pdfText('R$ ' . number_format((float)($orderRow['total'] ?? 0), 2, ',', '.')), 0, 1, 'R');
+        $pdf->Cell(0, 5, $pdfText(MoneyFormatter::format($total)), 0, 1, 'R');
 
         // Observações gerais
-        if (!empty($orderRow['notes'])) {
+        $orderNotes = DataValidator::getString($orderRow, 'notes');
+        if (!empty($orderNotes)) {
             $pdf->Ln(3);
             self::drawDashedLine($pdf, self::MARGIN, $pdf->GetY(), self::WIDTH - self::MARGIN, $pdf->GetY());
             $pdf->Ln(3);
@@ -306,7 +314,7 @@ class ThermalReceipt
             $pdf->SetFont('Arial', 'B', 8);
             $pdf->Cell(0, 4, $pdfText('OBSERVACOES'), 0, 1);
             $pdf->SetFont('Arial', '', 7);
-            $pdf->MultiCell(0, 3, $pdfText($orderRow['notes']), 0);
+            $pdf->MultiCell(0, 3, $pdfText($orderNotes), 0);
         }
 
         // RODAPÉ
