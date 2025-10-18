@@ -63,7 +63,7 @@ class SecurityHeaders
     {
         // Prevenir aplicação duplicada
         if (self::$headersSent) {
-            // Logger removed
+            \Logger::debug("Security headers already sent");
             return false;
         }
         
@@ -98,7 +98,18 @@ class SecurityHeaders
         
         self::$headersSent = true;
         
-        // Logger removed
+        // Log apenas se headers HTTP foram realmente enviados
+        if (headers_sent($file, $line)) {
+            \Logger::debug("Security headers registered (HTTP headers already sent)", [
+                'count' => count(self::$appliedHeaders),
+                'file' => $file,
+                'line' => $line
+            ]);
+        } else {
+            \Logger::debug("Security headers applied", [
+                'count' => count(self::$appliedHeaders)
+            ]);
+        }
         
         return true;
     }
@@ -166,7 +177,7 @@ class SecurityHeaders
         bool $preload = false
     ): void {
         if (!self::isHttps()) {
-            // Logger removed
+            \Logger::warning("HSTS can only be applied over HTTPS");
             return;
         }
         

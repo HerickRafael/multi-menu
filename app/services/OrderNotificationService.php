@@ -19,7 +19,7 @@ class OrderNotificationService
             // Obter empresa
             $company = Company::find($companyId);
             if (!$company) {
-                Logger::warning("Empresa não encontrada", ['company_id' => $companyId]);
+                error_log("OrderNotificationService: Empresa não encontrada - company_id: {$companyId}");
                 return false;
             }
 
@@ -27,7 +27,7 @@ class OrderNotificationService
             $configs = self::getOrderNotificationConfigs($companyId);
             
             if (empty($configs)) {
-                Logger::warning("Nenhuma configuração de notificação encontrada", ['company_id' => $companyId]);
+                error_log("OrderNotificationService: Nenhuma configuração de notificação encontrada - company_id: {$companyId}");
                 return false;
             }
 
@@ -45,7 +45,7 @@ class OrderNotificationService
             return $success;
 
         } catch (Exception $e) {
-            Logger::error("Erro ao enviar notificação de pedido", $e, ['company_id' => $companyId]);
+            error_log("OrderNotificationService: Erro ao enviar notificação de pedido - company_id: {$companyId} - " . $e->getMessage());
             return false;
         }
     }
@@ -104,22 +104,15 @@ class OrderNotificationService
                     'text' => $message
                 ];
 
-                Logger::info("Enviando mensagem para número principal", [
-                    'number' => $primaryNumber,
-                    'instance' => $instanceName,
-                    'payload' => $payload
-                ]);
+                error_log("OrderNotificationService: Enviando mensagem para número principal - number: {$primaryNumber}, instance: {$instanceName}");
 
                 $result = $method->invoke($controller, $company, "/message/sendText/{$instanceName}", 'POST', $payload);
 
                 if (!$result['error']) {
                     $success = true;
-                    Logger::info("Mensagem enviada com sucesso para número principal", ['number' => $primaryNumber]);
+                    error_log("OrderNotificationService: Mensagem enviada com sucesso para número principal - number: {$primaryNumber}");
                 } else {
-                    Logger::error("Erro ao enviar para número principal", null, [
-                        'number' => $primaryNumber,
-                        'error' => $result['error']
-                    ]);
+                    error_log("OrderNotificationService: Erro ao enviar para número principal - number: {$primaryNumber}, error: " . $result['error']);
                 }
             }
             
@@ -130,28 +123,22 @@ class OrderNotificationService
                     'text' => $message
                 ];
 
-                Logger::info("Enviando mensagem para número secundário", [
-                    'number' => $secondaryNumber,
-                    'instance' => $instanceName
-                ]);
+                error_log("OrderNotificationService: Enviando mensagem para número secundário - number: {$secondaryNumber}, instance: {$instanceName}");
 
                 $result = $method->invoke($controller, $company, "/message/sendText/{$instanceName}", 'POST', $payload);
 
                 if (!$result['error']) {
                     $success = true;
-                    Logger::info("Mensagem enviada com sucesso para número secundário", ['number' => $secondaryNumber]);
+                    error_log("OrderNotificationService: Mensagem enviada com sucesso para número secundário - number: {$secondaryNumber}");
                 } else {
-                    Logger::error("Erro ao enviar para número secundário", null, [
-                        'number' => $secondaryNumber,
-                        'error' => $result['error']
-                    ]);
+                    error_log("OrderNotificationService: Erro ao enviar para número secundário - number: {$secondaryNumber}, error: " . $result['error']);
                 }
             }
 
             return $success;
 
         } catch (Exception $e) {
-            Logger::error("Erro ao enviar mensagem", $e, ['instance' => $instanceName ?? 'unknown']);
+            error_log("OrderNotificationService: Erro ao enviar mensagem - instance: " . ($instanceName ?? 'unknown') . " - " . $e->getMessage());
             return false;
         }
     }

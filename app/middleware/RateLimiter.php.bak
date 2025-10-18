@@ -181,11 +181,11 @@ class RateLimiter
                 
                 if ($connected && self::$redis->ping()) {
                     self::$adapter = 'redis';
-                    // Logger removed
+                    \Logger::info("RateLimiter usando Redis adapter");
                     return 'redis';
                 }
             } catch (\Exception $e) {
-                // Logger removed
+                \Logger::warning("Redis não disponível, usando file adapter", $e);
             }
         }
         
@@ -217,7 +217,12 @@ class RateLimiter
             
             // Verificar se excedeu limite
             if ($current > $maxRequests) {
-                // Logger removed
+                \Logger::warning("Rate limit exceeded", [
+                    'identifier' => substr($identifier, 0, 16),
+                    'ip' => self::getClientIp(),
+                    'current' => $current,
+                    'limit' => $maxRequests
+                ]);
                 
                 return false;
             }
@@ -225,7 +230,7 @@ class RateLimiter
             return true;
             
         } catch (\Exception $e) {
-            // Logger removed
+            \Logger::error("Error checking rate limit with Redis", $e);
             // Em caso de erro, permitir requisição (fail open)
             return true;
         }
@@ -252,7 +257,12 @@ class RateLimiter
         
         // Verificar limite
         if (count($data['requests']) >= $maxRequests) {
-            // Logger removed
+            \Logger::warning("Rate limit exceeded", [
+                'identifier' => substr($identifier, 0, 16),
+                'ip' => self::getClientIp(),
+                'current' => count($data['requests']),
+                'limit' => $maxRequests
+            ]);
             
             return false;
         }

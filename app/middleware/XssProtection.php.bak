@@ -247,7 +247,10 @@ class XssProtection
                     'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
                 ];
                 
-                // Logger removed
+                \Logger::warning("XSS attempt detected", [
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                    'input' => substr($input, 0, 100)
+                ]);
                 
                 return true;
             }
@@ -347,7 +350,10 @@ class XssProtection
         $_POST = self::sanitizeArrayRecursive($_POST);
         $_REQUEST = self::sanitizeArrayRecursive($_REQUEST);
         
-        // Logger removed
+        \Logger::debug("Global variables sanitized", [
+            'get_params' => count($_GET),
+            'post_params' => count($_POST)
+        ]);
     }
     
     /**

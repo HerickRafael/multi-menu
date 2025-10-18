@@ -103,10 +103,14 @@ class SqlInjectionPrevention
                 $config['options']
             );
             
-            // Logger removed
+            \Logger::info("SQL Injection Prevention configured", [
+                'driver' => $config['driver'],
+                'host' => $config['host'],
+                'database' => $config['database']
+            ]);
             
         } catch (\PDOException $e) {
-            // Logger removed);
+            \Logger::error("Failed to configure database connection: " . $e->getMessage());
             throw $e;
         }
     }
@@ -148,7 +152,10 @@ class SqlInjectionPrevention
                 'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
             ];
             
-            // Logger removed
+            \Logger::warning("Suspicious SQL query detected and blocked", [
+                'sql' => $sql,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            ]);
             
             throw new \RuntimeException("Suspicious SQL query detected");
         }
@@ -183,7 +190,7 @@ class SqlInjectionPrevention
             return ['affected_rows' => $stmt->rowCount()];
             
         } catch (\PDOException $e) {
-            // Logger removed);
+            \Logger::error("SQL query execution failed - SQL: " . $sql . " - Error: " . $e->getMessage());
             throw $e;
         }
     }

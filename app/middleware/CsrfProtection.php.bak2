@@ -79,7 +79,10 @@ class CsrfProtection
         // Limitar número de tokens (prevenir memory exhaustion)
         self::limitTokens();
         
-        // Logger removed
+        \Logger::debug("CSRF token generated", [
+            'token' => substr($token, 0, 8) . '...',
+            'single_use' => $singleUse
+        ]);
         
         return $token;
     }
@@ -101,13 +104,15 @@ class CsrfProtection
         
         // Token vazio
         if (empty($token)) {
-            // Logger removed
+            \Logger::warning("CSRF validation failed: empty token");
             return false;
         }
         
         // Token não existe
         if (!isset($_SESSION['csrf_tokens'][$token])) {
-            // Logger removed
+            \Logger::warning("CSRF validation failed: token not found", [
+                'token' => substr($token, 0, 8) . '...'
+            ]);
             return false;
         }
         
@@ -116,13 +121,20 @@ class CsrfProtection
         // Verificar expiração
         if (time() - $tokenData['created_at'] > self::TOKEN_LIFETIME) {
             unset($_SESSION['csrf_tokens'][$token]);
-            // Logger removed
+            \Logger::warning("CSRF validation failed: token expired", [
+                'token' => substr($token, 0, 8) . '...',
+                'age' => time() - $tokenData['created_at']
+            ]);
             return false;
         }
         
         // Verificar IP (se habilitado)
         if ($checkIp && $tokenData['ip'] !== self::getClientIp()) {
-            // Logger removed
+            \Logger::warning("CSRF validation failed: IP mismatch", [
+                'token' => substr($token, 0, 8) . '...',
+                'expected_ip' => $tokenData['ip'],
+                'actual_ip' => self::getClientIp()
+            ]);
             return false;
         }
         
@@ -130,7 +142,9 @@ class CsrfProtection
         if ($checkUserAgent) {
             $currentUA = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
             if ($tokenData['user_agent'] !== $currentUA) {
-                // Logger removed
+                \Logger::warning("CSRF validation failed: User Agent mismatch", [
+                    'token' => substr($token, 0, 8) . '...'
+                ]);
                 return false;
             }
         }
@@ -140,7 +154,9 @@ class CsrfProtection
             unset($_SESSION['csrf_tokens'][$token]);
         }
         
-        // Logger removed
+        \Logger::debug("CSRF token validated successfully", [
+            'token' => substr($token, 0, 8) . '...'
+        ]);
         
         return true;
     }
@@ -170,7 +186,11 @@ class CsrfProtection
         if (!$isValid && $dieOnFailure) {
             http_response_code(403);
             
-            // Logger removed
+            \Logger::warning("CSRF validation failed - request blocked", [
+                'method' => $method,
+                'uri' => $_SERVER['REQUEST_URI'] ?? 'unknown',
+                'ip' => self::getClientIp()
+            ]);
             
             // Resposta baseada no Accept header
             if (self::expectsJson()) {
@@ -294,7 +314,7 @@ class CsrfProtection
         }
         
         if ($cleaned > 0) {
-            // Logger removed
+            \Logger::debug("CSRF tokens cleaned", ['count' => $cleaned]);
         }
     }
     
@@ -322,7 +342,9 @@ class CsrfProtection
                 true
             );
             
-            // Logger removed
+            \Logger::debug("CSRF tokens limited", [
+                'removed' => count($tokens) - self::MAX_TOKENS
+            ]);
         }
     }
     

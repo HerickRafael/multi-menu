@@ -16,7 +16,6 @@
       "app/helpers/TextParser.php",
       "app/helpers/JsonHelper.php",
       "app/helpers/DataValidator.php",
-      "app/helpers/Logger.php",
       "app/helpers/xss_helper.php",
       "app/middleware/RateLimiter.php",
       "app/middleware/CsrfProtection.php",
